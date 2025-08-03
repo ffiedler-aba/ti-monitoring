@@ -1,12 +1,12 @@
 function toggleAccordion(clickedAccordion) {
     var currentContentHeight = window.getComputedStyle(clickedAccordion.parentElement.getElementsByClassName('accordion-element-content')[0]).height;
-    // close clicked accordion
+    // close clicked accordion element
     if (currentContentHeight != '0px') {
         clickedAccordion.parentElement.getElementsByClassName('accordion-element-content')[0].style.height = '0px';
         clickedAccordion.style.backgroundColor = '';
         clickedAccordion.getElementsByClassName('expand-collapse-icon')[0].textContent = '+';
     }
-    // open clicked accordion and close all other accordions
+    // open clicked accordion element and close all other accordion elements
     else {
         var accordionElements = document.getElementsByClassName('accordion-element');
         Array.from(accordionElements).forEach(function(element) {
