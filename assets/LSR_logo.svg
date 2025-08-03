@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 300 300" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(15.7625,0,0,15.7625,-1432.48,-4351.04)">
+        <g transform="matrix(12,0,0,12,96.6738,295.07)">
+        </g>
+        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">L</text>
+    </g>
+    <g transform="matrix(15.2426,0,0,15.2426,-1330.05,-4239.87)">
+        <g transform="matrix(12,0,0,12,98.0039,295.07)">
+        </g>
+        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">S</text>
+    </g>
+    <g transform="matrix(15.7625,0,0,15.7625,-1253.49,-4351.04)">
+        <g transform="matrix(12,0,0,12,98.666,295.07)">
+        </g>
+        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">R</text>
+    </g>
+    <g transform="matrix(4.72165,0,0,0.118008,-1227.63,-27.4135)">
+        <rect x="260" y="232.301" width="17.917" height="135.397"/>
+    </g>
+    <g transform="matrix(2.89118e-16,4.72165,-0.118008,7.22592e-18,43.3914,-1227.63)">
+        <rect x="260" y="232.301" width="17.917" height="135.397"/>
+    </g>
+    <g transform="matrix(2.89118e-16,4.72165,-0.118008,7.22592e-18,327.413,-1227.63)">
+        <rect x="260" y="232.301" width="17.917" height="135.397"/>
+    </g>
+    <g transform="matrix(-4.72165,5.78235e-16,-1.44518e-17,-0.118008,1527.63,43.3914)">
+        <rect x="260" y="232.301" width="17.917" height="135.397"/>
+    </g>
+</svg>

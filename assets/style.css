@@ -1,0 +1,125 @@
+html {
+    font-family: Helvetica
+}
+body {
+    display: flex;
+    justify-content: center;
+    margin: 0px;
+
+}
+#react-entry-point {
+    box-shadow: 0 0 20px 5px lightgrey;
+}
+main, header, #footer {
+    max-width: 1200px;
+    width: calc(100vw - 40px);
+    padding: 5px 40px;
+}
+main {
+    margin-top: 90px
+}
+header {
+    display: flex;
+    position: fixed;
+    background-color: white;
+    z-index: 1;
+}
+#logo-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0px 40px 0px 0px;
+}
+#logo {
+    cursor: pointer;
+    height: 50px;
+    width: 50px;
+}
+#_pages_content {
+    min-height: 100px;
+}
+#footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    background-color: white;
+}
+#footer div {
+    flex-grow: 1;
+    text-align: center;
+    margin: 15px;
+}
+.box {
+    margin: 12px 0px;
+    padding: 10px;
+    background-color: lightgrey;
+}
+.box h3 {
+    margin: 0.5em 0em;
+}
+#statistics ul {
+    list-style: none;
+    padding: 0
+}
+.button {
+    font-size: 1.5em;
+    cursor: pointer;
+}
+.accordion-element ul {
+  margin: 0px;
+}
+.accordion li {
+    display: flex;
+    align-items: center;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+.accordion-element-title .availability-icon, .accordion-element-content ul li span {
+    width: 1em;
+    height: 1em;
+    display: inline-block;
+    border-radius: 50%;
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-right: 0.75em;
+}
+.accordion-element-content ul li span {
+    width: 0.5em;
+    height: 0.5em;
+}
+.availability-icon.available {
+   background-color: green;
+}
+.availability-icon.impaired {
+   background-color: orange;
+}
+.availability-icon.unavailable {
+   background-color: red;
+}
+.accordion-element-title {
+    border-top: 1px solid grey;
+    padding: 5px 10px;
+    display: flex;
+}
+.accordion-element-title * {
+    pointer-events: none;
+}
+.accordion-element-title:hover {
+    background-color: lightgrey;
+    cursor: pointer;
+}
+.group-name {
+    flex-grow: 1;
+}
+.accordion-element:last-of-type {
+    border-bottom: 1px solid grey;
+}
+.accordion-element-content {
+    transition: 0.2s ease-in-out;
+    overflow: clip;
+    height: 0px;
+}
+.accordion-element-content ul {
+    padding-top: 20px;
+    padding-bottom: 20px
+}
