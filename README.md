@@ -6,11 +6,11 @@ Es ist modular aufgebaut, sodass sich je nach Bedarf und Systemleistung auch nur
 Die Funktionen lassen sich wie folgt zusammenfassen:
 
 * __Abruf und Archivierung__<br>
-Die Kernfunktionalität besteht in der regelmäßigen Abfrage des Verfügbarkeitsstatus sämtlicher zentraler TI-Komponenten über eine öffentliche Schnittstelle der gematik GmbH. Die Ergebnisse werden strukturiert in einer hdf5-Datei gespeichert und können so auch für umfangreiche statistische Auswertungen verwendet werden.
+Die Kernfunktionalität besteht in der regelmäßigen Abfrage des Verfügbarkeitsstatus sämtlicher zentraler TI-Komponenten über eine öffentliche Schnittstelle der gematik GmbH. Die Ergebnisse werden strukturiert in einer hdf5-Datei gespeichert. So können auch für längere Beobachtungszeiträume statistische Auswertungen durchgeführt werden, um beispielsweise die Einhaltung von SLAs zu beurteilen.
 * __Benachrichtigungen__<br>
-Bei Änderungen der Verfügbarkeit können Benachrichtigungen per E-Mail versendet werden. Zur Filterung der Komponenten kann wahlweise eine White- oder Blacklist definiert werden.
+Bei Änderungen der Verfügbarkeit können Benachrichtigungen per E-Mail versendet werden. Zur Filterung der TI-Komponenten kann wahlweise eine White- oder Blacklist definiert werden.
 * __Web-App__<br>
-Der aktuelle Status sämtlicher TI-Komponenten lässt sich nach Produkten gruppiert in einer interaktiven Web-App einsehen. Darüber hinaus lässt sich für die einzelnen Komponenten eine Statistik der letzten Stunden aufrufen.
+Der aktuelle Status sämtlicher TI-Komponenten lässt sich nach Produkten gruppiert in einer interaktiven Web-App einsehen. Darüber hinaus kann für die einzelnen Komponenten eine Statistik der letzten Stunden aufgerufen werden.
 
 ## Abruf und Archivierung
 Abruf und Archivierung erfolgen durch das Skript `cron.py`, das alle fünf Minuten durch einen Cronjob ausgeführt werden sollte. Um möglichst die aktuellsten Daten abzugreifen,  empfiehlt sich ein minimaler Versatz zum Bereitstellungszeitpunkt der Daten:
