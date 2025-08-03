@@ -144,7 +144,7 @@ def send_mail(smtp_settings, recipient, subject, html_message):
         None
     """
     msg = EmailMessage()
-    msg.set_content(MIMEText(html_message, 'html'))
+    msg.add_alternative(html_message, subtype='html')
     msg['Subject'] = subject
     msg['From'] = smtp_settings['from']
     msg['To'] = recipient
