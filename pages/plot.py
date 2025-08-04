@@ -27,8 +27,10 @@ def serve_layout(ci=None, **other_unknown_query_strings):
     )
     fig.update_traces(marker=dict(color=custom_colors))
     fig.update_yaxes(tickvals=[0, 1], ticktext=['0', '1'])
+    ci_info = get_data_of_ci(file_name, ci)
     layout = [
         html.H2('Verfügbarkeit der Komponente ' + str(ci)),
+        html.H3(ci_info['product'] + ', ' + ci_info['name'] + ', ' + ci_info['organization']),
         html.A(href=home_url, children = [
             html.Button('Zurück', className = 'button')
         ]),
