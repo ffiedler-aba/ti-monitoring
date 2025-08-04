@@ -50,9 +50,9 @@ In der Datei `notifications.json` können mehrere Profile definiert werden. Ein 
 | Name | Beschreibung |
 | ----------- | ----------- |
 | name | Name des Profils (wird in der Anrede verwendet) |
-| recipients | Liste mit mindestens einer E-Mail-Adresse (Empfänger) |
-| ci_list | Liste von Konfigurationselementen (z.B. `["CI-000001", "CI-0000002"]`) |
-| type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationselemente behandelt wird) |
+| recipients | Liste mit mindestens einer E-Mail-Adresse (z.B. `["mail1@example.com", "mail2@example.com"]`) |
+| ci_list | Liste von Konfigurationsobjekten (z.B. `["CI-000001", "CI-0000002"]`) |
+| type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationsobjekte behandelt wird) |
 
 Hier ein fiktives Beispiel für eine E-Mail-Benachrichtigung:
 ![E-Mail-Benachrichtigung über Störung (fiktives Beispiel)](docs/img/Benachrichtigung%20(Fiktives%20Beispiel).png "E-Mail-Benachrichtigung über Störung (fiktives Beispiel)")
