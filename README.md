@@ -50,7 +50,7 @@ In der Datei `notifications.json` können mehrere Profile definiert werden. Ein 
 | Name | Beschreibung |
 | ----------- | ----------- |
 | name | Name des Profils (wird in der Anrede verwendet) |
-| reciepients | Liste mit mindestens einer E-Mail-Adresse (Empfänger) |
+| recipients | Liste mit mindestens einer E-Mail-Adresse (Empfänger) |
 | ci_list | Liste von Konfigurationselementen (z.B. `["CI-000001", "CI-0000002"]`) |
 | type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationselemente behandelt wird) |
 
