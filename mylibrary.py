@@ -216,8 +216,8 @@ def send_notifications(file_name, notifications_config_file, smtp_settings):
                 message += create_html_list_item_for_change(change)
             message += '</ul><p>Den aktuellen Status können Sie unter <a href="https://ti-monitoring.lukas-schmidt-russnak.de">https://ti-monitoring.lukas-schmidt-russnak.de</a> einsehen.</p><p>Viele Grüße<br>TI-Monitoring</p></body></html>'
             subject = 'TI-Monitoring: ' + str(number_of_relevant_changes) + ' Änderungen der Verfügbarkeit'
-            recipient = config['mail']
-            send_mail(smtp_settings, recipient, subject, message)
+            recipients = config['recipients']
+            send_mail(smtp_settings, recipients, subject, message)
 
 def main():
     return
