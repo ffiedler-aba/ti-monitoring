@@ -123,3 +123,6 @@ header {
     padding-top: 20px;
     padding-bottom: 20px
 }
+a:any-link {
+    color:blue;
+}
