@@ -158,12 +158,15 @@ def pretty_timestamp(timestamp_str):
     formatted_time = berlin_time.strftime('%d.%m.%Y %H:%M:%S Uhr')
     return formatted_time
 
-def send_mail(smtp_settings, recipient, subject, html_message):
+def send_mail(smtp_settings, recipients, subject, html_message):
     """
     Sends a html-formatted mail to a specified reciepient using SMTP
 
     Args:
         smtp_settings (dict): host, port, username, password and sender address (from)
+        recipients (list of str): list of email addresses
+        subject (str): mail subject
+        html_message (str): html content of mail
 
     Returns:
         None
@@ -172,7 +175,7 @@ def send_mail(smtp_settings, recipient, subject, html_message):
     msg.add_alternative(html_message, subtype='html')
     msg['Subject'] = subject
     msg['From'] = smtp_settings['from']
-    msg['To'] = recipient
+    msg['Bcc'] = recipients
     s = smtplib.SMTP(
         host = smtp_settings['host'],
         port = smtp_settings['port']
