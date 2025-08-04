@@ -27,6 +27,7 @@ def serve_layout(ci=None, **other_unknown_query_strings):
     )
     fig.update_traces(marker=dict(color=custom_colors))
     fig.update_yaxes(tickvals=[0, 1], ticktext=['0', '1'])
+    fig.update_layout(yaxis=dict(range=[-0.1, 1.1]))
     ci_info = get_data_of_ci(file_name, ci)
     layout = [
         html.H2('Verfügbarkeit der Komponente ' + str(ci)),
