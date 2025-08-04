@@ -117,6 +117,31 @@ def get_data_of_all_cis(file_name):
             all_ci_data.append(ci_data)
     return pd.DataFrame(all_ci_data)
 
+def get_data_of_ci(file_name, ci):
+    """
+    Gets general data for a specific configuration item from hdf5 file
+
+    Args:
+        file_name (str): Path to hdf5 file
+        ci (str): ID of the desired confirguration item
+
+    Returns:
+        DataFrame: General data of the desired configuration item
+    """
+    all_ci_data = []
+    with h5.File(file_name, 'r') as f:
+        group = f["configuration_items/"+ci]
+        ci_data = {}
+        ci_data["ci"] = ci
+        for name in group:
+            dataset = group[name]
+            value = dataset[()]
+            # Handle scalar bytes (decode)
+            if isinstance(value, bytes):
+                value = value.decode('utf-8')
+            ci_data[name] = value
+    return pd.DataFrame([ci_data])
+
 def pretty_timestamp(timestamp_str):
     """
     Converts UTC timestamp of API to pretty formatted timestamp in local time
