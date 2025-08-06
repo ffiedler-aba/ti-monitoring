@@ -92,9 +92,11 @@ header {
 }
 .availability-icon.impaired {
    background-color: orange;
+   border-radius: 0;
 }
 .availability-icon.unavailable {
    background-color: red;
+   border-radius: 0;
 }
 .accordion-element-title {
     border-top: 1px solid grey;

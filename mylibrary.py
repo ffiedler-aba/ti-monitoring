@@ -245,7 +245,7 @@ def send_notifications(file_name, notifications_config_file, smtp_settings, home
         number_of_relevant_changes = len(relevant_changes)
         if number_of_relevant_changes > 0:
             message = '<html lang="de"><body><p>Hallo ' + str(config['name']) + ',</p>'
-            message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Kompnenten geändert:</p><ul>'
+            message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Komponenten geändert:</p><ul>'
             for index, change in relevant_changes.iterrows():
                 message += create_html_list_item_for_change(change, home_url)
             if home_url:    
