@@ -54,16 +54,17 @@ In der Datei `notifications.json` können mehrere Profile definiert werden. Ein 
 | ci_list | Liste von Konfigurationsobjekten (z.B. `["CI-000001", "CI-0000002"]`) |
 | type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationsobjekte behandelt wird) |
 
-Hier ein fiktives Beispiel für eine E-Mail-Benachrichtigung:
-![E-Mail-Benachrichtigung über Störung (fiktives Beispiel)](docs/img/Benachrichtigung%20(Fiktives%20Beispiel).png "E-Mail-Benachrichtigung über Störung (fiktives Beispiel)")
+Hier ein Beispiel für eine E-Mail-Benachrichtigung:
+![E-Mail-Benachrichtigung über Störung (Beispiel)](docs/img/Mail%20Beispiel%20Störung.png "E-Mail-Benachrichtigung über Störung (Beispiel)")
 
 ## Web-App
 Der aktuelle Status verschiedener Komponenten kann optional auch in Form einer Web-App auf Basis des [Dash-Frameworks](https://dash.plotly.com) bereitgestellt werden. Die App kann z.B. in Kombination mit uWSGi und nginx (ähnlich [wie hier beschrieben](https://carpiero.medium.com/host-a-dashboard-using-python-dash-and-linux-in-your-own-linux-server-85d891e960bc) veröffentlicht werden.
 
 Auf der Startseite der App werden die Komponenten nach Produkt gruppiert dargestellt. Durch Anklicken der Gruppen lassen sich die jeweiligen Komponenten einblenden.
-![Screenshot aus der App: Startseite der App](docs/img/App%20Home.png "Startseite der App")
+![Screenshot aus der App: Startseite der App (Beispiel)](docs/img/App%20Home%20Beispiel.png "Startseite der App (Beispiel)")
+![Screenshot aus der App: Startseite der App mit Störung (Beispiel)](docs/img/App%20Home%20Beispiel%20Störung.png "Startseite der App mit Störung (Beispiel)")
 Per Klick auf die ID einer Komponente lässt sich eine Statistik der letzten Stunden aufrufen.
-![Screenshot aus der App: Statistik für eine Komponente](docs/img/App%20Statistik.png "Statistik für eine Komponente")
+![Screenshot aus der App: Statistik für eine Komponente (Beispiel)](docs/img/App%20Statistik.png "Statistik für eine Komponente (Beispiel)")
 Um eine gute Performance zu gewährlsiten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `myconfig.py` reduziert werden. Zudem kann es ratsam sein, die Datei `data.hdf5` regelmäßig zu archivieren bzw. zu leeren.
 
 Soll die Web-App überhaupt nicht genutzt werden, sind folgende Dateien irrelevant und können entfernt werden:
