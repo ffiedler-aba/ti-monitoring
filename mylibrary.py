@@ -250,7 +250,7 @@ def send_notifications(file_name, notifications_config_file, smtp_settings, home
                 message += create_html_list_item_for_change(change, home_url)
             if home_url:    
                 message += '</ul><p>Den aktuellen Status aller Komponenten können Sie unter <a href="' + home_url + '">' + home_url + '</a> einsehen.</p>'
-            message += '<p>Viele Grüße<br>TI-Monitoring</p></body></html>'
+            message += '<p>Weitere Hintergrundinformationen finden Sie im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH.</a></p><p>Viele Grüße<br>TI-Monitoring</p></body></html>'
             subject = 'TI-Monitoring: ' + str(number_of_relevant_changes) + ' Änderungen der Verfügbarkeit'
             recipients = config['recipients']
             send_mail(smtp_settings, recipients, subject, message)
