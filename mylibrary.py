@@ -189,18 +189,23 @@ def send_mail(smtp_settings, recipients, subject, html_message):
     s.send_message(msg)
     s.quit()
 
-def create_html_list_item_for_change(change):
+def create_html_list_item_for_change(change, home_url):
     """
     Creates a html list item element for a configuration item with changed availability status
 
     Args:
         change (DataFrame): data for an individual configuration item containing information
         such as organization and product as well as current availability and availability difference
+        home_url (str): base url of dash app
 
     Returns:
         str: html list item element
     """
-    html_str = '<li><strong>' + str(change['ci']) + ': ' + str(change['name']) + '</strong>, ' + str(change['organization']) + ' '
+    if home_url:
+        href = home_url + '/plot?ci=' + str(change['ci'])
+    else:
+        href = ''
+    html_str = '<li><strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
     if change['availability_difference'] == 1:
         html_str += '<span style=color:green>ist wieder verfügbar</span>'
     elif change['availability_difference'] == -1:
@@ -210,7 +215,7 @@ def create_html_list_item_for_change(change):
     html_str += ', Stand: ' + str(pretty_timestamp(change['time'])) + '</li>'
     return html_str
 
-def send_notifications(file_name, notifications_config_file, smtp_settings):
+def send_notifications(file_name, notifications_config_file, smtp_settings, home_url):
     """
     Sends email notifications for each notification configuration about all
     changes that are relevant for the respective configuration
@@ -219,6 +224,7 @@ def send_notifications(file_name, notifications_config_file, smtp_settings):
         file_name (str): Path to hdf5 file
         notifications_config_file (str): Path to json file with notification configurations
         smtp_settings (dict): host, port, username, password and sender address (from)
+        home_url (str): base url of dash app
 
     Returns:
         None
@@ -241,8 +247,10 @@ def send_notifications(file_name, notifications_config_file, smtp_settings):
             message = '<html lang="de"><body><p>Hallo ' + str(config['name']) + ',</p>'
             message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Kompnenten geändert:</p><ul>'
             for index, change in relevant_changes.iterrows():
-                message += create_html_list_item_for_change(change)
-            message += '</ul><p>Den aktuellen Status können Sie unter <a href="https://ti-monitoring.lukas-schmidt-russnak.de">https://ti-monitoring.lukas-schmidt-russnak.de</a> einsehen.</p><p>Viele Grüße<br>TI-Monitoring</p></body></html>'
+                message += create_html_list_item_for_change(change, home_url)
+            if home_url:    
+                message += '</ul><p>Den aktuellen Status aller Komponenten können Sie unter <a href="' + home_url + '">' + home_url + '</a> einsehen.</p>'
+            message += '<p>Viele Grüße<br>TI-Monitoring</p></body></html>'
             subject = 'TI-Monitoring: ' + str(number_of_relevant_changes) + ' Änderungen der Verfügbarkeit'
             recipients = config['recipients']
             send_mail(smtp_settings, recipients, subject, message)
