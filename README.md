@@ -12,6 +12,18 @@ Bei Änderungen der Verfügbarkeit können Benachrichtigungen per E-Mail versend
 * __Web-App__<br>
 Der aktuelle Status sämtlicher TI-Komponenten lässt sich nach Produkten gruppiert in einer interaktiven Web-App einsehen. Darüber hinaus kann für die einzelnen Komponenten eine Statistik der letzten Stunden aufgerufen werden.
 
+## Einrichtung der Python-Umgebung
+Das Tool kann beispielweise auf einem (virtuellen) Server, NAS oder (idealerweise permanent laufenden) Rechner installiert werden. Systemanforderungen und Einrichtungsaufwand variieren je nach Umfang der genutzten Funktionen. Für die 
+Grundfunktionalität (Abruf und Archivierung von Verfügbarkeitsinformationen) sind lediglich die Pakete erforderlich, die in der Datei `mylibrary.py` importiert werden. Nur im Falle der App sind weitere Pakete (z.B. `dash`) zu installieren sowie ein Webserver (z.B. nginx) und ggf. ein Applikationsserver (z.B. uWSGi). Weitere Details zur Funktionsweise und Konfiguration finden sich weiter unten. Allgemein empfiehlt sich die Erstellung einer virtuellen Python-Umgebung. Dies geschieht beispielsweise unter Ubuntu 24.04 LTS wie folgt:
+
+```
+sudo apt update && sudo apt upgrade
+sudo apt install python3-venv
+python3 -m venv /home/Lukas/myenv
+source /home/lukas/myenv/bin/activate
+```
+Die erforderlichen Pakete (z.B. `h5py`) können daraufhin mit dem Befehl `pip3 install <module>` installiert werden, z.B. `pip3 install h5py`.
+
 ## Abruf und Archivierung
 Abruf und Archivierung erfolgen durch das Skript `cron.py`, das alle fünf Minuten durch einen Cronjob ausgeführt werden sollte. Um möglichst die aktuellsten Daten abzugreifen,  empfiehlt sich ein minimaler Versatz zum Bereitstellungszeitpunkt der Daten:
 ```
