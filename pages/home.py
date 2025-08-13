@@ -22,7 +22,7 @@ def serve_layout():
                     children = [
                         html.Span(className = 'availability-icon ' + 
                             'available' if sum(group['current_availability']) == len(group)
-                            else 'availability-icon unavilable' if sum(group['current_availability']) == 0
+                            else 'availability-icon unavailable' if sum(group['current_availability']) == 0
                             else 'availability-icon impaired',
                         ),
                         html.Span(
