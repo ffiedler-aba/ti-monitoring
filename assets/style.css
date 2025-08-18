@@ -13,7 +13,7 @@ body {
 main, header, #footer {
     max-width: 1200px;
     width: calc(100vw - 40px);
-    padding: 5px 40px;
+    padding: 5px 20px;
 }
 main {
     margin-top: 90px
