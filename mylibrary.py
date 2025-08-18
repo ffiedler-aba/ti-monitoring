@@ -42,7 +42,8 @@ def update_file(file_name, url):
             # availybility
             group_av = f.require_group("availability/" + str(ci["ci"]))
             av = int(ci["availability"])
-            timestamp = datetime.strptime(ci["time"], '%Y-%m-%dT%H:%M:%S.%fZ').timestamp()
+            utc_time = datetime.strptime(ci["time"], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.UTC)
+            timestamp = utc_time.timestamp()
             ds = group_av.require_dataset(str(timestamp),shape=(),dtype=int)
             ds[()] = av
             # configuration items

@@ -8,7 +8,7 @@ dash.register_page(__name__)
 
 
 def serve_layout(ci=None, **other_unknown_query_strings):
-    cutoff = (pd.Timestamp.now() - pd.Timedelta(hours=stats_delta_hours)).tz_localize('UTC').tz_convert('Europe/Berlin')
+    cutoff = pd.Timestamp.now() - pd.Timedelta(hours=stats_delta_hours)
     ci_data = get_availability_data_of_ci(file_name, ci)
     ci_data = ci_data[ci_data['times']>=cutoff]
     number_of_values = len(ci_data['values'])
