@@ -79,21 +79,11 @@ Per Klick auf die ID einer Komponente lässt sich eine Statistik der letzten Stu
 ![Screenshot aus der App: Statistik für eine Komponente (Beispiel)](docs/img/App%20Statistik%20Beispiel.png "Statistik für eine Komponente (Beispiel)")
 Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `myconfig.py` reduziert werden. Zudem kann es ratsam sein, die Datei `data.hdf5` regelmäßig zu archivieren bzw. zu leeren.
 
-Soll die Web-App überhaupt nicht genutzt werden, sind folgende Dateien irrelevant und können entfernt werden:
+Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Dateien irrelevant und können entfernt werden:
 
-```
-.
-+-- assets
-|   +-- favicon.ico
-|   +-- LSR_logo.svg
-|   +-- script.js
-|   +-- style.css
-+-- pages
-|   +-- home.py
-|   +-- plot.py
-+-- app.py
-
-```
+* assets
+* pages
+* app.py
 
 ---
 **DISCLAIMER**
