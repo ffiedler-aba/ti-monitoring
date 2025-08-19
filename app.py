@@ -11,7 +11,7 @@ def serve_layout():
         html.Header(children = [
             html.Div(id='logo-wrapper', children = [
                 html.A(href=home_url, children = [
-                    html.Img(id='logo', src='assets/LSR_logo.svg')
+                    html.Img(id='logo', src='assets/logo.svg')
                 ])
             ]),
             html.H1(children='TI-Monitoring')
