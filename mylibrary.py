@@ -4,6 +4,7 @@ import pandas as pd
 import h5py as h5
 import requests, json, time, pytz, os
 from datetime import datetime
+from tzlocal import get_localzone
 import smtplib
 from email.message import EmailMessage
 from email.mime.text import MIMEText
