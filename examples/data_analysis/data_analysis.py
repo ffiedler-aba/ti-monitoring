@@ -2,11 +2,21 @@ from mylibrary import *
 from myconfig import *
 
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
-# get basic and availability data for all cis
+def comma_format(x, pos):
+    return str(x).replace('.', ',')
+
+# specify the file name if it differs from the name in the config file
+#file_name = 'data_2025_KW34.hdf5'
+# get basic data and availability data for all cis
 all_data = []
 for index, ci in get_data_of_all_cis(file_name).iterrows():
     availability_data = get_availability_data_of_ci(file_name, ci['ci'])
+    # selection of time window
+    #availability_data = availability_data[availability_data['times']>pd.Timestamp('2025-08-18T06:00:0.0').tz_localize('Europe/Berlin')]
+    #availability_data = availability_data[availability_data['times']<pd.Timestamp('2025-08-22T18:01:0.0').tz_localize('Europe/Berlin')]
+    # get first and last timestamp of window
     first_timestamp = availability_data['times'].iloc[0]
     last_timestamp = availability_data['times'].iloc[-1]
     expected_number_of_data_points = int(round(pd.Timedelta(last_timestamp - first_timestamp).total_seconds())/300)
@@ -25,29 +35,35 @@ all_data = pd.DataFrame(all_data)
 
 # plot cis that were unavailable
 plot_data = all_data[all_data['unavailable']>0].sort_values(by = 'unavailable')
+
 data_start = plot_data['first_timestamp'].min().strftime('%d.%m.%Y %H:%M:%S Uhr')
 data_end = plot_data['last_timestamp'].max().strftime('%d.%m.%Y %H:%M:%S Uhr')
 names = plot_data['ci_name']
-data = plot_data['unavailable'].values*5
-fig, ax = plt.subplots(figsize = (10,10))
+data = plot_data['unavailable'].values*5/60
+fig, ax = plt.subplots(figsize = (15, 10))
 ax.tick_params(labelsize = 8)
 ax.tick_params(axis='x', labelsize = 12)
 barh = ax.barh(names, data, 0.5)
-ax.bar_label(barh)
+ax.bar_label(barh, labels=[f"{value:,.2f}".replace('.', ',') for value in data])
 ax.text(
     data.max()/4,
-    len(data)/4,
+    len(data)/6,
     """Die Berechung der Ausfallzeiten erfolgte durch Multiplikation
 der Anzahl der Datenpunkte 'nicht verfügbar' mit 5 Minuten,
 der Dauer eines Abfrageintervalls. Die Daten wurden von der
 öffentlichen TI-Lage-Schnittstelle der gematik GmbH abgerufen.
 Bei der Interpretation sind demensprechend die Hinweise in der
 Dokumentation der Schnittstelle zu berücksichtigen. Weitere
-Informationen unter https://github.com/gematik/api-tilage"""
+Informationen unter https://github.com/gematik/api-tilage.
+Alle Angaben ohne Gewähr."""
 )
 ax.set_title("Störungen zentraler TI-Komponenten\nim Zeitraum " + data_start + ' bis ' + data_end)
-ax.set_xlabel('Störungsdauer in Minuten')
+ax.set_xlabel('Störungsdauer in Stunden')
+ax.xaxis.set_major_formatter(FuncFormatter(comma_format))
 plt.tight_layout()
 #plt.show()
 export_file_path = 'examples/data_analysis/plot_unavailable_cis.png'
 plt.savefig(export_file_path, dpi = 600)
+
+# export plot data to csv file
+#plot_data.to_csv('data.csv')
