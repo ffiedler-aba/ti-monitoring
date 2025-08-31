@@ -1,31 +1,54 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 300 300" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
-    <g transform="matrix(15.7625,0,0,15.7625,-1432.48,-4351.04)">
-        <g transform="matrix(12,0,0,12,96.6738,295.07)">
-        </g>
-        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">L</text>
-    </g>
-    <g transform="matrix(15.2426,0,0,15.2426,-1330.05,-4239.87)">
-        <g transform="matrix(12,0,0,12,98.0039,295.07)">
-        </g>
-        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">S</text>
-    </g>
-    <g transform="matrix(15.7625,0,0,15.7625,-1253.49,-4351.04)">
-        <g transform="matrix(12,0,0,12,98.666,295.07)">
-        </g>
-        <text x="90px" y="295.07px" style="font-family:'ArialMT', 'Arial', sans-serif;font-size:12px;">R</text>
-    </g>
-    <g transform="matrix(4.72165,0,0,0.118008,-1227.63,-27.4135)">
-        <rect x="260" y="232.301" width="17.917" height="135.397"/>
-    </g>
-    <g transform="matrix(2.89118e-16,4.72165,-0.118008,7.22592e-18,43.3914,-1227.63)">
-        <rect x="260" y="232.301" width="17.917" height="135.397"/>
-    </g>
-    <g transform="matrix(2.89118e-16,4.72165,-0.118008,7.22592e-18,327.413,-1227.63)">
-        <rect x="260" y="232.301" width="17.917" height="135.397"/>
-    </g>
-    <g transform="matrix(-4.72165,5.78235e-16,-1.44518e-17,-0.118008,1527.63,43.3914)">
-        <rect x="260" y="232.301" width="17.917" height="135.397"/>
-    </g>
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e40af;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="monitorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ef4444;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Hintergrund -->
+  <rect width="300" height="300" rx="20" fill="url(#bgGradient)"/>
+  
+  <!-- Monitor/Display -->
+  <rect x="50" y="80" width="200" height="120" rx="8" fill="url(#monitorGradient)" filter="url(#shadow)"/>
+  <rect x="60" y="90" width="180" height="100" rx="4" fill="#1e293b"/>
+  
+  <!-- Monitor Stand -->
+  <rect x="140" y="200" width="20" height="30" fill="url(#monitorGradient)" filter="url(#shadow)"/>
+  <rect x="120" y="230" width="60" height="8" rx="4" fill="url(#monitorGradient)" filter="url(#shadow)"/>
+  
+  <!-- Status-Anzeigen -->
+  <circle cx="80" cy="110" r="8" fill="#10b981"/>
+  <circle cx="80" cy="130" r="8" fill="#f59e0b"/>
+  <circle cx="80" cy="150" r="8" fill="#ef4444"/>
+  
+  <!-- Herz-Symbol -->
+  <g transform="translate(200, 120)">
+    <path d="M0,0 C-8,-8 -16,-4 -16,4 C-16,12 -8,20 0,24 C8,20 16,12 16,4 C16,-4 8,-8 0,0 Z" fill="url(#heartGradient)" filter="url(#shadow)"/>
+  </g>
+  
+  <!-- TI-Text -->
+  <text x="150" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white">TI Status Monitor</text>
+  
+  <!-- Gesundheitswesen-Symbol -->
+  <g transform="translate(100, 120)">
+    <circle cx="0" cy="0" r="12" fill="none" stroke="#10b981" stroke-width="2"/>
+    <path d="M-6,0 L6,0 M0,-6 L0,6" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Verbindungslinien -->
+  <path d="M100,80 Q150,60 200,80" stroke="#10b981" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M100,200 Q150,220 200,200" stroke="#10b981" stroke-width="2" fill="none" opacity="0.7"/>
 </svg>
