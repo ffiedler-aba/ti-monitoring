@@ -5,6 +5,7 @@ from mylibrary import *
 from myconfig import *
 import yaml
 import os
+import apprise
 
 def load_config():
     """Load configuration from YAML file"""
@@ -98,7 +99,20 @@ def serve_layout():
             dcc.ConfirmDialog(
                 id='delete-confirm',
                 message='Are you sure you want to delete this profile?'
-            )
+            ),
+            # Test Apprise notification button
+            html.Div([
+                html.H3('Test Apprise Notification'),
+                html.P('Enter an Apprise URL to test if your notification system is working.'),
+                dcc.Input(
+                    id='test-apprise-url',
+                    type='text',
+                    placeholder='e.g., mmost://username:password@mattermost.medisoftware.org/channel',
+                    style={'width': '100%', 'margin-bottom': '10px'}
+                ),
+                html.Button('Test Notification', id='test-notification-button', n_clicks=0),
+                html.Div(id='test-result', style={'margin-top': '10px'})
+            ], style={'margin-top': '20px', 'padding': '15px', 'border': '1px solid #ccc', 'border-radius': '5px'})
         ], style={'display': 'none'})
     ])
     
@@ -372,3 +386,84 @@ def delete_profile(submit_n_clicks, triggered):
         pass
     
     return submit_n_clicks
+
+# Callback to test Apprise notification
+@callback(
+    Output('test-result', 'children'),
+    [Input('test-notification-button', 'n_clicks')],
+    [State('test-apprise-url', 'value'),
+     State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def test_apprise_notification(n_clicks, apprise_url, auth_data):
+    if not auth_data.get('authenticated', False):
+        return html.Div('Authentication required.', style={'color': 'red'})
+    
+    if not apprise_url or not apprise_url.strip():
+        return html.Div('Please enter an Apprise URL to test.', style={'color': 'orange'})
+    
+    try:
+        # Create Apprise object and add the URL
+        apobj = apprise.Apprise()
+        
+        # Add the URL and check if it was added successfully
+        if not apobj.add(apprise_url.strip()):
+            return html.Div([
+                html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
+                html.Span('Invalid Apprise URL format. Please check the URL syntax.', style={'color': 'red'}),
+                html.Br(),
+                html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
+                html.Br(),
+                html.Br(),
+                html.Span('Common Mattermost format: mmost://username:password@hostname/channel', style={'color': 'blue', 'font-size': '0.9em'}),
+                html.Br(),
+                html.Span('Example: mmost://user:pass@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'})
+            ])
+        
+        # Send test notification
+        result = apobj.notify(
+            title='TI-Monitoring Test Notification',
+            body='This is a test notification from TI-Monitoring. If you receive this, your Apprise configuration is working correctly!',
+            body_format=apprise.NotifyFormat.TEXT
+        )
+        
+        if result:
+            return html.Div([
+                html.I(className='material-icons', children='check_circle', style={'color': 'green', 'margin-right': '8px'}),
+                html.Span('Test notification sent successfully! Check your notification destination.', style={'color': 'green'}),
+                html.Br(),
+                html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
+                html.Br(),
+                html.Span('Note: If you don\'t receive the message, check your Mattermost channel and bot permissions.', style={'color': 'blue', 'font-size': '0.9em'})
+            ])
+        else:
+            return html.Div([
+                html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
+                html.Span('Failed to send test notification. Please check your Apprise URL and configuration.', style={'color': 'red'}),
+                html.Br(),
+                html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
+                html.Br(),
+                html.Br(),
+                html.Span('Common issues:', style={'color': 'orange', 'font-weight': 'bold'}),
+                html.Br(),
+                html.Span('• Check if the Mattermost server is accessible', style={'color': 'orange'}),
+                html.Br(),
+                html.Span('• Verify username/password credentials', style={'color': 'orange'}),
+                html.Br(),
+                html.Span('• Ensure the bot has permission to post in the channel', style={'color': 'orange'}),
+                html.Br(),
+                html.Span('• Check Mattermost server logs for errors', style={'color': 'orange'})
+            ])
+            
+    except Exception as e:
+        return html.Div([
+            html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
+            html.Span(f'Error testing notification: {str(e)}', style={'color': 'red'}),
+            html.Br(),
+            html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
+            html.Br(),
+            html.Br(),
+            html.Span('Try this format instead:', style={'color': 'blue', 'font-weight': 'bold'}),
+            html.Br(),
+            html.Span('mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-family': 'monospace'})
+        ])
