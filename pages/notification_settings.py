@@ -143,10 +143,10 @@ def serve_layout():
                 style={
                     'width': '100%', 
                     'marginBottom': '15px',
-                    'padding': '12px',
+                    'padding': 'clamp(8px, 2vw, 12px)',
                     'border': '2px solid #e9ecef',
                     'borderRadius': '8px',
-                    'fontSize': '14px',
+                    'fontSize': 'clamp(12px, 2.5vw, 14px)',
                     'transition': 'border-color 0.3s ease',
                     'boxSizing': 'border-box'
                 }
@@ -157,7 +157,7 @@ def serve_layout():
             'width': '100%',
             'maxWidth': '900px',
             'margin': '0 auto',
-            'padding': '30px',
+            'padding': 'clamp(20px, 4vw, 30px)',
             'backgroundColor': 'white',
             'borderRadius': '12px',
             'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
@@ -319,7 +319,7 @@ def serve_layout():
                 'display': 'none',
                 'width': '100%',
                 'backgroundColor': 'white',
-                'padding': '25px',
+                'padding': 'clamp(15px, 3vw, 25px)',
                 'borderRadius': '12px',
                 'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
                 'marginTop': '20px',
@@ -367,7 +367,7 @@ def serve_layout():
             ], style={
                 'width': '100%',
                 'marginTop': '30px', 
-                'padding': '25px', 
+                'padding': 'clamp(15px, 3vw, 25px)', 
                 'border': '1px solid #e9ecef', 
                 'borderRadius': '12px',
                 'backgroundColor': 'white',
@@ -375,9 +375,11 @@ def serve_layout():
             })
         ], style={'display': 'none'})
             ], style={
+            'width': '100%',
             'maxWidth': '900px',
+            'minWidth': '320px',
             'margin': '0 auto',
-            'padding': '20px',
+            'padding': 'clamp(10px, 3vw, 20px)',
             'fontFamily': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             'boxSizing': 'border-box'
         })
@@ -834,7 +836,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
             ], className='profile-card', style={
                 'width': '100%',
                 'backgroundColor': 'white',
-                'padding': '25px',
+                'padding': 'clamp(15px, 3vw, 25px)',
                 'borderRadius': '12px',
                 'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)',
                 'marginBottom': '20px',
