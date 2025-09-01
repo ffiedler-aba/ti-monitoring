@@ -295,7 +295,6 @@ def calculate_overall_statistics(config_file_name, cis):
     - Recording time range
     - Product distribution
     - Organization distribution
-    - Total downtime statistics across all CIs
     """
     try:
         if cis.empty:
@@ -429,10 +428,6 @@ def calculate_overall_statistics(config_file_name, cis):
             earliest_timestamp = None
             data_age_formatted = "Unbekannt"
     
-        # Calculate total downtime statistics across all CIs with comprehensive error handling
-        total_downtime_minutes = 0
-        total_uptime_minutes = 0
-        
         # Calculate total recording time from the overall time range (more accurate)
         try:
             if latest_timestamp and earliest_timestamp and latest_timestamp != earliest_timestamp:
@@ -451,104 +446,11 @@ def calculate_overall_statistics(config_file_name, cis):
         except Exception as e:
             log(f"Error calculating total recording time: {e}")
             total_recording_minutes = 2 * 24 * 60  # Default to 2 days
-        
-        # Downtime calculation with comprehensive error handling
-        try:
-            # Take a sample of CIs to calculate downtime (max 20 CIs to avoid performance issues)
-            sample_size = min(20, len(cis))
-            if sample_size > 0:
-                try:
-                    # Take a representative sample
-                    sample_cis = cis.sample(n=sample_size, random_state=42)  # Fixed seed for consistency
-                except Exception as e:
-                    log(f"Error sampling CIs: {e}")
-                    # Fallback: take first N CIs
-                    sample_cis = cis.head(sample_size)
-                
-                log(f"Calculating downtime statistics for sample of {sample_size} CIs out of {len(cis)} total")
-                
-                # Calculate total downtime for sample CIs
-                successful_calculations = 0
-                for _, ci_row in sample_cis.iterrows():
-                    try:
-                        ci_id = ci_row.get('ci', 'unknown')
-                        if not ci_id or ci_id == 'unknown':
-                            log(f"Warning: Invalid CI ID: {ci_id}")
-                            continue
-                            
-                        # Get availability data for this CI
-                        ci_availability = get_availability_data_of_ci(config_file_name, ci_id)
-                        if not ci_availability.empty and 'values' in ci_availability.columns:
-                            # Count downtime and uptime (assuming 5-minute intervals)
-                            downtime_count = (ci_availability['values'] == 0).sum()
-                            uptime_count = (ci_availability['values'] == 1).sum()
-                            
-                            # Convert to minutes
-                            total_downtime_minutes += downtime_count * 5
-                            total_uptime_minutes += uptime_count * 5
-                            successful_calculations += 1
-                        else:
-                            log(f"Warning: No availability data for CI {ci_id}")
-                            
-                    except Exception as e:
-                        log(f"Warning: Could not calculate downtime for CI {ci_id}: {e}")
-                        continue
-                
-                # Scale up the downtime/uptime results to estimate total across all CIs
-                if successful_calculations > 0:
-                    scale_factor = len(cis) / successful_calculations
-                    total_downtime_minutes *= scale_factor
-                    total_uptime_minutes *= scale_factor
-                    log(f"Scaled downtime/uptime by factor {scale_factor:.2f} to estimate totals")
-                else:
-                    log("Warning: No successful downtime calculations, using default values")
-                    total_downtime_minutes = 0
-                    total_uptime_minutes = total_recording_minutes
-        except Exception as e:
-            log(f"Error in downtime calculation: {e}")
-            total_downtime_minutes = 0
-            total_uptime_minutes = total_recording_minutes
-        
-        # Convert to various time units
-        total_downtime_hours = total_downtime_minutes / 60
-        total_downtime_days = total_downtime_hours / 24
-        total_downtime_weeks = total_downtime_days / 7
-        total_downtime_years = total_downtime_days / 365.25
-        
-        total_uptime_hours = total_uptime_minutes / 60
-        total_uptime_days = total_uptime_hours / 24
-        
-        # Calculate overall availability percentage based on total time
-        if total_recording_minutes > 0:
-            overall_availability_percentage_total = (total_uptime_minutes / total_recording_minutes) * 100
-        else:
-            overall_availability_percentage_total = 0
-            
-        # Calculate average downtime per time interval based on total recording duration
-        if total_recording_minutes > 0:
-            # Calculate average downtime per day/week/year based on recording duration
-            recording_days = total_recording_minutes / (24 * 60)
-            recording_weeks = recording_days / 7
-            recording_years = recording_days / 365.25
-            
-            if recording_days > 0:
-                # Average downtime per day/week/year over the entire recording period
-                downtime_per_day = total_downtime_minutes / recording_days
-                downtime_per_week = total_downtime_minutes / recording_weeks
-                downtime_per_year = total_downtime_minutes / recording_years
-            else:
-                downtime_per_day = downtime_per_week = downtime_per_year = 0
-        else:
-            downtime_per_day = downtime_per_week = downtime_per_year = 0
             
     except Exception as e:
-        log(f"Warning: Could not calculate comprehensive downtime statistics: {e}")
+        log(f"Warning: Could not calculate comprehensive statistics: {e}")
         # Set default values if calculation fails
-        total_downtime_minutes = total_downtime_hours = total_downtime_days = 0
-        total_downtime_weeks = total_downtime_years = 0
-        total_uptime_minutes = total_uptime_hours = total_uptime_days = 0
-        overall_availability_percentage_total = overall_availability_percentage
-        downtime_per_day = downtime_per_week = downtime_per_year = 0
+        total_recording_minutes = 0
     
         # Return results with comprehensive error handling
         try:
@@ -557,7 +459,6 @@ def calculate_overall_statistics(config_file_name, cis):
                 'currently_available': int(currently_available),
                 'currently_unavailable': int(currently_unavailable),
                 'overall_availability_percentage': float(overall_availability_percentage),
-                'overall_availability_percentage_total': float(overall_availability_percentage_total),
                 'total_products': int(total_products),
                 'total_organizations': int(total_organizations),
                 'available_count': int(available_count),
@@ -568,18 +469,7 @@ def calculate_overall_statistics(config_file_name, cis):
                 'data_age_formatted': data_age_formatted,
                 'product_counts': product_counts.to_dict() if hasattr(product_counts, 'to_dict') else {},
                 'organization_counts': organization_counts.to_dict() if hasattr(organization_counts, 'to_dict') else {},
-                'total_downtime_minutes': float(total_downtime_minutes),
-                'total_downtime_hours': float(total_downtime_hours),
-                'total_downtime_days': float(total_downtime_days),
-                'total_downtime_weeks': float(total_downtime_weeks),
-                'total_downtime_years': float(total_downtime_years),
-                'total_uptime_minutes': float(total_uptime_minutes),
-                'total_uptime_hours': float(total_uptime_hours),
-                'total_uptime_days': float(total_uptime_days),
                 'total_recording_minutes': float(total_recording_minutes),
-                'downtime_per_day': float(downtime_per_day),
-                'downtime_per_week': float(downtime_per_week),
-                'downtime_per_year': float(downtime_per_year),
                 'calculated_at': time.time()
             }
         except Exception as e:
@@ -590,7 +480,6 @@ def calculate_overall_statistics(config_file_name, cis):
                 'currently_available': 0,
                 'currently_unavailable': 0,
                 'overall_availability_percentage': 0.0,
-                'overall_availability_percentage_total': 0.0,
                 'total_products': 0,
                 'total_organizations': 0,
                 'available_count': 0,
@@ -601,18 +490,7 @@ def calculate_overall_statistics(config_file_name, cis):
                 'data_age_formatted': "Unbekannt",
                 'product_counts': {},
                 'organization_counts': {},
-                'total_downtime_minutes': 0.0,
-                'total_downtime_hours': 0.0,
-                'total_downtime_days': 0.0,
-                'total_downtime_weeks': 0.0,
-                'total_downtime_years': 0.0,
-                'total_uptime_minutes': 0.0,
-                'total_uptime_hours': 0.0,
-                'total_uptime_days': 0.0,
                 'total_recording_minutes': 0.0,
-                'downtime_per_day': 0.0,
-                'downtime_per_week': 0.0,
-                'downtime_per_year': 0.0,
                 'calculated_at': time.time()
             }
     
