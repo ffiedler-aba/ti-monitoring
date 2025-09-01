@@ -27,6 +27,10 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 
 Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
 
+### Öffentliche Demo-Instanz
+
+Diese App unterscheidet sich hauptsächlich durch die Benachrichtigungsoptionen vom Original. Die Konfiguration der Notification Provider ist jedoch höchst individuell und bedarf immer der Eintragung persönlicher Daten wie Passwörter, API-Keys etc.. Aus diesem Grund gibt es von diesem Fork keine öffentliche Instanz.
+
 ### Disclaimer
 
 Dieses Projekt wurde teilweise mithilfe von "KI" (Vibe Coding) weiter entwickelt!
