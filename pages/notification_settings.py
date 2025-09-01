@@ -184,6 +184,8 @@ def serve_layout():
                     'paddingBottom': '10px'
                 }),
                 dcc.Store(id='editing-profile-index'),
+                dcc.Store(id='available-cis-data'),
+                dcc.Store(id='selected-cis-data', data=[]),
                 dcc.Input(
                     id='profile-name-input',
                     placeholder='Profile Name',
@@ -215,22 +217,22 @@ def serve_layout():
                         style={'marginBottom': '15px'}
                     )
                 ], style={'marginBottom': '15px'}),
-                dcc.Textarea(
-                    id='ci-list-textarea',
-                    placeholder='Configuration Item IDs (one per line)',
-                    style={
-                        'width': '100%', 
-                        'height': '100px', 
-                        'marginBottom': '15px',
-                        'padding': '12px',
+                html.Div([
+                    html.Label('Configuration Items:', style={
+                        'display': 'block',
+                        'marginBottom': '10px',
+                        'fontWeight': '500',
+                        'color': '#2c3e50'
+                    }),
+                    html.Div(id='ci-checkboxes-container', style={
+                        'maxHeight': '200px',
+                        'overflowY': 'auto',
                         'border': '2px solid #e9ecef',
                         'borderRadius': '8px',
-                        'fontSize': '14px',
-                        'fontFamily': 'monospace',
-                        'resize': 'vertical',
-                        'transition': 'border-color 0.3s ease'
-                    }
-                ),
+                        'padding': '15px',
+                        'backgroundColor': '#f8f9fa'
+                    })
+                ], style={'marginBottom': '15px'}),
                 dcc.Textarea(
                     id='apprise-urls-textarea',
                     placeholder='Apprise URLs (one per line)',
@@ -351,7 +353,155 @@ def handle_enter_key(n_submit, current_clicks):
         return (current_clicks or 0) + 1
     return current_clicks
 
+# Callback to load all available CIs
+@callback(
+    Output('available-cis-data', 'data'),
+    [Input('auth-status', 'data')]
+)
+def load_available_cis(auth_data):
+    if not auth_data or not auth_data.get('authenticated', False):
+        return []
+    
+    try:
+        # Load core configurations
+        core_config = load_core_config()
+        config_file = core_config.get('file_name') or 'data/data.hdf5'
+        
+        # Get all CIs from the data file
+        from mylibrary import get_data_of_all_cis
+        cis_df = get_data_of_all_cis(config_file)
+        
+        if not cis_df.empty:
+            # Convert to list of dictionaries with ci and name
+            cis_list = []
+            for _, row in cis_df.iterrows():
+                ci_info = {
+                    'ci': str(row.get('ci', '')),
+                    'name': str(row.get('name', '')),
+                    'organization': str(row.get('organization', '')),
+                    'product': str(row.get('product', ''))
+                }
+                cis_list.append(ci_info)
+            return cis_list
+        else:
+            return []
+    except Exception as e:
+        print(f"Error loading CIs: {e}")
+        return []
 
+# Callback to render CI checkboxes
+@callback(
+    Output('ci-checkboxes-container', 'children'),
+    [Input('available-cis-data', 'data'),
+     Input('editing-profile-index', 'data')],
+    [State('auth-status', 'data')]
+)
+def render_ci_checkboxes(cis_data, editing_index, auth_data):
+    if not auth_data or not auth_data.get('authenticated', False) or not cis_data:
+        return html.P('Loading CIs...', style={'color': '#7f8c8d', 'textAlign': 'center'})
+    
+    try:
+        # Load existing profile data if editing
+        selected_cis = []
+        if editing_index is not None:
+            core_config = load_core_config()
+            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config = get_notification_config(config_file)
+            if 0 <= editing_index < len(config):
+                selected_cis = config[editing_index].get('ci_list', [])
+        
+        # Create checkboxes for each CI
+        checkbox_children = []
+        for ci_info in cis_data:
+            ci_id = ci_info.get('ci', '')
+            ci_name = ci_info.get('name', '')
+            ci_org = ci_info.get('organization', '')
+            ci_product = ci_info.get('product', '')
+            
+            # Check if this CI is selected
+            is_checked = ci_id in selected_cis
+            
+            # Create checkbox with label
+            checkbox = html.Div([
+                dcc.Checklist(
+                    id={'type': 'ci-checkbox', 'ci': ci_id},
+                    options=[{'label': '', 'value': ci_id}],
+                    value=[ci_id] if is_checked else [],
+                    style={'marginRight': '10px'}
+                ),
+                html.Label([
+                    html.Strong(ci_id),
+                    html.Br(),
+                    html.Span(f"{ci_name}", style={'color': '#2c3e50', 'fontSize': '14px'}),
+                    html.Br(),
+                    html.Span(f"{ci_org} - {ci_product}", style={'color': '#7f8c8d', 'fontSize': '12px'})
+                ], style={'cursor': 'pointer', 'marginLeft': '5px'})
+            ], style={
+                'display': 'flex',
+                'alignItems': 'flex-start',
+                'marginBottom': '10px',
+                'padding': '8px',
+                'borderRadius': '6px',
+                'backgroundColor': 'white',
+                'border': '1px solid #e9ecef'
+            })
+            
+            checkbox_children.append(checkbox)
+        
+        if not checkbox_children:
+            return html.P('No CIs found', style={'color': '#7f8c8d', 'textAlign': 'center'})
+        
+        return checkbox_children
+        
+    except Exception as e:
+        return html.P(f'Error loading CIs: {str(e)}', style={'color': '#e74c3c', 'textAlign': 'center'})
+
+# Callback to reset selected CIs when form is opened/closed
+@callback(
+    Output('selected-cis-data', 'data', allow_duplicate=True),
+    [Input('profile-form-container', 'style')],
+    [State('editing-profile-index', 'data')],
+    prevent_initial_call=True
+)
+def reset_selected_cis(form_style, editing_index):
+    """Reset selected CIs when form is opened or closed"""
+    if form_style and form_style.get('display') == 'none':
+        # Form is closed, reset selection
+        return []
+    elif editing_index is not None:
+        # Form is opened for editing, load existing selection
+        try:
+            core_config = load_core_config()
+            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config = get_notification_config(config_file)
+            if 0 <= editing_index < len(config):
+                return config[editing_index].get('ci_list', [])
+        except Exception:
+            pass
+    return []
+
+# Callback to collect selected CIs from checkboxes
+@callback(
+    Output('selected-cis-data', 'data'),
+    [Input({'type': 'ci-checkbox', 'ci': dash.ALL}, 'value')],
+    [State('available-cis-data', 'data')],
+    prevent_initial_call=True
+)
+def update_selected_cis(checkbox_values, available_cis_data):
+    """Update the selected CIs when checkboxes change"""
+    if not available_cis_data:
+        return []
+    
+    # Collect all selected CIs from the checkbox values
+    selected_cis = []
+    for checkbox_value in checkbox_values:
+        if checkbox_value:  # If checkbox has a value (is checked)
+            selected_cis.extend(checkbox_value)
+    
+    # Remove duplicates
+    selected_cis = list(set(selected_cis))
+    
+    return selected_cis
 
 # Callback to load and display profiles
 @callback(
@@ -431,7 +581,6 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
      Output('editing-profile-index', 'data'),
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
-     Output('ci-list-textarea', 'value'),
      Output('apprise-urls-textarea', 'value')],
     [Input('add-profile-button', 'n_clicks'),
      Input({'type': 'edit-profile', 'index': dash.ALL}, 'n_clicks')],
@@ -439,18 +588,18 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 )
 def show_profile_form(add_clicks, edit_clicks, auth_data):
     if not auth_data.get('authenticated', False):
-        return [{'display': 'none'}, None, '', 'whitelist', '', '']
+        return [{'display': 'none'}, None, '', 'whitelist', '']
     
     # Check if add button was clicked
-    ctx = dash.callback_context
+    ctx = callback_context
     if not ctx.triggered:
-        return [{'display': 'none'}, None, '', 'whitelist', '', '']
+        return [{'display': 'none'}, None, '', 'whitelist', '']
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     if button_id == 'add-profile-button':
         # Show empty form for new profile
-        return [{'display': 'block'}, None, '', 'whitelist', '', '']
+        return [{'display': 'block'}, None, '', 'whitelist', '']
     else:
         # Show form with existing profile data for editing
         try:
@@ -466,14 +615,13 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
                 profile = config[index]
                 name = profile.get('name', '')
                 notification_type = profile.get('type', 'whitelist')
-                ci_list = '\n'.join(profile.get('ci_list', []))
                 apprise_urls = '\n'.join(profile.get('apprise_urls', []))
                 
-                return [{'display': 'block'}, index, name, notification_type, ci_list, apprise_urls]
+                return [{'display': 'block'}, index, name, notification_type, apprise_urls]
         except Exception:
             pass
     
-    return [{'display': 'none'}, None, '', 'whitelist', '', '']
+    return [{'display': 'none'}, None, '', 'whitelist', '']
 
 # Callback to save profile
 @callback(
@@ -486,12 +634,12 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
     [State('editing-profile-index', 'data'),
      State('profile-name-input', 'value'),
      State('notification-type-radio', 'value'),
-     State('ci-list-textarea', 'value'),
      State('apprise-urls-textarea', 'value'),
+     State('selected-cis-data', 'data'),
      State('auth-status', 'data')],
     prevent_initial_call=True
 )
-def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notification_type, ci_list, apprise_urls, auth_data):
+def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notification_type, apprise_urls, selected_cis, auth_data):
     # Check which button was clicked
     ctx = callback_context
     if not ctx.triggered:
@@ -509,8 +657,8 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
         if not name:
             return [no_update, 'Profile name is required.', get_error_style(visible=True), 0]
         
-        # Process CI list
-        ci_items = [ci.strip() for ci in ci_list.split('\n') if ci.strip()]
+        # Get selected CIs from the selected-cis-data store
+        ci_items = selected_cis if selected_cis else []
         
         # Process Apprise URLs
         url_items = [url.strip() for url in apprise_urls.split('\n') if url.strip()]
