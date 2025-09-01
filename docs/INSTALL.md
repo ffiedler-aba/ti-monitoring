@@ -217,6 +217,45 @@ docker compose logs nginx
 docker compose logs certbot
 ```
 
+#### Cron-Logging-System
+
+Das Cron-System verwendet ein professionelles Logging-System mit automatischer Rotation:
+
+**Log-Dateien:**
+- **Aktuelle Logs**: `data/cron.log` - Enthält die aktuellen Log-Einträge
+- **Archivierte Logs**: `data/cron.log.YYYY-MM-DD` - Täglich rotierte Log-Dateien
+- **Automatische Bereinigung**: Logs älter als 7 Tage werden automatisch gelöscht
+
+**Log-Format:**
+```
+[2025-01-27 10:30:15] === CRON JOB STARTING ===
+[2025-01-27 10:30:15] Logging initialized - logs will be written to data/cron.log with daily rotation
+[2025-01-27 10:30:16] Configuration loaded successfully. Keys: ['file_name', 'url', ...]
+[2025-01-27 10:30:17] === ITERATION 1 ===
+[2025-01-27 10:30:17] Running cron job at 2025-01-27 10:30:17
+```
+
+**Log-Rotation:**
+- **Rotation**: Täglich um Mitternacht
+- **Aufbewahrung**: 7 Tage Historie
+- **Bereinigung**: Automatisch alle 24 Stunden
+- **Encoding**: UTF-8 für korrekte Darstellung
+
+**Logs überprüfen:**
+```bash
+# Aktuelle Logs anzeigen
+tail -f data/cron.log
+
+# Logs der letzten 50 Zeilen
+tail -n 50 data/cron.log
+
+# Alle verfügbaren Log-Dateien anzeigen
+ls -la data/cron.log*
+
+# Spezifisches Datum anzeigen
+cat data/cron.log.2025-01-26
+```
+
 #### 5. Zugriff testen
 
 - HTTP: `http://ihre-domain.com` (wird zu HTTPS weitergeleitet)
@@ -284,6 +323,32 @@ source .venv/bin/activate
 nohup python cron.py > cron.log 2>&1 &
 ```
 
+#### Cron-Logging-System (Python venv)
+
+Das Cron-System erstellt automatisch strukturierte Log-Dateien:
+
+**Log-Dateien:**
+- **Aktuelle Logs**: `data/cron.log` - Enthält die aktuellen Log-Einträge
+- **Archivierte Logs**: `data/cron.log.YYYY-MM-DD` - Täglich rotierte Log-Dateien
+- **Automatische Bereinigung**: Logs älter als 7 Tage werden automatisch gelöscht
+
+**Logs überprüfen:**
+```bash
+# Aktuelle Logs anzeigen
+tail -f data/cron.log
+
+# Logs der letzten 50 Zeilen
+tail -n 50 data/cron.log
+
+# Alle verfügbaren Log-Dateien anzeigen
+ls -la data/cron.log*
+
+# Spezifisches Datum anzeigen
+cat data/cron.log.2025-01-26
+```
+
+**Hinweis**: Das System erstellt automatisch das `data/` Verzeichnis und konfiguriert das Logging. Keine manuelle Konfiguration erforderlich.
+
 ### 4. Web-App starten (optional)
 
 ```bash
@@ -333,9 +398,19 @@ ls -la data/
 # Für Docker
 docker compose logs ti-monitoring-cron --tail=50
 
-# Für Python venv
-tail -f /var/log/cron.log  # oder wo Ihre Cron-Logs landen
+# Für Python venv - Cron-Logs überprüfen
+tail -f data/cron.log
+tail -n 50 data/cron.log
+
+# Alle verfügbaren Log-Dateien anzeigen
+ls -la data/cron.log*
 ```
+
+**Log-Status überprüfen:**
+- ✅ Log-Datei `data/cron.log` existiert
+- ✅ Tägliche Rotation funktioniert (Logs werden archiviert)
+- ✅ Automatische Bereinigung läuft (Logs älter als 7 Tage werden gelöscht)
+- ✅ Log-Format ist korrekt mit Zeitstempel
 
 ## Fehlerbehebung
 
@@ -378,9 +453,25 @@ chmod 755 data/
 # Docker
 docker compose logs -f
 
-# Python venv
+# Python venv - Web-App
 tail -f app.log  # falls mit nohup gestartet
+
+# Python venv - Cron-Job
+tail -f data/cron.log
+tail -n 100 data/cron.log
+
+# Alle Cron-Log-Dateien anzeigen
+ls -la data/cron.log*
+
+# Spezifische Log-Datei anzeigen
+cat data/cron.log.2025-01-26
 ```
+
+**Log-Analyse:**
+- **Fehler suchen**: `grep -i error data/cron.log`
+- **Warnungen suchen**: `grep -i warning data/cron.log`
+- **Letzte Iteration**: `grep "ITERATION" data/cron.log | tail -5`
+- **Konfigurationsfehler**: `grep -i config data/cron.log`
 
 ## Nächste Schritte
 
@@ -389,11 +480,52 @@ Nach erfolgreicher Installation:
 1. **Benachrichtigungen konfigurieren**: Passen Sie `notifications.json` an
 2. **Monitoring einrichten**: Überwachen Sie die Logs und Performance
 3. **Backup-Strategie**: Planen Sie regelmäßige Backups der `data.hdf5`
-4. **Updates**: Halten Sie das System aktuell
+4. **Log-Monitoring**: Überwachen Sie die Cron-Logs für Fehler und Performance
+5. **Updates**: Halten Sie das System aktuell
+
+### Log-Monitoring einrichten
+
+**Automatische Log-Überwachung:**
+```bash
+# Log-Monitoring-Skript erstellen
+cat > monitor_logs.sh << 'EOF'
+#!/bin/bash
+# Überwacht Cron-Logs auf Fehler
+tail -f data/cron.log | grep --line-buffered -i "error\|warning\|fatal"
+EOF
+
+chmod +x monitor_logs.sh
+```
+
+**Log-Rotation überprüfen:**
+```bash
+# Überprüfen Sie, ob die Log-Rotation funktioniert
+ls -la data/cron.log*
+# Sollte mehrere Dateien zeigen: cron.log, cron.log.2025-01-26, etc.
+```
 
 ## Support
 
 Bei Problemen:
-1. Überprüfen Sie die Logs
+1. Überprüfen Sie die Logs (`data/cron.log`)
 2. Konsultieren Sie die README.md
 3. Erstellen Sie ein Issue auf GitHub mit detaillierten Logs
+
+### Log-Informationen für Support
+
+**Wichtige Log-Dateien:**
+- `data/cron.log` - Aktuelle Cron-Logs
+- `data/cron.log.YYYY-MM-DD` - Archivierte Logs
+- `app.log` - Web-App Logs (falls mit nohup gestartet)
+
+**Log-Auszug für Support:**
+```bash
+# Letzte 100 Zeilen der Cron-Logs
+tail -n 100 data/cron.log
+
+# Fehler der letzten 24 Stunden
+grep -i "error\|warning\|fatal" data/cron.log
+
+# System-Status
+grep "ITERATION" data/cron.log | tail -5
+```
