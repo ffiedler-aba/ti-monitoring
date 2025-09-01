@@ -8,7 +8,7 @@
 notifications = False
 
 # configuration for notofications - NOW CONFIGURED IN config.yaml
-#notifications_config_file = 'notifications.json'
+notifications_config_file = 'notifications.json'
 
 # smtp settings for email notifications
 smtp_settings = {

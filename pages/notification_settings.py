@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, State, callback, no_update
+from dash import html, dcc, Input, Output, State, callback, no_update, callback_context
 import json
 from mylibrary import *
 from myconfig import *
@@ -489,7 +489,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
 )
 def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notification_type, ci_list, apprise_urls, auth_data):
     # Check which button was clicked
-    ctx = dash.callback_context
+    ctx = callback_context
     if not ctx.triggered:
         return [no_update, '', get_error_style(visible=False), 0]
     
@@ -556,7 +556,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
     prevent_initial_call=True
 )
 def show_delete_confirm(delete_clicks):
-    ctx = dash.callback_context
+    ctx = callback_context
     if not ctx.triggered:
         return [False, '']
     
