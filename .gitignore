@@ -2,6 +2,7 @@
 test.py
 __pycache__
 data.hdf5
+statistics.json
 .venv/
 .qoder/
 .idea/

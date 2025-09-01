@@ -182,3 +182,64 @@ h1, h2, h3, h4, h5, h6 {
     border-top: 1px solid #ecf0f1;
     background-color: #f8f9fa;
 }
+
+/* Downtime table styling */
+.downtime-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.downtime-table th {
+    background-color: #e74c3c;
+    color: white;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.downtime-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ecf0f1;
+    font-size: 14px;
+}
+
+.downtime-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.downtime-table tr:hover {
+    background-color: #e8f4f8;
+    transition: background-color 0.2s ease;
+}
+
+.downtime-table td:first-child {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.downtime-table td:nth-child(2) {
+    color: #7f8c8d;
+}
+
+.downtime-table td:nth-child(3) {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .downtime-table {
+        font-size: 12px;
+    }
+    
+    .downtime-table th,
+    .downtime-table td {
+        padding: 8px 10px;
+    }
+}

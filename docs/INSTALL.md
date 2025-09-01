@@ -96,9 +96,46 @@ core:
   
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
+  
+  # Cron job intervals (in iterations, where each iteration = 5 minutes)
+  cron_intervals:
+    # Statistics update interval (default: every 2 iterations = 10 minutes)
+    statistics_update_interval: 2
+    
+    # CI list update interval (default: every 288 iterations = 24 hours)
+    ci_list_update_interval: 288
 ```
 
 **Hinweis:** Der Wert `stats_delta_hours` dient als Standardwert für die Plot-Darstellung. Benutzer können den Zeitraum für jeden Plot individuell über ein Dropdown-Menü anpassen (1 Stunde bis 1 Woche). Der gewählte Zeitraum wird in der URL gespeichert.
+
+#### Cron-Intervalle konfigurieren
+
+Die neuen `cron_intervals` Einstellungen ermöglichen es, die Häufigkeit der automatischen Updates zu konfigurieren:
+
+- **`statistics_update_interval`**: Bestimmt, wie oft die Statistiken für die `/stats` Seite berechnet werden
+  - **Standard**: `2` (alle 10 Minuten)
+  - **Berechnung**: `2 Iterationen × 5 Minuten = 10 Minuten`
+  - **Empfehlung**: Für häufige Updates verwenden Sie `1` (alle 5 Minuten), für weniger häufige Updates `4` (alle 20 Minuten)
+
+- **`ci_list_update_interval`**: Bestimmt, wie oft die Liste der Configuration Items aktualisiert wird
+  - **Standard**: `288` (alle 24 Stunden)
+  - **Berechnung**: `288 Iterationen × 5 Minuten = 1440 Minuten = 24 Stunden`
+  - **Empfehlung**: Normalerweise nicht ändern, da sich die CI-Liste selten ändert
+
+**Beispiele für Anpassungen:**
+```yaml
+cron_intervals:
+  # Statistiken alle 5 Minuten berechnen (häufigere Updates)
+  statistics_update_interval: 1
+  
+  # CI-Liste alle 12 Stunden aktualisieren (häufigere Updates)
+  ci_list_update_interval: 144
+```
+
+**Performance-Hinweise:**
+- Häufigere Statistiken-Updates erhöhen die CPU-Last
+- Die Statistiken werden in `data/statistics.json` gecacht für bessere Performance
+- Bei vielen CIs (>100) empfiehlt sich ein höherer `statistics_update_interval`
 ```
 
 ## Installation mit Docker (Empfohlen)

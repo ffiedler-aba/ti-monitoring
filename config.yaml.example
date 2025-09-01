@@ -41,6 +41,14 @@ core:
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
   
+  # Cron job intervals (in iterations, where each iteration = 5 minutes)
+  cron_intervals:
+    # Statistics update interval (default: every 2 iterations = 10 minutes)
+    statistics_update_interval: 2
+    
+    # CI list update interval (default: every 288 iterations = 24 hours)
+    ci_list_update_interval: 288
+  
   # Header configuration
   header:
     # Page title
