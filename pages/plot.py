@@ -282,23 +282,23 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
             html.H4('🎯 Ausgewählter Zeitraum'),
             html.Div(className='stats-grid', children=[
                 html.Div(className='stat-item', children=[
-                    html.Strong('Zeitraum:'),
+                    html.Strong('Zeitraum: '),
                     html.Span(f'{selected_hours} Stunden')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Anzahl Datensätze:'),
+                    html.Strong('Anzahl Datensätze: '),
                     html.Span(f'{stats["number_of_values"]:,}')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Verfügbarkeit:'),
+                    html.Strong('Verfügbarkeit: '),
                     html.Span(f'{stats["mean_availability"] * 100:.2f}%')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Von:'),
+                    html.Strong('Von: '),
                     html.Span(stats["first_timestamp_selected"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Bis:'),
+                    html.Strong('Bis: '),
                     html.Span(stats["last_timestamp_selected"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
                 ])
             ])
@@ -309,23 +309,23 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
             html.H4('📅 Gesamte Aufzeichnung'),
             html.Div(className='stats-grid', children=[
                 html.Div(className='stat-item', children=[
-                    html.Strong('Beginn der Aufzeichnung:'),
+                    html.Strong('Beginn der Aufzeichnung: '),
                     html.Span(stats["first_timestamp_total"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Ende der Aufzeichnung:'),
+                    html.Strong('Ende der Aufzeichnung: '),
                     html.Span(stats["last_timestamp_total"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Gesamtdauer:'),
+                    html.Strong('Gesamtdauer: '),
                     html.Span(f'{format_duration(stats["total_duration_hours"])}')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Gesamte Datensätze:'),
+                    html.Strong('Gesamte Datensätze: '),
                     html.Span(f'{stats["total_records"]:,}')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Datenvollständigkeit:'),
+                    html.Strong('Datenvollständigkeit: '),
                     html.Span(f'{stats["data_completeness"]:.1f}%')
                 ])
             ])
@@ -336,27 +336,27 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
             html.H4('🔴 Downtime-Statistik (ausgewählter Zeitraum)'),
             html.Div(className='stats-grid', children=[
                 html.Div(className='stat-item', children=[
-                    html.Strong('Downtime:'),
+                    html.Strong('Downtime: '),
                     html.Span(f'{stats["downtime_count"]:,} Datensätze ({stats["downtime_percentage"]:.1f}%)')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Downtime-Dauer:'),
+                    html.Strong('Downtime-Dauer: '),
                     html.Span(f'{format_duration(stats["downtime_hours"])}')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Längste Downtime:'),
+                    html.Strong('Längste Downtime: '),
                     html.Span(f'{stats["longest_downtime_consecutive"]} Messungen ({format_duration(stats["longest_downtime_hours"])})')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Uptime:'),
+                    html.Strong('Uptime: '),
                     html.Span(f'{stats["uptime_count"]:,} Datensätze ({stats["uptime_percentage"]:.1f}%)')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Uptime-Dauer:'),
+                    html.Strong('Uptime-Dauer: '),
                     html.Span(f'{format_duration(stats["uptime_hours"])}')
                 ]),
                 html.Div(className='stat-item', children=[
-                    html.Strong('Längste Uptime:'),
+                    html.Strong('Längste Uptime: '),
                     html.Span(f'{stats["longest_uptime_consecutive"]} Messungen ({format_duration(stats["longest_uptime_hours"])})')
                 ])
             ])

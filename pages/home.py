@@ -7,6 +7,9 @@ import os
 import functools
 import time
 import gc
+import pandas as pd
+import numpy as np
+import pytz
 
 # Configuration cache for home page with size limit
 _home_config_cache = {}
@@ -43,6 +46,94 @@ def load_core_config():
     """Load core configuration from cached config"""
     config = load_config()
     return config.get('core', {})
+
+def format_duration(hours):
+    """Format duration in a human-readable way"""
+    if hours < 1:
+        minutes = int(hours * 60)
+        return f"{minutes} Minuten"
+    elif hours < 24:
+        return f"{hours:.1f} Stunden"
+    else:
+        days = hours / 24
+        return f"{days:.1f} Tage"
+
+def calculate_overall_statistics(config_file_name, cis):
+    """
+    Calculate overall statistics for all Configuration Items including:
+    - Total counts and current availability
+    - Overall availability percentage
+    - Recording time range
+    - Product distribution
+    - Organization distribution
+    """
+    if cis.empty:
+        return {}
+    
+    # Basic counts
+    total_cis = len(cis)
+    currently_available = cis['current_availability'].sum()
+    currently_unavailable = total_cis - currently_available
+    overall_availability_percentage = (currently_available / total_cis) * 100 if total_cis > 0 else 0
+    
+    # Product distribution
+    product_counts = cis['product'].value_counts()
+    total_products = len(product_counts)
+    
+    # Organization distribution
+    organization_counts = cis['organization'].value_counts()
+    total_organizations = len(organization_counts)
+    
+    # Current status distribution
+    status_counts = cis['current_availability'].value_counts()
+    available_count = status_counts.get(1, 0)
+    unavailable_count = status_counts.get(0, 0)
+    
+    # Recent changes (availability_difference != 0)
+    recent_changes = cis[cis['availability_difference'] != 0]
+    changes_count = len(recent_changes)
+    
+    # Get overall recording time range (from the most recent timestamp)
+    if 'time' in cis.columns:
+        latest_timestamp = pd.to_datetime(cis['time'].max())
+        earliest_timestamp = pd.to_datetime(cis['time'].min())
+        
+        # Ensure both timestamps have timezone info and are in Europe/Berlin
+        if latest_timestamp.tz is None:
+            latest_timestamp = latest_timestamp.tz_localize('Europe/Berlin')
+        elif latest_timestamp.tz != pytz.timezone('Europe/Berlin'):
+            latest_timestamp = latest_timestamp.tz_convert('Europe/Berlin')
+            
+        if earliest_timestamp.tz is None:
+            earliest_timestamp = earliest_timestamp.tz_localize('Europe/Berlin')
+        elif earliest_timestamp.tz != pytz.timezone('Europe/Berlin'):
+            earliest_timestamp = earliest_timestamp.tz_convert('Europe/Berlin')
+        
+        # Get current time in Europe/Berlin
+        current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
+        data_age_formatted = format_duration(data_age_hours)
+    else:
+        latest_timestamp = None
+        earliest_timestamp = None
+        data_age_formatted = "Unbekannt"
+    
+    return {
+        'total_cis': total_cis,
+        'currently_available': currently_available,
+        'currently_unavailable': currently_unavailable,
+        'overall_availability_percentage': overall_availability_percentage,
+        'total_products': total_products,
+        'total_organizations': total_organizations,
+        'available_count': available_count,
+        'unavailable_count': unavailable_count,
+        'changes_count': changes_count,
+        'latest_timestamp': latest_timestamp,
+        'earliest_timestamp': earliest_timestamp,
+        'data_age_formatted': data_age_formatted,
+        'product_counts': product_counts,
+        'organization_counts': organization_counts
+    }
 
 dash.register_page(__name__, path='/')
 
@@ -105,6 +196,99 @@ def create_accordion_element(group_name, group_data):
             ])
         ])
     ])
+
+def create_overall_statistics_display(stats):
+    """Create the overall statistics display section"""
+    children = [
+        html.H3('📊 Gesamtstatistik aller Configuration Items'),
+        
+        # Main overview
+        html.Div(className='stats-overview', children=[
+            html.Div(className='stat-card', children=[
+                html.H4('🎯 Übersicht'),
+                html.Div(className='stat-grid', children=[
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Gesamtanzahl CIs: '),
+                        html.Span(f'{stats["total_cis"]:,}')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Aktuell verfügbar: '),
+                        html.Span(f'{stats["currently_available"]:,}')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Aktuell nicht verfügbar: '),
+                        html.Span(f'{stats["currently_unavailable"]:,}')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Gesamtverfügbarkeit: '),
+                        html.Span(f'{stats["overall_availability_percentage"]:.1f}%')
+                    ])
+                ])
+            ]),
+            
+            html.Div(className='stat-card', children=[
+                html.H4('📅 Datenstatus'),
+                html.Div(className='stat-grid', children=[
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Letzte Aktualisierung: '),
+                        html.Span(stats["latest_timestamp"].strftime('%d.%m.%Y %H:%M:%S Uhr') if stats["latest_timestamp"] else 'Unbekannt')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Datenalter: '),
+                        html.Span(stats["data_age_formatted"])
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Kürzliche Änderungen: '),
+                        html.Span(f'{stats["changes_count"]:,}')
+                    ])
+                ])
+            ]),
+            
+            html.Div(className='stat-card', children=[
+                html.H4('🏢 Struktur'),
+                html.Div(className='stat-grid', children=[
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Produkte: '),
+                        html.Span(f'{stats["total_products"]:,}')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Organisationen: '),
+                        html.Span(f'{stats["total_organizations"]:,}')
+                    ])
+                ])
+            ])
+        ])
+    ]
+    
+    # Add top products if available
+    if len(stats["product_counts"]) > 0:
+        children.append(
+            html.Div(className='top-products', children=[
+                html.H4('🏆 Top Produkte (nach Anzahl CIs)'),
+                html.Div(className='product-list', children=[
+                    html.Div(className='product-item', children=[
+                        html.Strong(f'{product}: '),
+                        html.Span(f'{count:,} CIs')
+                    ]) for product, count in stats["product_counts"].head(5).items()
+                ])
+            ])
+        )
+    
+    # Add top organizations if available
+    if len(stats["organization_counts"]) > 0:
+        children.append(
+            html.Div(className='top-organizations', children=[
+                html.H4('🏢 Top Organisationen (nach Anzahl CIs)'),
+                html.Div(className='organization-list', children=[
+                    html.Div(className='organization-item', children=[
+                        html.Strong(f'{org}: '),
+                        html.Span(f'{count:,} CIs')
+                    ]) for org, count in stats["organization_counts"].head(5).items()
+                ])
+            ])
+        )
+    
+    return html.Div(className='overall-statistics box', children=children)
 
 def serve_layout():
     # Load core configurations (now cached)
@@ -175,6 +359,9 @@ def serve_layout():
         ])
         return layout
     
+    # Calculate overall statistics
+    overall_stats = calculate_overall_statistics(config_file_name, cis)
+    
     # Create accordion elements efficiently
     accordion_elements = []
     for group_name, group_data in grouped:
@@ -186,7 +373,10 @@ def serve_layout():
     
     layout = html.Div([
         html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
-        html.Div(className='accordion', children=accordion_elements)
+        html.Div(className='accordion', children=accordion_elements),
+        
+        # Overall statistics section (below the accordion)
+        create_overall_statistics_display(overall_stats)
     ])
     
     return layout
