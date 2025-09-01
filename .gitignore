@@ -8,6 +8,7 @@ statistics.json
 .idea/
 .gitignore
 .env
+*.log
 
 # Configuration files (use .example files instead)
 config.yaml
