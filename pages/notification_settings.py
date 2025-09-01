@@ -147,18 +147,21 @@ def serve_layout():
                     'border': '2px solid #e9ecef',
                     'borderRadius': '8px',
                     'fontSize': '14px',
-                    'transition': 'border-color 0.3s ease'
+                    'transition': 'border-color 0.3s ease',
+                    'boxSizing': 'border-box'
                 }
             ),
             html.Button('Login', id='login-button', n_clicks=0, style=get_button_style('primary')),
             html.Div(id='login-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
         ], style={
-            'maxWidth': '400px',
+            'width': '100%',
+            'maxWidth': '900px',
             'margin': '0 auto',
             'padding': '30px',
             'backgroundColor': 'white',
             'borderRadius': '12px',
-            'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)'
+            'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
+            'boxSizing': 'border-box'
         }),
         
         # Settings interface (hidden when not authenticated)
@@ -197,7 +200,8 @@ def serve_layout():
                         'border': '2px solid #e9ecef',
                         'borderRadius': '8px',
                         'fontSize': '14px',
-                        'transition': 'border-color 0.3s ease'
+                        'transition': 'border-color 0.3s ease',
+                        'boxSizing': 'border-box'
                     }
                 ),
                 html.Div([
@@ -215,9 +219,17 @@ def serve_layout():
                         ],
                         value='whitelist',
                         inline=True,
-                        style={'marginBottom': '15px'}
+                        style={
+                            'marginBottom': '15px',
+                            'width': '100%',
+                            'display': 'flex',
+                            'gap': '20px'
+                        }
                     )
-                ], style={'marginBottom': '15px'}),
+                ], style={
+                    'marginBottom': '15px',
+                    'width': '100%'
+                }),
                 html.Div([
                     html.Label('Configuration Items:', style={
                         'display': 'block',
@@ -232,12 +244,14 @@ def serve_layout():
                             placeholder='CIs filtern (z.B. "CI-0000" oder "gematik")',
                             style={
                                 'flex': '1',
+                                'minWidth': '0',
                                 'padding': '8px 12px',
                                 'border': '2px solid #e9ecef',
                                 'borderRadius': '6px',
                                 'fontSize': '14px',
                                 'marginRight': '10px',
-                                'transition': 'border-color 0.3s ease'
+                                'transition': 'border-color 0.3s ease',
+                                'boxSizing': 'border-box'
                             }
                         ),
                         html.Button('Alle aktivieren', id='select-all-cis-button', n_clicks=0, style=get_button_style('secondary')),
@@ -246,23 +260,31 @@ def serve_layout():
                         'display': 'flex',
                         'gap': '10px',
                         'marginBottom': '10px',
-                        'alignItems': 'center'
+                        'alignItems': 'center',
+                        'width': '100%',
+                        'boxSizing': 'border-box'
                     }),
                     html.Div(id='ci-filter-info', style={
+                        'width': '100%',
                         'fontSize': '12px',
                         'color': '#7f8c8d',
                         'marginBottom': '8px',
                         'fontStyle': 'italic'
                     }),
                     html.Div(id='ci-checkboxes-container', style={
+                        'width': '100%',
                         'maxHeight': '200px',
                         'overflowY': 'auto',
                         'border': '2px solid #e9ecef',
                         'borderRadius': '8px',
                         'padding': '15px',
-                        'backgroundColor': '#f8f9fa'
+                        'backgroundColor': '#f8f9fa',
+                        'boxSizing': 'border-box'
                     })
-                ], style={'marginBottom': '15px'}),
+                ], style={
+                    'marginBottom': '15px',
+                    'width': '100%'
+                }),
                 dcc.Textarea(
                     id='apprise-urls-textarea',
                     placeholder='Apprise URLs (one per line)',
@@ -276,16 +298,26 @@ def serve_layout():
                         'fontSize': '14px',
                         'fontFamily': 'monospace',
                         'resize': 'vertical',
-                        'transition': 'border-color 0.3s ease'
+                        'transition': 'border-color 0.3s ease',
+                        'boxSizing': 'border-box'
                     }
                 ),
-                html.Div(id='form-error', style=get_error_style(visible=False)),
+                html.Div(id='form-error', style={
+                    **get_error_style(visible=False),
+                    'width': '100%'
+                }),
                 html.Div([
                     html.Button('Save Profile', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
                     html.Button('Cancel', id='cancel-profile-button', n_clicks=0, style=get_button_style('secondary'))
-                ], style={'display': 'flex', 'gap': '10px'})
+                ], style={
+                    'display': 'flex', 
+                    'gap': '10px',
+                    'justifyContent': 'flex-end',
+                    'width': '100%'
+                })
             ], style={
                 'display': 'none',
+                'width': '100%',
                 'backgroundColor': 'white',
                 'padding': '25px',
                 'borderRadius': '12px',
@@ -323,12 +355,17 @@ def serve_layout():
                         'borderRadius': '8px',
                         'fontSize': '14px',
                         'fontFamily': 'monospace',
-                        'transition': 'border-color 0.3s ease'
+                        'transition': 'border-color 0.3s ease',
+                        'boxSizing': 'border-box'
                     }
                 ),
                 html.Button('Test Notification', id='test-notification-button', n_clicks=0, style=get_button_style('warning')),
-                html.Div(id='test-result', style={'marginTop': '15px'})
+                html.Div(id='test-result', style={
+                    'width': '100%',
+                    'marginTop': '15px'
+                })
             ], style={
+                'width': '100%',
                 'marginTop': '30px', 
                 'padding': '25px', 
                 'border': '1px solid #e9ecef', 
@@ -337,12 +374,13 @@ def serve_layout():
                 'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.05)'
             })
         ], style={'display': 'none'})
-    ], style={
-        'maxWidth': '800px',
-        'margin': '0 auto',
-        'padding': '20px',
-        'fontFamily': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-    })
+            ], style={
+            'maxWidth': '900px',
+            'margin': '0 auto',
+            'padding': '20px',
+            'fontFamily': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            'boxSizing': 'border-box'
+        })
     
     return layout
 
@@ -787,8 +825,14 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
                     html.Button('Edit', id={'type': 'edit-profile', 'index': i}, n_clicks=0, style=get_button_style('secondary')),
                     html.Button('Delete', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
                                style=get_button_style('danger'))
-                ], style={'display': 'flex', 'gap': '10px'})
+                ], style={
+                    'display': 'flex', 
+                    'gap': '10px',
+                    'justifyContent': 'flex-end',
+                    'width': '100%'
+                })
             ], className='profile-card', style={
+                'width': '100%',
                 'backgroundColor': 'white',
                 'padding': '25px',
                 'borderRadius': '12px',
@@ -800,7 +844,13 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
             
             profile_cards.append(card)
         
-        return profile_cards
+        # Wrap profile cards in a container with consistent width
+        return html.Div(profile_cards, style={
+            'width': '100%',
+            'display': 'flex',
+            'flexDirection': 'column',
+            'gap': '20px'
+        })
     except Exception as e:
         return html.P(f'Error loading profiles: {str(e)}')
 
