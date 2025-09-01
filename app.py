@@ -146,7 +146,8 @@ def serve_layout():
                 html.Nav(children=[
                     html.A(html.I(className='material-icons', children='home'), href='/', className='nav-icon'),
                     html.A(html.I(className='material-icons', children='analytics'), href='/stats', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='notifications'), href='/notifications', className='nav-icon')
+                    html.A(html.I(className='material-icons', children='notifications'), href='/notifications', className='nav-icon'),
+                    html.A(html.I(className='material-icons', children='description'), href='/logs', className='nav-icon')
                 ], className='navigation')
             ]),
             html.Main(children = [
