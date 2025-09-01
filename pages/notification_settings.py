@@ -133,7 +133,7 @@ def serve_layout():
         dcc.Store(id='auth-status', storage_type='memory', data=auth_status),
         
         # Login form (shown when not authenticated)
-        html.Form(id='login-container', children=[
+        html.Div(id='login-container', children=[
             html.H3('Login Required', style={'color': '#2c3e50', 'marginBottom': '20px'}),
             html.P('Please enter the password to access notification settings.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
             dcc.Input(
@@ -150,7 +150,7 @@ def serve_layout():
                     'transition': 'border-color 0.3s ease'
                 }
             ),
-            html.Button('Login', id='login-button', type='submit', n_clicks=0, style=get_button_style('primary')),
+            html.Button('Login', id='login-button', n_clicks=0, style=get_button_style('primary')),
             html.Div(id='login-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
         ], style={
             'maxWidth': '400px',
@@ -322,14 +322,12 @@ layout = serve_layout
      Output('settings-container', 'style'),
      Output('login-error', 'children'),
      Output('auth-status', 'data')],
-    [Input('login-button', 'n_clicks'),
-     Input('login-container', 'submit_n_clicks')],
+    [Input('login-button', 'n_clicks')],
     [State('password-input', 'value'),
      State('auth-status', 'data')]
 )
-def handle_login(n_clicks, submit_clicks, password, auth_data):
-    # Check if either button was clicked or form was submitted
-    if (n_clicks and n_clicks > 0) or (submit_clicks and submit_clicks > 0):
+def handle_login(n_clicks, password, auth_data):
+    if n_clicks and n_clicks > 0:
         if password:
             if validate_password(password):
                 auth_data['authenticated'] = True
@@ -339,6 +337,17 @@ def handle_login(n_clicks, submit_clicks, password, auth_data):
         else:
             return [no_update, no_update, 'Please enter a password.', auth_data]
     return [no_update, no_update, '', auth_data]
+
+# Callback to handle Enter key in password input
+@callback(
+    Output('login-button', 'n_clicks'),
+    [Input('password-input', 'n_submit')],
+    [State('login-button', 'n_clicks')]
+)
+def handle_enter_key(n_submit, current_clicks):
+    if n_submit and n_submit > 0:
+        return (current_clicks or 0) + 1
+    return current_clicks
 
 # Callback to load and display profiles
 @callback(
