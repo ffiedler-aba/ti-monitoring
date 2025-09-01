@@ -89,7 +89,7 @@ def get_log_file_info():
         }
 
 def read_log_tail(lines=100):
-    """Read the last N lines from the log file"""
+    """Read the last N lines from the log file and reverse them (newest first)"""
     log_file_path = get_log_file_path()
     
     if not os.path.exists(log_file_path):
@@ -101,6 +101,9 @@ def read_log_tail(lines=100):
         
         # Get last N lines
         tail_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+        
+        # Reverse the order so newest lines appear first
+        tail_lines.reverse()
         
         return ''.join(tail_lines)
     except Exception as e:
@@ -217,8 +220,6 @@ def serve_layout():
                             'white-space': 'pre-wrap',
                             'font-family': 'monospace',
                             'font-size': '12px',
-                            'background-color': '#f8f9fa',
-                            'border': '1px solid #dee2e6',
                             'border-radius': '4px',
                             'padding': '10px',
                             'max-height': '600px',
@@ -275,8 +276,6 @@ def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_li
             'white-space': 'pre-wrap',
             'font-family': 'monospace',
             'font-size': '12px',
-            'background-color': '#f8f9fa',
-            'border': '1px solid #dee2e6',
             'border-radius': '4px',
             'padding': '10px',
             'max-height': '600px',

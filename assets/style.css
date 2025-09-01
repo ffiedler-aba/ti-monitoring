@@ -775,4 +775,81 @@ a:any-link:hover {
   .downtime-table td:nth-child(3) {
     color: var(--danger-color);
   }
+  
+  /* Dark theme for logs page */
+  .log-info {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
+  }
+  
+  .log-info-item {
+    color: var(--gray-700);
+  }
+  
+  .log-info-item strong {
+    color: var(--gray-800);
+  }
+  
+  .log-controls {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+  }
+  
+  .control-group {
+    color: var(--gray-700);
+  }
+  
+  .control-group label {
+    color: var(--gray-700);
+  }
+  
+  .log-content {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+  }
+  
+  .log-text {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-800);
+    font-family: 'Courier New', monospace;
+  }
+  
+  .log-text:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  }
+  
+  /* Dark theme for log file info */
+  .log-file-info {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    color: var(--gray-700);
+  }
+  
+  .log-file-info strong {
+    color: var(--gray-800);
+  }
+  
+  .log-file-info .file-path {
+    color: var(--primary-color);
+    font-family: 'Courier New', monospace;
+  }
+  
+  .log-file-info .file-size {
+    color: var(--gray-600);
+  }
+  
+  .log-file-info .file-modified {
+    color: var(--gray-600);
+  }
+  
+  .log-file-info .file-lines {
+    color: var(--gray-600);
+  }
+  
+  .log-file-info .file-status {
+    color: var(--secondary-color);
+  }
 }
