@@ -122,7 +122,7 @@ auth_status = {'authenticated': False}
 
 def serve_layout():
     layout = html.Div([
-        html.H2('Notification Settings', style={
+        html.H2('Benachrichtigungseinstellungen', style={
             'color': '#2c3e50',
             'fontWeight': '600',
             'marginBottom': '30px',
@@ -134,12 +134,12 @@ def serve_layout():
         
         # Login form (shown when not authenticated)
         html.Div(id='login-container', children=[
-            html.H3('Login Required', style={'color': '#2c3e50', 'marginBottom': '20px'}),
-            html.P('Please enter the password to access notification settings.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
+            html.H3('Anmeldung erforderlich', style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.P('Bitte geben Sie das Passwort ein, um auf die Benachrichtigungseinstellungen zuzugreifen.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
             dcc.Input(
                 id='password-input',
                 type='password',
-                placeholder='Enter password',
+                placeholder='Passwort eingeben',
                 style={
                     'width': '100%', 
                     'marginBottom': '15px',
@@ -151,7 +151,7 @@ def serve_layout():
                     'boxSizing': 'border-box'
                 }
             ),
-            html.Button('Login', id='login-button', n_clicks=0, style=get_button_style('primary')),
+            html.Button('Anmelden', id='login-button', n_clicks=0, style=get_button_style('primary')),
             html.Div(id='login-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
         ], style={
             'width': '100%',
@@ -166,7 +166,7 @@ def serve_layout():
         
         # Settings interface (hidden when not authenticated)
         html.Div(id='settings-container', children=[
-            html.P('Manage your notification profiles below.', style={
+            html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.', style={
                 'color': '#7f8c8d',
                 'fontSize': '16px',
                 'marginBottom': '25px'
@@ -176,11 +176,11 @@ def serve_layout():
             html.Div(id='profiles-container'),
             
             # Add new profile button
-            html.Button('Add New Profile', id='add-profile-button', n_clicks=0, style=get_button_style('success')),
+            html.Button('Neues Profil hinzufügen', id='add-profile-button', n_clicks=0, style=get_button_style('success')),
             
             # Profile form (hidden by default)
             html.Div(id='profile-form-container', children=[
-                html.H3('Profile Details', style={
+                html.H3('Profildetails', style={
                     'color': '#2c3e50',
                     'marginBottom': '20px',
                     'borderBottom': '2px solid #3498db',
@@ -192,7 +192,7 @@ def serve_layout():
                 dcc.Store(id='ci-filter-text', data=''),
                 dcc.Input(
                     id='profile-name-input',
-                    placeholder='Profile Name',
+                    placeholder='Profilname',
                     style={
                         'width': '100%', 
                         'marginBottom': '15px',
@@ -205,7 +205,7 @@ def serve_layout():
                     }
                 ),
                 html.Div([
-                    html.Label('Notification Type:', style={
+                    html.Label('Benachrichtigungstyp:', style={
                         'display': 'block',
                         'marginBottom': '10px',
                         'fontWeight': '500',
@@ -231,7 +231,7 @@ def serve_layout():
                     'width': '100%'
                 }),
                 html.Div([
-                    html.Label('Configuration Items:', style={
+                    html.Label('Konfigurationsobjekte:', style={
                         'display': 'block',
                         'marginBottom': '10px',
                         'fontWeight': '500',
@@ -287,7 +287,7 @@ def serve_layout():
                 }),
                 dcc.Textarea(
                     id='apprise-urls-textarea',
-                    placeholder='Apprise URLs (one per line)',
+                    placeholder='Apprise URLs (eine pro Zeile)',
                     style={
                         'width': '100%', 
                         'height': '100px', 
@@ -307,8 +307,8 @@ def serve_layout():
                     'width': '100%'
                 }),
                 html.Div([
-                    html.Button('Save Profile', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
-                    html.Button('Cancel', id='cancel-profile-button', n_clicks=0, style=get_button_style('secondary'))
+                    html.Button('Profil speichern', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
+                    html.Button('Abbrechen', id='cancel-profile-button', n_clicks=0, style=get_button_style('secondary'))
                 ], style={
                     'display': 'flex', 
                     'gap': '10px',
@@ -329,17 +329,17 @@ def serve_layout():
             # Delete confirmation modal
             dcc.ConfirmDialog(
                 id='delete-confirm',
-                message='Are you sure you want to delete this profile?'
+                message='Sind Sie sicher, dass Sie dieses Profil löschen möchten?'
             ),
             # Test Apprise notification button
             html.Div([
-                html.H3('Test Apprise Notification', style={
+                html.H3('Apprise-Benachrichtigung testen', style={
                     'color': '#2c3e50',
                     'marginBottom': '15px',
                     'borderBottom': '2px solid #3498db',
                     'paddingBottom': '10px'
                 }),
-                html.P('Enter an Apprise URL to test if your notification system is working.', style={
+                html.P('Geben Sie eine Apprise-URL ein, um zu testen, ob Ihr Benachrichtigungssystem funktioniert.', style={
                     'color': '#7f8c8d',
                     'marginBottom': '15px'
                 }),
@@ -359,7 +359,7 @@ def serve_layout():
                         'boxSizing': 'border-box'
                     }
                 ),
-                html.Button('Test Notification', id='test-notification-button', n_clicks=0, style=get_button_style('warning')),
+                html.Button('Benachrichtigung testen', id='test-notification-button', n_clicks=0, style=get_button_style('warning')),
                 html.Div(id='test-result', style={
                     'width': '100%',
                     'marginTop': '15px'
@@ -405,9 +405,9 @@ def handle_login(n_clicks, password, auth_data):
                 auth_data['authenticated'] = True
                 return [{'display': 'none'}, {'display': 'block'}, '', auth_data]
             else:
-                return [no_update, no_update, 'Invalid password. Please try again.', auth_data]
+                return [no_update, no_update, 'Ungültiges Passwort. Bitte versuchen Sie es erneut.', auth_data]
         else:
-            return [no_update, no_update, 'Please enter a password.', auth_data]
+            return [no_update, no_update, 'Bitte geben Sie ein Passwort ein.', auth_data]
     return [no_update, no_update, '', auth_data]
 
 
@@ -790,7 +790,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
     try:
         config = get_notification_config(config_notifications_config_file)
         if not config:
-            return html.P('No notification profiles found. Add a new profile to get started.')
+            return html.P('Keine Benachrichtigungsprofile gefunden. Fügen Sie ein neues Profil hinzu, um zu beginnen.')
         
         profile_cards = []
         for i, profile in enumerate(config):
@@ -799,7 +799,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
             url_count = len(profile.get('apprise_urls', []))
             
             card = html.Div([
-                html.H4(profile.get('name', 'Unnamed Profile'), style={
+                html.H4(profile.get('name', 'Unbenanntes Profil'), style={
                     'color': '#2c3e50',
                     'marginBottom': '15px',
                     'fontWeight': '600',
@@ -807,25 +807,25 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
                     'paddingBottom': '10px'
                 }),
                 html.Div([
-                    html.P(f"Type: {profile.get('type', 'whitelist').title()}", style={
+                    html.P(f"Typ: {profile.get('type', 'whitelist').title()}", style={
                         'color': '#7f8c8d',
                         'margin': '5px 0',
                         'fontSize': '14px'
                     }),
-                    html.P(f"Configuration Items: {ci_count}", style={
+                    html.P(f"Konfigurationsobjekte: {ci_count}", style={
                         'color': '#7f8c8d',
                         'margin': '5px 0',
                         'fontSize': '14px'
                     }),
-                    html.P(f"Notification URLs: {url_count}", style={
+                    html.P(f"Benachrichtigungs-URLs: {url_count}", style={
                         'color': '#7f8c8d',
                         'margin': '5px 0',
                         'fontSize': '14px'
                     })
                 ], style={'marginBottom': '20px'}),
                 html.Div([
-                    html.Button('Edit', id={'type': 'edit-profile', 'index': i}, n_clicks=0, style=get_button_style('secondary')),
-                    html.Button('Delete', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
+                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'index': i}, n_clicks=0, style=get_button_style('secondary')),
+                    html.Button('Löschen', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
                                style=get_button_style('danger'))
                 ], style={
                     'display': 'flex', 
@@ -854,7 +854,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
             'gap': '20px'
         })
     except Exception as e:
-        return html.P(f'Error loading profiles: {str(e)}')
+        return html.P(f'Fehler beim Laden der Profile: {str(e)}')
 
 # Callback to show profile form
 @callback(
@@ -1012,7 +1012,7 @@ def show_delete_confirm(delete_clicks):
         config = get_notification_config(config_notifications_config_file)
         if 0 <= index < len(config):
             profile_name = config[index].get('name', 'Unnamed Profile')
-            message = f'Are you sure you want to delete the profile "{profile_name}"?'
+            message = f'Sind Sie sicher, dass Sie das Profil "{profile_name}" löschen möchten?'
             return [True, message]
     except Exception:
         pass
@@ -1071,10 +1071,10 @@ def delete_profile(submit_n_clicks, triggered):
 )
 def test_apprise_notification(n_clicks, apprise_url, auth_data):
     if not auth_data.get('authenticated', False):
-        return html.Div('Authentication required.', style={'color': 'red'})
+        return html.Div('Authentifizierung erforderlich.', style={'color': 'red'})
     
     if not apprise_url or not apprise_url.strip():
-        return html.Div('Please enter an Apprise URL to test.', style={'color': 'orange'})
+        return html.Div('Bitte geben Sie eine Apprise-URL zum Testen ein.', style={'color': 'orange'})
     
     try:
         # Create Apprise object and add the URL
@@ -1084,60 +1084,60 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
         if not apobj.add(apprise_url.strip()):
             return html.Div([
                 html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
-                html.Span('Invalid Apprise URL format. Please check the URL syntax.', style={'color': 'red'}),
+                html.Span('Ungültiges Apprise-URL-Format. Bitte überprüfen Sie die URL-Syntax.', style={'color': 'red'}),
                 html.Br(),
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Br(),
-                html.Span('Common Mattermost format: mmost://username:password@hostname/channel', style={'color': 'blue', 'font-size': '0.9em'}),
+                html.Span('Häufiges Mattermost-Format: mmost://username:password@hostname/channel', style={'color': 'blue', 'font-size': '0.9em'}),
                 html.Br(),
-                html.Span('Example: mmost://user:pass@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'})
+                html.Span('Beispiel: mmost://user:pass@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'})
             ])
         
         # Send test notification
         result = apobj.notify(
-            title='TI-Monitoring Test Notification',
-            body='This is a test notification from TI-Monitoring. If you receive this, your Apprise configuration is working correctly!',
+            title='TI-Monitoring Test-Benachrichtigung',
+            body='Dies ist eine Test-Benachrichtigung von TI-Monitoring. Wenn Sie diese erhalten, funktioniert Ihre Apprise-Konfiguration korrekt!',
             body_format=apprise.NotifyFormat.TEXT
         )
         
         if result:
             return html.Div([
                 html.I(className='material-icons', children='check_circle', style={'color': 'green', 'margin-right': '8px'}),
-                html.Span('Test notification sent successfully! Check your notification destination.', style={'color': 'green'}),
+                html.Span('Test-Benachrichtigung erfolgreich gesendet! Überprüfen Sie Ihr Benachrichtigungsziel.', style={'color': 'green'}),
                 html.Br(),
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
-                html.Span('Note: If you don\'t receive the message, check your Mattermost channel and bot permissions.', style={'color': 'blue', 'font-size': '0.9em'})
+                html.Span('Hinweis: Wenn Sie die Nachricht nicht erhalten, überprüfen Sie Ihren Mattermost-Kanal und die Bot-Berechtigungen.', style={'color': 'blue', 'font-size': '0.9em'})
             ])
         else:
             return html.Div([
                 html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
-                html.Span('Failed to send test notification. Please check your Apprise URL and configuration.', style={'color': 'red'}),
+                html.Span('Test-Benachrichtigung konnte nicht gesendet werden. Bitte überprüfen Sie Ihre Apprise-URL und Konfiguration.', style={'color': 'red'}),
                 html.Br(),
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Br(),
-                html.Span('Common issues:', style={'color': 'orange', 'font-weight': 'bold'}),
+                html.Span('Häufige Probleme:', style={'color': 'orange', 'font-weight': 'bold'}),
                 html.Br(),
-                html.Span('• Check if the Mattermost server is accessible', style={'color': 'orange'}),
+                html.Span('• Überprüfen Sie, ob der Mattermost-Server erreichbar ist', style={'color': 'orange'}),
                 html.Br(),
-                html.Span('• Verify username/password credentials', style={'color': 'orange'}),
+                html.Span('• Überprüfen Sie Benutzername/Passwort-Anmeldedaten', style={'color': 'orange'}),
                 html.Br(),
-                html.Span('• Ensure the bot has permission to post in the channel', style={'color': 'orange'}),
+                html.Span('• Stellen Sie sicher, dass der Bot die Berechtigung hat, im Kanal zu posten', style={'color': 'orange'}),
                 html.Br(),
-                html.Span('• Check Mattermost server logs for errors', style={'color': 'orange'})
+                html.Span('• Überprüfen Sie die Mattermost-Server-Logs auf Fehler', style={'color': 'orange'})
             ])
             
     except Exception as e:
         return html.Div([
             html.I(className='material-icons', children='error', style={'color': 'red', 'margin-right': '8px'}),
-            html.Span(f'Error testing notification: {str(e)}', style={'color': 'red'}),
+            html.Span(f'Fehler beim Testen der Benachrichtigung: {str(e)}', style={'color': 'red'}),
             html.Br(),
             html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
             html.Br(),
             html.Br(),
-            html.Span('Try this format instead:', style={'color': 'blue', 'font-weight': 'bold'}),
+            html.Span('Versuchen Sie stattdessen dieses Format:', style={'color': 'blue', 'font-weight': 'bold'}),
             html.Br(),
             html.Span('mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-family': 'monospace'})
         ])
