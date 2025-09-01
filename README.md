@@ -131,13 +131,13 @@ Auf Wunsch können bei Änderungen der Verfügbarkeit Benachrichtigungen versend
 
 Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, sofern in der Datei `myconfig.py` die Variable `notifications` den Wert `True` besitzt.
 
-![Beispiel einer Telegram-Benachrichtigung](screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
+![Beispiel einer Telegram-Benachrichtigung](docs/img/screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
 
 ### Web-Oberfläche für Benachrichtigungseinstellungen
 
 Ab Version 1.2.0 steht eine webbasierte Oberfläche zur Verwaltung der Benachrichtigungseinstellungen zur Verfügung. Über die Seite "Notification Settings" in der Web-App können Benachrichtigungsprofile erstellt, bearbeitet und gelöscht werden.
 
-![Screenshot der Notifications-Seite](screenshot_notification-page.png "Screenshot der Notifications-Seite - Einheitliche Breite aller Elemente und responsives Design")
+![Screenshot der Notifications-Seite](docs/img/screenshot_notification-page.png "Screenshot der Notifications-Seite - Einheitliche Breite aller Elemente und responsives Design")
 
 Die Seite ist durch ein einfaches Passwortschutzsystem gesichert. Das Passwort wird über eine Umgebungsvariable `NOTIFICATION_SETTINGS_PASSWORD` konfiguriert, die in einer `.env` Datei im Projektverzeichnis gespeichert wird.
 
