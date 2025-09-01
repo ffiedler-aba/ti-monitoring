@@ -13,6 +13,7 @@ import pytz
 # Enhanced logging setup with file logging and daily rotation
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from datetime import datetime
 import os
 
 # Global logger instance
@@ -37,8 +38,17 @@ def setup_logger():
         # Clear any existing handlers
         _logger.handlers.clear()
         
-        # Create formatter
-        formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        # Create formatter with timezone
+        class TimezoneFormatter(logging.Formatter):
+            def formatTime(self, record, datefmt=None):
+                # Convert to Europe/Berlin timezone
+                dt = datetime.fromtimestamp(record.created, tz=pytz.timezone('Europe/Berlin'))
+                if datefmt:
+                    return dt.strftime(datefmt)
+                else:
+                    return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
+        
+        formatter = TimezoneFormatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S %Z')
         
         # File handler with daily rotation
         log_file = os.path.join(data_dir, 'cron.log')
