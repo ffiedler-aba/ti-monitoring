@@ -331,6 +331,9 @@ def serve_layout():
                 id='delete-confirm',
                 message='Sind Sie sicher, dass Sie dieses Profil löschen möchten?'
             ),
+            
+            # Store for delete index
+            dcc.Store(id='delete-index-store', data=None),
             # Test Apprise notification button
             html.Div([
                 html.H3('Apprise-Benachrichtigung testen', style={
@@ -984,21 +987,22 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
 # Callback to handle delete confirmation
 @callback(
     [Output('delete-confirm', 'displayed'),
-     Output('delete-confirm', 'message')],
+     Output('delete-confirm', 'message'),
+     Output('delete-index-store', 'data')],
     [Input({'type': 'delete-profile', 'index': dash.ALL}, 'n_clicks')],
     prevent_initial_call=True
 )
 def show_delete_confirm(delete_clicks):
     ctx = callback_context
     if not ctx.triggered:
-        return [False, '']
+        return [False, '', None]
     
     # Get the triggered input that caused this callback
     triggered_input = ctx.triggered[0]
     
     # Only show confirmation if a delete button was actually clicked (n_clicks > 0)
     if triggered_input['value'] <= 0:
-        return [False, '']
+        return [False, '', None]
     
     try:
         button_id = triggered_input['prop_id'].split('.')[0]
@@ -1013,51 +1017,42 @@ def show_delete_confirm(delete_clicks):
         if 0 <= index < len(config):
             profile_name = config[index].get('name', 'Unnamed Profile')
             message = f'Sind Sie sicher, dass Sie das Profil "{profile_name}" löschen möchten?'
-            return [True, message]
-    except Exception:
-        pass
+            return [True, message, index]
+    except Exception as e:
+        print(f"Error in show_delete_confirm: {e}")
     
-    return [False, '']
+    return [False, '', None]
 
 # Callback to delete profile
 @callback(
     Output('delete-confirm', 'submit_n_clicks'),
     [Input('delete-confirm', 'submit_n_clicks')],
-    [State('delete-confirm', 'triggered')],
+    [State('delete-index-store', 'data')],
     prevent_initial_call=True
 )
-def delete_profile(submit_n_clicks, triggered):
-    if not triggered or submit_n_clicks == 0:
+def delete_profile(submit_n_clicks, delete_index):
+    if submit_n_clicks == 0 or delete_index is None:
         return 0
     
     try:
-        # Extract index from triggered data
-        if isinstance(triggered, list) and len(triggered) > 0:
-            trigger = triggered[0]
-            if 'prop_id' in trigger:
-                button_id = trigger['prop_id'].split('.')[0]
-                # Fix the JSON parsing
-                if button_id.startswith('{') and button_id.endswith('}'):
-                    button_data = json.loads(button_id)
-                else:
-                    button_data = json.loads(button_id.replace("'", '"'))
-                index = button_data['index']
-                
-                # Load core configurations
-                core_config = load_core_config()
-                config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
-                
-                # Load config
-                config = get_notification_config(config_notifications_config_file)
-                
-                # Remove profile at index
-                if 0 <= index < len(config):
-                    config.pop(index)
-                    
-                    # Save updated config
-                    save_notification_config(config_notifications_config_file, config)
-    except Exception:
-        pass
+        # Load core configurations
+        core_config = load_core_config()
+        config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+        
+        # Load config
+        config = get_notification_config(config_notifications_config_file)
+        
+        # Remove profile at index
+        if 0 <= delete_index < len(config):
+            config.pop(delete_index)
+            
+            # Save updated config
+            if save_notification_config(config_notifications_config_file, config):
+                print(f"Successfully deleted profile at index {delete_index}")
+            else:
+                print(f"Failed to save config after deleting profile at index {delete_index}")
+    except Exception as e:
+        print(f"Error in delete_profile: {e}")
     
     return submit_n_clicks
 
