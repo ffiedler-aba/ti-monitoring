@@ -7,6 +7,80 @@ import yaml
 import os
 import apprise
 
+# Modern button styles
+MODERN_BUTTON_STYLES = {
+    'primary': {
+        'backgroundColor': '#007bff',
+        'color': 'white',
+        'border': 'none',
+        'padding': '10px 20px',
+        'borderRadius': '8px',
+        'fontSize': '14px',
+        'fontWeight': '500',
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'boxShadow': '0 2px 4px rgba(0, 123, 255, 0.2)',
+        'margin': '5px'
+    },
+    'secondary': {
+        'backgroundColor': '#6c757d',
+        'color': 'white',
+        'border': 'none',
+        'padding': '10px 20px',
+        'borderRadius': '8px',
+        'fontSize': '14px',
+        'fontWeight': '500',
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'boxShadow': '0 2px 4px rgba(108, 117, 125, 0.2)',
+        'margin': '5px'
+    },
+    'success': {
+        'backgroundColor': '#28a745',
+        'color': 'white',
+        'border': 'none',
+        'padding': '10px 20px',
+        'borderRadius': '8px',
+        'fontSize': '14px',
+        'fontWeight': '500',
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'boxShadow': '0 2px 4px rgba(40, 167, 69, 0.2)',
+        'margin': '5px'
+    },
+    'danger': {
+        'backgroundColor': '#dc3545',
+        'color': 'white',
+        'border': 'none',
+        'padding': '10px 20px',
+        'borderRadius': '8px',
+        'fontSize': '14px',
+        'fontWeight': '500',
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'boxShadow': '0 2px 4px rgba(220, 53, 69, 0.2)',
+        'margin': '5px'
+    },
+    'warning': {
+        'backgroundColor': '#ffc107',
+        'color': '#212529',
+        'border': 'none',
+        'padding': '10px 20px',
+        'borderRadius': '8px',
+        'fontSize': '14px',
+        'fontWeight': '500',
+        'cursor': 'pointer',
+        'transition': 'all 0.3s ease',
+        'boxShadow': '0 2px 4px rgba(255, 193, 7, 0.2)',
+        'margin': '5px'
+    }
+}
+
+# Hover effects for buttons
+def get_button_style(button_type='primary'):
+    base_style = MODERN_BUTTON_STYLES[button_type].copy()
+    return base_style
+
 def load_config():
     """Load configuration from YAML file"""
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
@@ -31,45 +105,88 @@ auth_status = {'authenticated': False}
 
 def serve_layout():
     layout = html.Div([
-        html.H2('Notification Settings'),
+        html.H2('Notification Settings', style={
+            'color': '#2c3e50',
+            'fontWeight': '600',
+            'marginBottom': '30px',
+            'borderBottom': '2px solid #3498db',
+            'paddingBottom': '10px'
+        }),
         # Store for authentication status
         dcc.Store(id='auth-status', storage_type='memory', data=auth_status),
         
         # Login form (shown when not authenticated)
         html.Div(id='login-container', children=[
-            html.H3('Login Required'),
-            html.P('Please enter the password to access notification settings.'),
+            html.H3('Login Required', style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.P('Please enter the password to access notification settings.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
             dcc.Input(
                 id='password-input',
                 type='password',
                 placeholder='Enter password',
-                style={'width': '100%', 'margin-bottom': '10px'}
+                style={
+                    'width': '100%', 
+                    'marginBottom': '15px',
+                    'padding': '12px',
+                    'border': '2px solid #e9ecef',
+                    'borderRadius': '8px',
+                    'fontSize': '14px',
+                    'transition': 'border-color 0.3s ease'
+                }
             ),
-            html.Button('Login', id='login-button', n_clicks=0),
-            html.Div(id='login-error', style={'color': 'red', 'margin-top': '10px'})
-        ]),
+            html.Button('Login', id='login-button', n_clicks=0, style=get_button_style('primary')),
+            html.Div(id='login-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
+        ], style={
+            'maxWidth': '400px',
+            'margin': '0 auto',
+            'padding': '30px',
+            'backgroundColor': 'white',
+            'borderRadius': '12px',
+            'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)'
+        }),
         
         # Settings interface (hidden when not authenticated)
         html.Div(id='settings-container', children=[
-            html.P('Manage your notification profiles below.'),
+            html.P('Manage your notification profiles below.', style={
+                'color': '#7f8c8d',
+                'fontSize': '16px',
+                'marginBottom': '25px'
+            }),
             
             # Display existing profiles
             html.Div(id='profiles-container'),
             
             # Add new profile button
-            html.Button('Add New Profile', id='add-profile-button', n_clicks=0),
+            html.Button('Add New Profile', id='add-profile-button', n_clicks=0, style=get_button_style('success')),
             
             # Profile form (hidden by default)
             html.Div(id='profile-form-container', children=[
-                html.H3('Profile Details'),
+                html.H3('Profile Details', style={
+                    'color': '#2c3e50',
+                    'marginBottom': '20px',
+                    'borderBottom': '2px solid #3498db',
+                    'paddingBottom': '10px'
+                }),
                 dcc.Store(id='editing-profile-index'),
                 dcc.Input(
                     id='profile-name-input',
                     placeholder='Profile Name',
-                    style={'width': '100%', 'margin-bottom': '10px'}
+                    style={
+                        'width': '100%', 
+                        'marginBottom': '15px',
+                        'padding': '12px',
+                        'border': '2px solid #e9ecef',
+                        'borderRadius': '8px',
+                        'fontSize': '14px',
+                        'transition': 'border-color 0.3s ease'
+                    }
                 ),
                 html.Div([
-                    html.Label('Notification Type:'),
+                    html.Label('Notification Type:', style={
+                        'display': 'block',
+                        'marginBottom': '10px',
+                        'fontWeight': '500',
+                        'color': '#2c3e50'
+                    }),
                     dcc.RadioItems(
                         id='notification-type-radio',
                         options=[
@@ -77,23 +194,64 @@ def serve_layout():
                             {'label': 'Blacklist', 'value': 'blacklist'}
                         ],
                         value='whitelist',
-                        inline=True
+                        inline=True,
+                        style={'marginBottom': '15px'}
                     )
-                ], style={'margin-bottom': '10px'}),
+                ], style={'marginBottom': '15px'}),
                 dcc.Textarea(
                     id='ci-list-textarea',
                     placeholder='Configuration Item IDs (one per line)',
-                    style={'width': '100%', 'height': '100px', 'margin-bottom': '10px'}
+                    style={
+                        'width': '100%', 
+                        'height': '100px', 
+                        'marginBottom': '15px',
+                        'padding': '12px',
+                        'border': '2px solid #e9ecef',
+                        'borderRadius': '8px',
+                        'fontSize': '14px',
+                        'fontFamily': 'monospace',
+                        'resize': 'vertical',
+                        'transition': 'border-color 0.3s ease'
+                    }
                 ),
                 dcc.Textarea(
                     id='apprise-urls-textarea',
                     placeholder='Apprise URLs (one per line)',
-                    style={'width': '100%', 'height': '100px', 'margin-bottom': '10px'}
+                    style={
+                        'width': '100%', 
+                        'height': '100px', 
+                        'marginBottom': '15px',
+                        'padding': '12px',
+                        'border': '2px solid #e9ecef',
+                        'borderRadius': '8px',
+                        'fontSize': '14px',
+                        'fontFamily': 'monospace',
+                        'resize': 'vertical',
+                        'transition': 'border-color 0.3s ease'
+                    }
                 ),
-                html.Div(id='form-error', style={'color': 'red', 'margin-bottom': '10px'}),
-                html.Button('Save Profile', id='save-profile-button', n_clicks=0),
-                html.Button('Cancel', id='cancel-profile-button', n_clicks=0, style={'margin-left': '10px'})
-            ], style={'display': 'none'}),
+                html.Div(id='form-error', style={
+                    'color': '#e74c3c', 
+                    'marginBottom': '15px',
+                    'fontWeight': '500',
+                    'padding': '10px',
+                    'backgroundColor': '#fdf2f2',
+                    'borderRadius': '6px',
+                    'border': '1px solid #fecaca'
+                }),
+                html.Div([
+                    html.Button('Save Profile', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
+                    html.Button('Cancel', id='cancel-profile-button', n_clicks=0, style=get_button_style('secondary'))
+                ], style={'display': 'flex', 'gap': '10px'})
+            ], style={
+                'display': 'none',
+                'backgroundColor': 'white',
+                'padding': '25px',
+                'borderRadius': '12px',
+                'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
+                'marginTop': '20px',
+                'border': '1px solid #e9ecef'
+            }),
             
             # Delete confirmation modal
             dcc.ConfirmDialog(
@@ -102,19 +260,48 @@ def serve_layout():
             ),
             # Test Apprise notification button
             html.Div([
-                html.H3('Test Apprise Notification'),
-                html.P('Enter an Apprise URL to test if your notification system is working.'),
+                html.H3('Test Apprise Notification', style={
+                    'color': '#2c3e50',
+                    'marginBottom': '15px',
+                    'borderBottom': '2px solid #3498db',
+                    'paddingBottom': '10px'
+                }),
+                html.P('Enter an Apprise URL to test if your notification system is working.', style={
+                    'color': '#7f8c8d',
+                    'marginBottom': '15px'
+                }),
                 dcc.Input(
                     id='test-apprise-url',
                     type='text',
                     placeholder='e.g., mmost://username:password@mattermost.medisoftware.org/channel',
-                    style={'width': '100%', 'margin-bottom': '10px'}
+                    style={
+                        'width': '100%', 
+                        'marginBottom': '15px',
+                        'padding': '12px',
+                        'border': '2px solid #e9ecef',
+                        'borderRadius': '8px',
+                        'fontSize': '14px',
+                        'fontFamily': 'monospace',
+                        'transition': 'border-color 0.3s ease'
+                    }
                 ),
-                html.Button('Test Notification', id='test-notification-button', n_clicks=0),
-                html.Div(id='test-result', style={'margin-top': '10px'})
-            ], style={'margin-top': '20px', 'padding': '15px', 'border': '1px solid #ccc', 'border-radius': '5px'})
+                html.Button('Test Notification', id='test-notification-button', n_clicks=0, style=get_button_style('warning')),
+                html.Div(id='test-result', style={'marginTop': '15px'})
+            ], style={
+                'marginTop': '30px', 
+                'padding': '25px', 
+                'border': '1px solid #e9ecef', 
+                'borderRadius': '12px',
+                'backgroundColor': 'white',
+                'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.05)'
+            })
         ], style={'display': 'none'})
-    ])
+    ], style={
+        'maxWidth': '800px',
+        'margin': '0 auto',
+        'padding': '20px',
+        'fontFamily': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+    })
     
     return layout
 
@@ -166,14 +353,44 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
             url_count = len(profile.get('apprise_urls', []))
             
             card = html.Div([
-                html.H4(profile.get('name', 'Unnamed Profile')),
-                html.P(f"Type: {profile.get('type', 'whitelist').title()}"),
-                html.P(f"Configuration Items: {ci_count}"),
-                html.P(f"Notification URLs: {url_count}"),
-                html.Button('Edit', id={'type': 'edit-profile', 'index': i}, n_clicks=0),
-                html.Button('Delete', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
-                           style={'margin-left': '10px', 'background-color': '#dc3545'})
-            ], className='box', style={'margin-bottom': '10px'})
+                html.H4(profile.get('name', 'Unnamed Profile'), style={
+                    'color': '#2c3e50',
+                    'marginBottom': '15px',
+                    'fontWeight': '600',
+                    'borderBottom': '1px solid #ecf0f1',
+                    'paddingBottom': '10px'
+                }),
+                html.Div([
+                    html.P(f"Type: {profile.get('type', 'whitelist').title()}", style={
+                        'color': '#7f8c8d',
+                        'margin': '5px 0',
+                        'fontSize': '14px'
+                    }),
+                    html.P(f"Configuration Items: {ci_count}", style={
+                        'color': '#7f8c8d',
+                        'margin': '5px 0',
+                        'fontSize': '14px'
+                    }),
+                    html.P(f"Notification URLs: {url_count}", style={
+                        'color': '#7f8c8d',
+                        'margin': '5px 0',
+                        'fontSize': '14px'
+                    })
+                ], style={'marginBottom': '20px'}),
+                html.Div([
+                    html.Button('Edit', id={'type': 'edit-profile', 'index': i}, n_clicks=0, style=get_button_style('secondary')),
+                    html.Button('Delete', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
+                               style=get_button_style('danger'))
+                ], style={'display': 'flex', 'gap': '10px'})
+            ], className='profile-card', style={
+                'backgroundColor': 'white',
+                'padding': '25px',
+                'borderRadius': '12px',
+                'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)',
+                'marginBottom': '20px',
+                'border': '1px solid #e9ecef',
+                'transition': 'transform 0.2s ease, box-shadow 0.2s ease'
+            })
             
             profile_cards.append(card)
         
