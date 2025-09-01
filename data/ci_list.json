@@ -1,0 +1,1046 @@
+[
+  {
+    "ci": "CI-0000001",
+    "name": "Fachdienst VSDM (UFS)",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "BITTE",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000004",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "BITTE",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000007",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "BITTE",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000010",
+    "name": "BITMARCK-OCSP",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "Trust Service Provider X.509 nonQES - eGK",
+    "tid": "BIT01",
+    "bu": "PU",
+    "pdt": "PDT03"
+  },
+  {
+    "ci": "CI-0000019",
+    "name": "TSP X.509 non QES - SMC-B -P für G.2",
+    "organization": "D-Trust GmbH",
+    "product": "Trust Service Provider X.509 nonQES – SMC-B",
+    "tid": "DTR30",
+    "bu": "PU",
+    "pdt": "PDT38"
+  },
+  {
+    "ci": "CI-0000022",
+    "name": "Fachdienste VSDM (UFS)",
+    "organization": "itsc GmbH",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "ITSCG",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000025",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "itsc GmbH",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "ITSCG",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000028",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "itsc GmbH",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "ITSCG",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000031",
+    "name": "Fachdienste VSDM (UFS)",
+    "organization": "ITSCare - IT Services für den Gesundheitsmarkt",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "ITSCA",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000034",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "ITSCare - IT Services für den Gesundheitsmarkt",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "ITSCA",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000037",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "ITSCare - IT Services für den Gesundheitsmarkt",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "ITSCA",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000049",
+    "name": "Fachdienste VSDM (UFS)",
+    "organization": "kubus IT - Arbeitsgemeinschaft von Körperschaften des öffentlichen Rechts eGbR",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "KUBUS",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000052",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "kubus IT - Arbeitsgemeinschaft von Körperschaften des öffentlichen Rechts eGbR",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "KUBUS",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000055",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "kubus IT - Arbeitsgemeinschaft von Körperschaften des öffentlichen Rechts eGbR",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "KUBUS",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000058",
+    "name": "TSP X.509nonQES eGK",
+    "organization": "kubus IT - Arbeitsgemeinschaft von Körperschaften des öffentlichen Rechts eGbR",
+    "product": "Trust Service Provider X.509 nonQES - eGK",
+    "tid": "KUB01",
+    "bu": "PU",
+    "pdt": "PDT03"
+  },
+  {
+    "ci": "CI-0000064",
+    "name": "Fachdienste VSDM (UFS)",
+    "organization": "Mobil ISC GmbH",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "ISCMO",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000067",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "Mobil ISC GmbH",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "ISCMO",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000070",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "Mobil ISC GmbH",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "ISCMO",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000073",
+    "name": "OCSP Responder Proxy",
+    "organization": "Arvato Systems GmbH",
+    "product": "OCSP-Responder-Proxy",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT01"
+  },
+  {
+    "ci": "CI-0000076",
+    "name": "TSL Dienst",
+    "organization": "Arvato Systems GmbH",
+    "product": "TSL-Dienst",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT04"
+  },
+  {
+    "ci": "CI-0000082",
+    "name": "Namensdienst",
+    "organization": "Arvato Systems GmbH",
+    "product": "Namensdienst",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT06"
+  },
+  {
+    "ci": "CI-0000085",
+    "name": "Zeitdienst",
+    "organization": "Arvato Systems GmbH",
+    "product": "Zeitdienst",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT07"
+  },
+  {
+    "ci": "CI-0000094",
+    "name": "Konfigurationsdienst",
+    "organization": "Arvato Systems GmbH",
+    "product": "Konfigurationsdienst",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT11"
+  },
+  {
+    "ci": "CI-0000099",
+    "name": "CVC Root CA",
+    "organization": "Arvato Systems GmbH",
+    "product": "gematik-Root-CA",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT22"
+  },
+  {
+    "ci": "CI-0000102",
+    "name": "Verzeichnisdienst",
+    "organization": "Arvato Systems GmbH",
+    "product": "Verzeichnisdienst",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT25"
+  },
+  {
+    "ci": "CI-0000108",
+    "name": "TSP X.509",
+    "organization": "Arvato Systems GmbH",
+    "product": "Trust Service Provider X.509 nonQES – Komponentenzertifikate",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT37"
+  },
+  {
+    "ci": "CI-0000113",
+    "name": "Fachdienst VSDM (UFS)",
+    "organization": "Techniker Krankenkasse",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "TECHK",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000116",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "Techniker Krankenkasse",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "TECHK",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000119",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "Techniker Krankenkasse",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "TECHK",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000122",
+    "name": "TSPX.509 nonQES eGK",
+    "organization": "Deutsche Telekom Security GmbH",
+    "product": "Trust Service Provider X.509 nonQES - eGK",
+    "tid": "TSY01",
+    "bu": "PU",
+    "pdt": "PDT03"
+  },
+  {
+    "ci": "CI-0000128",
+    "name": "VPN-Zugangsdienst",
+    "organization": "T-Systems International GmbH",
+    "product": "VPN-Zugangsdienst",
+    "tid": "DTH01",
+    "bu": "PU",
+    "pdt": "PDT09"
+  },
+  {
+    "ci": "CI-0000131",
+    "name": "Intermediär VSDM",
+    "organization": "T-Systems International GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "DTH01",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0000137",
+    "name": "TSP X509 nonQES SMC-B",
+    "organization": "T-Systems International GmbH",
+    "product": "Trust Service Provider X.509 nonQES – SMC-B",
+    "tid": "TSY30",
+    "bu": "PU",
+    "pdt": "PDT38"
+  },
+  {
+    "ci": "CI-0000140",
+    "name": "TSP X509 QES HBA",
+    "organization": "T-Systems International GmbH",
+    "product": "Trust Service Provider X.509 QES",
+    "tid": "TSY31",
+    "bu": "PU",
+    "pdt": "PDT02"
+  },
+  {
+    "ci": "CI-0000146",
+    "name": "TSP X509 nonQES HBA",
+    "organization": "T-Systems International GmbH",
+    "product": "Trust Service Provider X.509 nonQES - HBA",
+    "tid": "TSY31",
+    "bu": "PU",
+    "pdt": "PDT36"
+  },
+  {
+    "ci": "CI-0000149",
+    "name": "TSP X.509 non QES eGK für G2 / G2.1",
+    "organization": "Eviden Germany GmbH",
+    "product": "Trust Service Provider X.509 nonQES - eGK",
+    "tid": "ATO01",
+    "bu": "PU",
+    "pdt": "PDT03"
+  },
+  {
+    "ci": "CI-0000155",
+    "name": "Fachdienste VSDM (UFS)",
+    "organization": "GKV informatik",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "GKVIN",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000158",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "GKV informatik",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "GKVIN",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000161",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "GKV informatik",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "GKVIN",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000164",
+    "name": "VPN Zugangsdienst",
+    "organization": "CompuGroup Medical Deutschland AG",
+    "product": "VPN-Zugangsdienst",
+    "tid": "CGM01",
+    "bu": "PU",
+    "pdt": "PDT09"
+  },
+  {
+    "ci": "CI-0000167",
+    "name": "Intermediär VSDM",
+    "organization": "CompuGroup Medical Deutschland AG",
+    "product": "Intermediär VSDM",
+    "tid": "CGM01",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0000173",
+    "name": "Fachdienst VSDM (UFS)",
+    "organization": "ARGE AOK",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "RZAOK",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000176",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "ARGE AOK",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "RZAOK",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000179",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "ARGE AOK",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "RZAOK",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000182",
+    "name": "Anbieter VPN Zugangsdienst",
+    "organization": "Arvato Systems Digital GmbH",
+    "product": "VPN-Zugangsdienst",
+    "tid": "ARV01",
+    "bu": "PU",
+    "pdt": "PDT09"
+  },
+  {
+    "ci": "CI-0000185",
+    "name": "Intermediär VSDM",
+    "organization": "Arvato Systems Digital GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "ARV01",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0000186",
+    "name": "MandantP2118 fCA fuer SMC-B für G.2",
+    "organization": "medisign GmbH",
+    "product": "Trust Service Provider X.509 nonQES – SMC-B",
+    "tid": "MED30",
+    "bu": "PU",
+    "pdt": "PDT38"
+  },
+  {
+    "ci": "CI-0000189",
+    "name": "TSP HBA",
+    "organization": "SHC Stolle & Heinz Consultants GmbH & Co. KG",
+    "product": "Trust Service Provider X.509 nonQES - HBA",
+    "tid": "SHC31",
+    "bu": "PU",
+    "pdt": "PDT36"
+  },
+  {
+    "ci": "CI-0000192",
+    "name": "TSP SMCB",
+    "organization": "SHC Stolle & Heinz Consultants GmbH & Co. KG",
+    "product": "Trust Service Provider X.509 nonQES – SMC-B",
+    "tid": "SHC30",
+    "bu": "PU",
+    "pdt": "PDT38"
+  },
+  {
+    "ci": "CI-0000195",
+    "name": "TSP X.509 nonQES - HBA - P",
+    "organization": "D-Trust GmbH",
+    "product": "Trust Service Provider X.509 nonQES - HBA",
+    "tid": "DTR31",
+    "bu": "PU",
+    "pdt": "PDT36"
+  },
+  {
+    "ci": "CI-0000200",
+    "name": "Fachdienst KIM",
+    "organization": "CompuGroup Medical Deutschland AG",
+    "product": "Fachdienst KIM",
+    "tid": "CGM40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000203",
+    "name": "TSP X.509 QES -P",
+    "organization": "D-Trust GmbH",
+    "product": "Trust Service Provider X.509 QES",
+    "tid": "DTR31",
+    "bu": "PU",
+    "pdt": "PDT02"
+  },
+  {
+    "ci": "CI-0000206",
+    "name": "MandantP2117 fCA fuer HBA",
+    "organization": "medisign GmbH",
+    "product": "Trust Service Provider X.509 nonQES - HBA",
+    "tid": "MED31",
+    "bu": "PU",
+    "pdt": "PDT36"
+  },
+  {
+    "ci": "CI-0000220",
+    "name": "SGD ePA Zentral",
+    "organization": "D-Trust GmbH",
+    "product": "Schlüsselgenerierungsdienst ePA",
+    "tid": "DTR25",
+    "bu": "PU",
+    "pdt": "PDT48"
+  },
+  {
+    "ci": "CI-0000406",
+    "name": "weitere Anwendung LKR NRW Melderportal",
+    "organization": "Landeskrebsregister Nordrhein Westfalen gGmbH",
+    "product": "WANDA Basic",
+    "tid": "NRW50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000409",
+    "name": "KOM-LE Fachdienst",
+    "organization": "T-Systems International GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "TSY40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000425",
+    "name": "ePA-Aktensystem",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "ePA-Aktensystem",
+    "tid": "BIT20",
+    "bu": "PU",
+    "pdt": "PDT43"
+  },
+  {
+    "ci": "CI-0000426",
+    "name": "Schlüsselgenerierungsdienst Typ 1",
+    "organization": "BITMARCK Technik GmbH",
+    "product": "Schlüsselgenerierungsdienst ePA",
+    "tid": "BIT20",
+    "bu": "PU",
+    "pdt": "PDT48"
+  },
+  {
+    "ci": "CI-0000441",
+    "name": "KIM Fachdienst",
+    "organization": "IBM Deutschland GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "IBM40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000443",
+    "name": "ePA Aktensystem",
+    "organization": "IBM Deutschland GmbH",
+    "product": "ePA-Aktensystem",
+    "tid": "IBM20",
+    "bu": "PU",
+    "pdt": "PDT43"
+  },
+  {
+    "ci": "CI-0000446",
+    "name": "Schlüsselgenerierungsdienst ePA",
+    "organization": "IBM Deutschland GmbH",
+    "product": "Schlüsselgenerierungsdienst ePA",
+    "tid": "IBM20",
+    "bu": "PU",
+    "pdt": "PDT48"
+  },
+  {
+    "ci": "CI-0000453",
+    "name": "FD KIM akquinet",
+    "organization": "akquinet health service GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "AKN40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000454",
+    "name": "ATOS Signaturdienst",
+    "organization": "Eviden Germany GmbH",
+    "product": "Signaturdienst",
+    "tid": "ATO26",
+    "bu": "PU",
+    "pdt": "PDT47"
+  },
+  {
+    "ci": "CI-0000456",
+    "name": "BITMARCK  Service FD KIM",
+    "organization": "BITMARCK Service GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "BIT40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000460",
+    "name": "Fachdienst KIM",
+    "organization": "Arvato Systems Digital GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "ARV40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000474",
+    "name": "MedisignX.509QESHBA",
+    "organization": "medisign GmbH",
+    "product": "Trust Service Provider X.509 QES",
+    "tid": "MED31",
+    "bu": "PU",
+    "pdt": "PDT02"
+  },
+  {
+    "ci": "CI-0000484",
+    "name": "RISE Identity Provider Dienst",
+    "organization": "RISE GmbH",
+    "product": "Identity Provider Dienst",
+    "tid": "RIS35",
+    "bu": "PU",
+    "pdt": "PDT52"
+  },
+  {
+    "ci": "CI-0000485",
+    "name": "eRP Fachdienst",
+    "organization": "IBM Deutschland GmbH",
+    "product": "E-Rezept-Fachdienst",
+    "tid": "IBM60",
+    "bu": "PU",
+    "pdt": "PDT50"
+  },
+  {
+    "ci": "CI-0000613",
+    "name": "Anschlusspunkt SGW RZ Volmarstein",
+    "organization": "Rechenzentrum Volmarstein GmbH",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "RZV51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000614",
+    "name": "Anschlusspunkt SGW Bundesdruckerei",
+    "organization": "Bundesdruckerei GmbH",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "BDR51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000615",
+    "name": "Anschlusspunkt SGW Element44",
+    "organization": "Element44 GmbH",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "ELE51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000617",
+    "name": "Anschlusspunkt SGW01 Robert Koch-Institut",
+    "organization": "Robert Koch-Institut",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "RKI51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000618",
+    "name": "Anschlusspunkt SGW02 Robert Koch-Institut",
+    "organization": "Robert Koch-Institut",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "RKI51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000623",
+    "name": "elektronische Fallakte",
+    "organization": "Rechenzentrum Volmarstein GmbH",
+    "product": "WANDA Basic",
+    "tid": "RZV50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000624",
+    "name": "HZV-Verwaltung",
+    "organization": "Element44 GmbH",
+    "product": "WANDA Basic",
+    "tid": "ELE50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000644",
+    "name": "Anschlusspunkt SGW Landeskrebsregister NRW",
+    "organization": "Landeskrebsregister Nordrhein Westfalen gGmbH",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "NRW51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000646",
+    "name": "Anschlusspunkt SGW KBV",
+    "organization": "Kassenärztliche Bundesvereinigung KdöR",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "KBK51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000787",
+    "name": "Intermediär VSDM",
+    "organization": "Arvato Systems GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0000804",
+    "name": "Organ- und Gewebespenderegister",
+    "organization": "Bundesinstitut für Arzneimittel und Medizinprodukte",
+    "product": "WANDA Basic",
+    "tid": "BAM50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000838",
+    "name": "Fachdienst VSDM (CMS)",
+    "organization": "equensWorldline SE Germany",
+    "product": "Fachdienste VSDM (CMS)",
+    "tid": "WRLDL",
+    "bu": "PU",
+    "pdt": "PDT26"
+  },
+  {
+    "ci": "CI-0000841",
+    "name": "Fachdienst VSDM (VSDD)",
+    "organization": "equensWorldline SE Germany",
+    "product": "Fachdienste VSDM (VSDD)",
+    "tid": "WRLDL",
+    "bu": "PU",
+    "pdt": "PDT23"
+  },
+  {
+    "ci": "CI-0000844",
+    "name": "Fachdienst VSDM (UFS)",
+    "organization": "equensWorldline SE Germany",
+    "product": "Fachdienste VSDM (UFS)",
+    "tid": "WRLDL",
+    "bu": "PU",
+    "pdt": "PDT20"
+  },
+  {
+    "ci": "CI-0000851",
+    "name": "Anschlusspunkt SGW Bundenotarkammer",
+    "organization": "Bundesnotarkammer K.d.ö.R.",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "BNO51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000853",
+    "name": "Zentrales Vorsorgeregister",
+    "organization": "Bundesnotarkammer K.d.ö.R.",
+    "product": "WANDA Basic",
+    "tid": "BNO50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000855",
+    "name": "Antragsportal Betäubungsmittelrezepte",
+    "organization": "Bundesinstitut für Arzneimittel und Medizinprodukte",
+    "product": "WANDA Basic",
+    "tid": "BAM50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000858",
+    "name": "Implantateregister Deutschland - Registerstelle",
+    "organization": "Bundesministerium für Gesundheit Referat 126",
+    "product": "WANDA Smart",
+    "tid": "BMG52",
+    "bu": "PU",
+    "pdt": "PDT54"
+  },
+  {
+    "ci": "CI-0000869",
+    "name": "SHC TSP X509 QES HBA",
+    "organization": "SHC Stolle & Heinz Consultants GmbH & Co. KG",
+    "product": "Trust Service Provider X.509 QES",
+    "tid": "SHC31",
+    "bu": "PU",
+    "pdt": "PDT02"
+  },
+  {
+    "ci": "CI-0000876",
+    "name": "Federation Master",
+    "organization": "RISE GmbH",
+    "product": "Federation Master",
+    "tid": "RIS39",
+    "bu": "PU",
+    "pdt": "PDT70"
+  },
+  {
+    "ci": "CI-0000881",
+    "name": "Implantateregister Deutschland – Vertrauensstelle",
+    "organization": "Robert Koch-Institut",
+    "product": "WANDA Smart",
+    "tid": "RKI52",
+    "bu": "PU",
+    "pdt": "PDT54"
+  },
+  {
+    "ci": "CI-0000884",
+    "name": "Weitere Anwendung DEMIS Meldeportal Frankfurt",
+    "organization": "Robert Koch-Institut",
+    "product": "WANDA Basic",
+    "tid": "RKI50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0000895",
+    "name": "SZZP light Vertrauensstellen",
+    "organization": "Robert Koch-Institut",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "RKI51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0000901",
+    "name": "elektronische Medikationsmanagement ambulant",
+    "organization": "RpDoc Solutions GmbH",
+    "product": "WANDA Smart Hosting",
+    "tid": "RPD53",
+    "bu": "PU",
+    "pdt": "PDT55"
+  },
+  {
+    "ci": "CI-0000921",
+    "name": "RISE Fachdienst KIM 1.5",
+    "organization": "RISE GmbH",
+    "product": "Fachdienst KIM",
+    "tid": "RIS40",
+    "bu": "PU",
+    "pdt": "PDT24"
+  },
+  {
+    "ci": "CI-0000932",
+    "name": "VZD FHIR",
+    "organization": "Arvato Systems GmbH",
+    "product": "Verzeichnisdienst FHIR",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT66"
+  },
+  {
+    "ci": "CI-0000935",
+    "name": "Sektoraler Identity Provider (KTR) Bitmarck Servic",
+    "organization": "BITMARCK Service GmbH",
+    "product": "Sektoraler Identity Provider für den Sektor Kostenträger",
+    "tid": "BIT37",
+    "bu": "PU",
+    "pdt": "PDT73"
+  },
+  {
+    "ci": "CI-0000940",
+    "name": "Sektoraler Identity Provider (KTR) IBM",
+    "organization": "IBM Deutschland GmbH",
+    "product": "Sektoraler Identity Provider für den Sektor Kostenträger",
+    "tid": "IBM37",
+    "bu": "PU",
+    "pdt": "PDT73"
+  },
+  {
+    "ci": "CI-0000947",
+    "name": "Verimi Wallet as a Service",
+    "organization": "T-Systems International GmbH",
+    "product": "Sektoraler Identity Provider für den Sektor Kostenträger",
+    "tid": "TSY37",
+    "bu": "PU",
+    "pdt": "PDT73"
+  },
+  {
+    "ci": "CI-0000950",
+    "name": "RISE Digital ID",
+    "organization": "RISE GmbH",
+    "product": "Sektoraler Identity Provider für den Sektor Kostenträger",
+    "tid": "RIS37",
+    "bu": "PU",
+    "pdt": "PDT73"
+  },
+  {
+    "ci": "CI-0000958",
+    "name": "Zugangsmodul akquinet TI-GW",
+    "organization": "akquinet health service GmbH",
+    "product": "TI-Gateway-Zugangsmodul",
+    "tid": "AKN65",
+    "bu": "PU",
+    "pdt": "PDT72"
+  },
+  {
+    "ci": "CI-0000959",
+    "name": "infinity coupler",
+    "organization": "akquinet health service GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "AKN65",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0001000",
+    "name": "medizinische Portale",
+    "organization": "MD-IT GmbH",
+    "product": "WANDA Basic",
+    "tid": "MDK50",
+    "bu": "PU",
+    "pdt": "PDT56"
+  },
+  {
+    "ci": "CI-0001002",
+    "name": "Anschlusspunkt SGW für MD-IT",
+    "organization": "MD-IT GmbH",
+    "product": "Anbieter Anschlusspunkt SGW/SZZP",
+    "tid": "MDK51",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "CI-0001011",
+    "name": "RISE TI-Gateway",
+    "organization": "RISE GmbH",
+    "product": "TI-Gateway-Zugangsmodul",
+    "tid": "RIS65",
+    "bu": "PU",
+    "pdt": "PDT72"
+  },
+  {
+    "ci": "CI-0001059",
+    "name": "Intermediär VSDM RISE TI-GW",
+    "organization": "RISE GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "RIS65",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0001097",
+    "name": "Zugangsmodul  Arvato Systems Digital GmbH TI-GW",
+    "organization": "Arvato Systems Digital GmbH",
+    "product": "TI-Gateway-Zugangsmodul",
+    "tid": "ARV65",
+    "bu": "PU",
+    "pdt": "PDT72"
+  },
+  {
+    "ci": "CI-0001124",
+    "name": "infinity hub",
+    "organization": "infinity managed services GmbH",
+    "product": "TI-Gateway-Zugangsmodul",
+    "tid": "IMS65",
+    "bu": "PU",
+    "pdt": "PDT72"
+  },
+  {
+    "ci": "CI-0001125",
+    "name": "infinity coupler",
+    "organization": "infinity managed services GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "IMS65",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0001131",
+    "name": "Worldline Intermediär",
+    "organization": "equensWorldline SE Germany",
+    "product": "Intermediär VSDM",
+    "tid": "WRL65",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "CI-0001132",
+    "name": "Core Connectivity Platform",
+    "organization": "equensWorldline SE Germany",
+    "product": "TI-Gateway-Zugangsmodul",
+    "tid": "WRL65",
+    "bu": "PU",
+    "pdt": "PDT72"
+  },
+  {
+    "ci": "CI-0001139",
+    "name": "Intermediär TIGW ARVD VSDM",
+    "organization": "Arvato Systems Digital GmbH",
+    "product": "Intermediär VSDM",
+    "tid": "ARV65",
+    "bu": "PU",
+    "pdt": "PDT21"
+  },
+  {
+    "ci": "SO-0000003",
+    "name": "None",
+    "organization": "gematik - GmbH (GTI)",
+    "product": "BDE PU - TI",
+    "tid": "GMT01",
+    "bu": "PU",
+    "pdt": "PDT41"
+  },
+  {
+    "ci": "SO-0000006",
+    "name": "None",
+    "organization": "gematik - GmbH (GTI)",
+    "product": "DEMIS PU",
+    "tid": "GMT01",
+    "bu": "PU",
+    "pdt": "DEMIS"
+  },
+  {
+    "ci": "SO-0000026",
+    "name": "None",
+    "organization": "Arvato Systems GmbH",
+    "product": "BNetz_DNS splitdns.ti-dienste.de",
+    "tid": "ARVTO",
+    "bu": "PU",
+    "pdt": "PDT57"
+  },
+  {
+    "ci": "SO-0000053",
+    "name": "None",
+    "organization": "gematik - GmbH (GTI)",
+    "product": "TI_GW",
+    "tid": "GMT01",
+    "bu": "PU",
+    "pdt": "PDT41"
+  },
+  {
+    "ci": "SO-0000061",
+    "name": "None",
+    "organization": "None",
+    "product": "Bund-ID",
+    "tid": "EXT",
+    "bu": "PU",
+    "pdt": "n.a."
+  },
+  {
+    "ci": "SO-0000063",
+    "name": "None",
+    "organization": "gematik - GmbH (GTI)",
+    "product": "DEMIS Meldeportal Internet",
+    "tid": "GMT01",
+    "bu": "PU",
+    "pdt": "DEMIS"
+  }
+]

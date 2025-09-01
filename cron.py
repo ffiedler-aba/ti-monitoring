@@ -5,6 +5,7 @@ import os
 import time
 import gc
 import sys
+import json
 
 # Enhanced logging setup
 def log(message):
@@ -40,6 +41,43 @@ def load_core_config():
     core_config = config.get('core', {})
     log(f"Core config loaded. Keys: {list(core_config.keys())}")
     return core_config
+
+def update_ci_list_file(config_file_name, ci_list_file_path):
+    """Update the CI list file with current configuration items"""
+    try:
+        log(f"Updating CI list file: {ci_list_file_path}")
+        
+        # Get all CIs from the data file
+        cis_df = get_data_of_all_cis(config_file_name)
+        
+        if not cis_df.empty:
+            # Convert to list of dictionaries with relevant information
+            ci_list = []
+            for _, row in cis_df.iterrows():
+                ci_info = {
+                    'ci': str(row.get('ci', '')),
+                    'name': str(row.get('name', '')),
+                    'organization': str(row.get('organization', '')),
+                    'product': str(row.get('product', '')),
+                    'tid': str(row.get('tid', '')),
+                    'bu': str(row.get('bu', '')),
+                    'pdt': str(row.get('pdt', ''))
+                }
+                ci_list.append(ci_info)
+            
+            # Write to JSON file
+            with open(ci_list_file_path, 'w', encoding='utf-8') as f:
+                json.dump(ci_list, f, ensure_ascii=False, indent=2)
+            
+            log(f"CI list file updated successfully with {len(ci_list)} CIs")
+            return True
+        else:
+            log("No CIs found in data file")
+            return False
+            
+    except Exception as e:
+        log(f"ERROR updating CI list file: {e}")
+        return False
 
 def main():
     log("=== CRON JOB STARTING ===")
@@ -86,6 +124,13 @@ def main():
             log("Calling update_file...")
             update_file(config_file_name, config_url)
             log("update_file completed")
+            
+            # Update CI list file once per day (every 288 iterations = 24 hours)
+            if iteration_count % 288 == 0:
+                log("Daily CI list update...")
+                ci_list_file_path = os.path.join(os.path.dirname(__file__), 'data', 'ci_list.json')
+                update_ci_list_file(config_file_name, ci_list_file_path)
+                log("Daily CI list update completed")
             
             # Check if notifications are enabled
             log("Checking notifications...")

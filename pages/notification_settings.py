@@ -393,7 +393,19 @@ def load_available_cis(auth_data):
         return []
     
     try:
-        # Load core configurations
+        # Try to load CIs from the JSON file first (faster)
+        ci_list_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'ci_list.json')
+        
+        if os.path.exists(ci_list_file_path):
+            try:
+                with open(ci_list_file_path, 'r', encoding='utf-8') as f:
+                    ci_list = json.load(f)
+                print(f"Loaded {len(ci_list)} CIs from JSON file")
+                return ci_list
+            except Exception as e:
+                print(f"Error loading from JSON file: {e}, falling back to HDF5")
+        
+        # Fallback: Load from HDF5 file if JSON doesn't exist or fails
         core_config = load_core_config()
         config_file = core_config.get('file_name') or 'data/data.hdf5'
         
@@ -403,7 +415,7 @@ def load_available_cis(auth_data):
         
         if not cis_df.empty:
             # Convert to list of dictionaries with ci and name
-            cis_list = []
+            ci_list = []
             for _, row in cis_df.iterrows():
                 ci_info = {
                     'ci': str(row.get('ci', '')),
@@ -411,8 +423,8 @@ def load_available_cis(auth_data):
                     'organization': str(row.get('organization', '')),
                     'product': str(row.get('product', ''))
                 }
-                cis_list.append(ci_info)
-            return cis_list
+                ci_list.append(ci_info)
+            return ci_list
         else:
             return []
     except Exception as e:
