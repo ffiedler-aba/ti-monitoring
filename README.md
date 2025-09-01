@@ -3,6 +3,36 @@
 Dieses Tool dient der Überwachung verschiedener Komponenten der Telematikinfrastruktur (TI).
 Es ist modular aufgebaut, sodass sich je nach Bedarf und Systemleistung auch nur einzelne Funktionen nutzen lassen.
 
+## Vorwort
+
+Dieses Repository entstand aus einem Fork des Originals von Lukas Schmidt-Russnak (https://github.com/lsr-dev/ti-monitoring).
+
+Die ursprüngliche Lösung wurde erheblich erweitert und ist jetzt in einem Zustand, der einen Merge in das Original Repository problematisch erscheinen lässt.
+
+In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhängig weiter. Einzelne Verbesserungen aus dieser erweiterten Version kann ich jedoch bei Bedarf gern in das Originalprojekt einbringen.
+
+### Was unterscheidet dieses Projekt vom Original
+
+- Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplexe Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
+- Die E-Mail Benachrichtigung der ursprünglichen App wurde ersetzt durch die Integration von [Apprise](https://github.com/caronc/apprise). Vorteile:
+  - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail
+  - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
+  - Dadurch auch Massenversand an viele Abonnenten auf unterschiedlichen Wegen möglich
+- Benachrichtigungs-Konfiguration per UI über eine eigene passwortgeschützte Webpage
+- Auswahl der zu abonnierenden Topics aus der Liste der Configuration Items der gematik API, täglich von `cron.py` aktualisiert
+- Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
+- Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
+
+### Entwicklungsstand
+
+Im Gegensatz zum Original TI-Monitor ist diese App als nicht stabile Testversion (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
+
+### Disclaimer
+
+Dieses Projekt wurde teilweise mithilfe von "KI" (Vibe Coding) weiter entwickelt!
+
+## Features
+
 Die Funktionen lassen sich wie folgt zusammenfassen:
 
 * __Abruf und Archivierung__<br>
