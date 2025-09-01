@@ -224,6 +224,14 @@ def serve_layout():
                         'fontWeight': '500',
                         'color': '#2c3e50'
                     }),
+                    html.Div([
+                        html.Button('Alle aktivieren', id='select-all-cis-button', n_clicks=0, style=get_button_style('secondary')),
+                        html.Button('Alle deaktivieren', id='deselect-all-cis-button', n_clicks=0, style=get_button_style('secondary'))
+                    ], style={
+                        'display': 'flex',
+                        'gap': '10px',
+                        'marginBottom': '10px'
+                    }),
                     html.Div(id='ci-checkboxes-container', style={
                         'maxHeight': '200px',
                         'overflowY': 'auto',
@@ -480,6 +488,36 @@ def reset_selected_cis(form_style, editing_index):
             pass
     return []
 
+# Callback to select all CIs
+@callback(
+    Output('selected-cis-data', 'data', allow_duplicate=True),
+    [Input('select-all-cis-button', 'n_clicks')],
+    [State('available-cis-data', 'data')],
+    prevent_initial_call=True
+)
+def select_all_cis(n_clicks, available_cis_data):
+    """Select all available CIs"""
+    if not n_clicks or not available_cis_data:
+        return no_update
+    
+    # Get all CI IDs from available CIs
+    all_ci_ids = [ci_info.get('ci', '') for ci_info in available_cis_data if ci_info.get('ci')]
+    return all_ci_ids
+
+# Callback to deselect all CIs
+@callback(
+    Output('selected-cis-data', 'data', allow_duplicate=True),
+    [Input('deselect-all-cis-button', 'n_clicks')],
+    prevent_initial_call=True
+)
+def deselect_all_cis(n_clicks):
+    """Deselect all CIs"""
+    if not n_clicks:
+        return no_update
+    
+    # Return empty list to deselect all
+    return []
+
 # Callback to collect selected CIs from checkboxes
 @callback(
     Output('selected-cis-data', 'data'),
@@ -502,6 +540,78 @@ def update_selected_cis(checkbox_values, available_cis_data):
     selected_cis = list(set(selected_cis))
     
     return selected_cis
+
+# Callback to update checkbox states when selected-cis-data changes
+@callback(
+    Output('ci-checkboxes-container', 'children', allow_duplicate=True),
+    [Input('selected-cis-data', 'data')],
+    [State('available-cis-data', 'data'),
+     State('editing-profile-index', 'data')],
+    prevent_initial_call=True
+)
+def update_checkbox_states(selected_cis, available_cis_data, editing_index):
+    """Update all checkbox states when selected-cis-data changes"""
+    if not available_cis_data:
+        return no_update
+    
+    try:
+        # Load existing profile data if editing
+        existing_selected_cis = []
+        if editing_index is not None:
+            core_config = load_core_config()
+            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config = get_notification_config(config_file)
+            if 0 <= editing_index < len(config):
+                existing_selected_cis = config[editing_index].get('ci_list', [])
+        
+        # Use current selection from store, fallback to existing if editing
+        current_selected_cis = selected_cis if selected_cis is not None else existing_selected_cis
+        
+        # Create checkboxes for each CI
+        checkbox_children = []
+        for ci_info in available_cis_data:
+            ci_id = ci_info.get('ci', '')
+            ci_name = ci_info.get('name', '')
+            ci_org = ci_info.get('organization', '')
+            ci_product = ci_info.get('product', '')
+            
+            # Check if this CI is selected
+            is_checked = ci_id in current_selected_cis
+            
+            # Create checkbox with label
+            checkbox = html.Div([
+                dcc.Checklist(
+                    id={'type': 'ci-checkbox', 'ci': ci_id},
+                    options=[{'label': '', 'value': ci_id}],
+                    value=[ci_id] if is_checked else [],
+                    style={'marginRight': '10px'}
+                ),
+                html.Label([
+                    html.Strong(ci_id),
+                    html.Br(),
+                    html.Span(f"{ci_name}", style={'color': '#2c3e50', 'fontSize': '14px'}),
+                    html.Br(),
+                    html.Span(f"{ci_org} - {ci_product}", style={'color': '#7f8c8d', 'fontSize': '12px'})
+                ], style={'cursor': 'pointer', 'marginLeft': '5px'})
+            ], style={
+                'display': 'flex',
+                'alignItems': 'flex-start',
+                'marginBottom': '10px',
+                'padding': '8px',
+                'borderRadius': '6px',
+                'backgroundColor': 'white',
+                'border': '1px solid #e9ecef'
+            })
+            
+            checkbox_children.append(checkbox)
+        
+        if not checkbox_children:
+            return html.P('No CIs found', style={'color': '#7f8c8d', 'textAlign': 'center'})
+        
+        return checkbox_children
+        
+    except Exception as e:
+        return html.P(f'Error updating checkboxes: {str(e)}', style={'color': '#e74c3c', 'textAlign': 'center'})
 
 # Callback to load and display profiles
 @callback(

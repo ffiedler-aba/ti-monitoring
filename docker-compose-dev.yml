@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - ./config.yaml:/app/config.yaml
+      - ./notifications.json:/app/notifications.json
       - ./data:/app/data
     environment:
       - PYTHONPATH=/app
@@ -14,6 +15,7 @@ services:
     build: .
     volumes:
       - ./config.yaml:/app/config.yaml
+      - ./notifications.json:/app/notifications.json
       - ./data:/app/data
     environment:
       - PYTHONPATH=/app
