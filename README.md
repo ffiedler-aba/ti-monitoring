@@ -23,6 +23,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
 - Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
+- Ausführliche Statisitken in den einzelnen Configuration Items und als Gesamtstatistik auf der Hauptseite
 
 ### Entwicklungsstand
 
@@ -212,17 +213,20 @@ Für detaillierte Docker-Installationsanweisungen siehe [INSTALL.md](docs/INSTAL
 Das TI-Monitoring kann als Docker-Container betrieben werden. Dazu ist ein Dockerfile sowie eine docker-compose.yml Datei im Projekt enthalten.
 
 ### Schnellstart
+
 ```bash
 docker compose up -d
 ```
 
 ### Features
+
 - **Gunicorn Web Server**: Produktionsreifer WSGI-Server mit 2 Worker-Prozessen
 - **Nginx Reverse Proxy**: Mit Let's Encrypt-Unterstützung für automatische HTTPS-Zertifikate
 - **Datenpersistenz**: Alle wichtigen Dateien werden als Volumes gemountet
 - **Entwicklungsmodus**: `docker-compose-dev.yml` für lokale Entwicklung
 
 ## Web-App
+
 Der aktuelle Status verschiedener Komponenten kann optional auch in Form einer Web-App auf Basis des [Dash-Frameworks](https://dash.plotly.com) bereitgestellt werden. Die App kann z.B. in Kombination mit uWSGi und nginx (ähnlich [wie hier beschrieben](https://carpiero.medium.com/host-a-dashboard-using-python-dash-and-linux-in-your-own-linux-server-85d891e960bc) veröffentlicht werden.
 
 Auf der Startseite der App werden die Komponenten nach Produkt gruppiert dargestellt. Durch Anklicken der Gruppen lassen sich die jeweiligen Komponenten einblenden.
@@ -255,9 +259,8 @@ Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Date
 * pages
 * app.py
 
-
-
 ---
+
 **DISCLAIMER**
 
 Es handelt sich um ein privates Projekt ohne offiziellen Support. Jegliche Nutzung erfolgt auf eigene Verantwortung. 
