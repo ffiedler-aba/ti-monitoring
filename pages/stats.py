@@ -76,6 +76,10 @@ def get_cached_statistics(config_file_name, cis):
                 if file_stats.get('organization_counts'):
                     file_stats['organization_counts'] = pd.Series(file_stats['organization_counts'])
                 
+                # Ensure overall_availability_percentage_total exists (fallback to overall_availability_percentage)
+                if 'overall_availability_percentage_total' not in file_stats:
+                    file_stats['overall_availability_percentage_total'] = file_stats.get('overall_availability_percentage', 0)
+                
                 return file_stats
     except Exception as e:
         print(f"Error loading statistics from file: {e}")
@@ -171,6 +175,7 @@ def calculate_overall_statistics(config_file_name, cis):
         'currently_available': currently_available,
         'currently_unavailable': currently_unavailable,
         'overall_availability_percentage': overall_availability_percentage,
+        'overall_availability_percentage_total': overall_availability_percentage,  # Same as current availability for now
         'total_products': total_products,
         'total_organizations': total_organizations,
         'available_count': available_count,
@@ -233,19 +238,7 @@ def create_overall_statistics_display(stats):
                 ])
             ]),
             
-            html.Div(className='stat-card', children=[
-                html.H4('🏢 Struktur'),
-                html.Div(className='stat-grid', children=[
-                    html.Div(className='stat-item', children=[
-                        html.Strong('Produkte: '),
-                        html.Span(f'{stats["total_products"]:,}')
-                    ]),
-                    html.Div(className='stat-item', children=[
-                        html.Strong('Organisationen: '),
-                        html.Span(f'{stats["total_organizations"]:,}')
-                    ])
-                ])
-            ])
+
         ])
     ]
     
