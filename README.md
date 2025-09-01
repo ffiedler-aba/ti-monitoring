@@ -19,13 +19,13 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
   - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
   - Dadurch auch Massenversand an viele Abonnenten auf unterschiedlichen Wegen möglich
 - Benachrichtigungs-Konfiguration per UI über eine eigene passwortgeschützte Webpage
-- Auswahl der zu abonnierenden Topics aus der Liste der Configuration Items der gematik API, täglich von `cron.py` aktualisiert
+- Auswahl der zu abonnierenden Topics aus der Liste der *Configuration Items* der gematik API, täglich von `cron.py` aktualisiert
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
 
 ### Entwicklungsstand
 
-Im Gegensatz zum Original TI-Monitor ist diese App als nicht stabile Testversion (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
+Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
 
 ### Disclaimer
 
