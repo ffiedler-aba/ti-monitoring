@@ -139,36 +139,106 @@ def calculate_overall_statistics(config_file_name, cis):
     changes_count = len(recent_changes)
     
     # Get overall recording time range (from the most recent timestamp)
-    if 'time' in cis.columns:
-        latest_timestamp = pd.to_datetime(cis['time'].max())
-        earliest_timestamp = pd.to_datetime(cis['time'].min())
-        
-        # Ensure both timestamps have timezone info and are in Europe/Berlin
-        if latest_timestamp.tz is None:
-            latest_timestamp = latest_timestamp.tz_localize('Europe/Berlin')
-        elif latest_timestamp.tz != pytz.timezone('Europe/Berlin'):
-            latest_timestamp = latest_timestamp.tz_convert('Europe/Berlin')
-            
-        if earliest_timestamp.tz is None:
-            earliest_timestamp = earliest_timestamp.tz_localize('Europe/Berlin')
-        elif earliest_timestamp.tz != pytz.timezone('Europe/Berlin'):
-            earliest_timestamp = earliest_timestamp.tz_convert('Europe/Berlin')
-        
-        # Get current time in Europe/Berlin
-        current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
-        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
-        data_age_formatted = format_duration(data_age_hours)
-    else:
-        latest_timestamp = None
-        earliest_timestamp = None
-        data_age_formatted = "Unbekannt"
+    latest_timestamp = None
+    earliest_timestamp = None
+    data_age_formatted = "Unbekannt"
+    total_recording_minutes = 0
     
-    # Calculate total recording time from the overall time range
-    if latest_timestamp and earliest_timestamp:
-        total_recording_minutes = (latest_timestamp - earliest_timestamp).total_seconds() / 60
-        print(f"Total recording time: {earliest_timestamp} to {latest_timestamp} = {total_recording_minutes:.1f} minutes")
-    else:
-        total_recording_minutes = 0
+    # Try to get timestamps from availability data (where the real time series data is stored)
+    try:
+        import h5py
+        config_file_name = os.path.join(os.path.dirname(__file__), '..', 'data', 'data.hdf5')
+        if os.path.exists(config_file_name):
+            with h5py.File(config_file_name, 'r', swmr=True) as f:
+                if 'availability' in f:
+                    availability_group = f['availability']
+                    all_timestamps = []
+                    
+                    # Collect all timestamps from all CIs
+                    for ci_name in availability_group.keys():
+                        ci_group = availability_group[ci_name]
+                        for timestamp_str in ci_group.keys():
+                            try:
+                                timestamp = pd.to_datetime(float(timestamp_str), unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
+                                all_timestamps.append(timestamp)
+                            except:
+                                continue
+                    
+                    print(f"Collected {len(all_timestamps)} timestamps from {len(availability_group.keys())} CIs")
+                    
+                    if all_timestamps:
+                        earliest_timestamp = min(all_timestamps)
+                        latest_timestamp = max(all_timestamps)
+                        
+                        # Get current time in Europe/Berlin
+                        current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
+                        data_age_formatted = format_duration(data_age_hours)
+                        
+                        # Calculate total recording time from the overall time range
+                        total_recording_minutes = (latest_timestamp - earliest_timestamp).total_seconds() / 60
+                        print(f"Total recording time from availability data: {earliest_timestamp} to {latest_timestamp} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
+                        # Also log to stderr for debugging
+                        import sys
+                        print(f"DEBUG: Total recording time: {total_recording_minutes:.1f} minutes", file=sys.stderr)
+                    else:
+                        print("No timestamps found in availability data")
+    except Exception as e:
+        print(f"Error reading availability timestamps: {e}")
+    
+    # Fallback: Try to get timestamps from different possible columns in general data
+    if total_recording_minutes == 0:
+        timestamp_columns = ['time', 'timestamp', 'created_at', 'updated_at']
+        for col in timestamp_columns:
+            if col in cis.columns and not cis[col].isna().all():
+                try:
+                    latest_timestamp = pd.to_datetime(cis[col].max())
+                    earliest_timestamp = pd.to_datetime(cis[col].min())
+                    
+                    # Ensure both timestamps have timezone info and are in Europe/Berlin
+                    if latest_timestamp.tz is None:
+                        latest_timestamp = latest_timestamp.tz_localize('Europe/Berlin')
+                    elif latest_timestamp.tz != pytz.timezone('Europe/Berlin'):
+                        latest_timestamp = latest_timestamp.tz_convert('Europe/Berlin')
+                        
+                    if earliest_timestamp.tz is None:
+                        earliest_timestamp = earliest_timestamp.tz_localize('Europe/Berlin')
+                    elif earliest_timestamp.tz != pytz.timezone('Europe/Berlin'):
+                        earliest_timestamp = earliest_timestamp.tz_convert('Europe/Berlin')
+                    
+                    # Get current time in Europe/Berlin
+                    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                    data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
+                    data_age_formatted = format_duration(data_age_hours)
+                    
+                    # Calculate total recording time from the overall time range
+                    total_recording_minutes = (latest_timestamp - earliest_timestamp).total_seconds() / 60
+                    print(f"Total recording time from general data: {earliest_timestamp} to {latest_timestamp} = {total_recording_minutes:.1f} minutes")
+                    break
+                except Exception as e:
+                    print(f"Error processing timestamp column {col}: {e}")
+                    continue
+    
+    # If no timestamp columns found or all timestamps are the same, try to get from data file metadata
+    if total_recording_minutes == 0:
+        try:
+            # Try to get file modification time as fallback
+            import os
+            config_file_name = os.path.join(os.path.dirname(__file__), '..', 'data', 'data.hdf5')
+            if os.path.exists(config_file_name):
+                file_mtime = os.path.getmtime(config_file_name)
+                current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                file_time = pd.Timestamp.fromtimestamp(file_mtime, tz=pytz.timezone('Europe/Berlin'))
+                
+                # Calculate duration from file creation to now (more realistic)
+                total_recording_minutes = (current_time - file_time).total_seconds() / 60
+                latest_timestamp = current_time
+                earliest_timestamp = file_time
+                data_age_hours = 0  # Current data
+                data_age_formatted = "Aktuell"
+                print(f"Using file-based calculation: {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
+        except Exception as e:
+            print(f"Error in fallback calculation: {e}")
     
     return {
         'total_cis': total_cis,
@@ -216,6 +286,10 @@ def create_overall_statistics_display(stats):
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtverfügbarkeit: '),
                         html.Span(f'{stats["overall_availability_percentage"]:.1f}%')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Gesamtdauer Aufzeichnung: '),
+                        html.Span(format_duration(stats["total_recording_minutes"] / 60) if stats.get("total_recording_minutes", 0) > 0 else 'Unbekannt')
                     ])
                 ])
             ]),

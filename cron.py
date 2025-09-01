@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import numpy as np
 import pytz
+import h5py
 
 # Enhanced logging setup with file logging and daily rotation
 import logging
@@ -379,6 +380,15 @@ def main():
                 except Exception as e:
                     log(f"ERROR in CI list update: {e}")
             
+            # Update statistics file every 2 iterations (10 minutes) with error handling
+            if iteration_count % 2 == 0:
+                try:
+                    log("Updating statistics file...")
+                    update_statistics_file(config_file_name)
+                    log("Statistics update completed")
+                except Exception as e:
+                    log(f"ERROR in statistics update: {e}")
+            
 
             
             # Check if notifications are enabled with comprehensive error handling
@@ -508,3 +518,151 @@ def cleanup_old_logs():
                     
     except Exception as e:
         log(f"Error in cleanup_old_logs: {e}")
+
+def calculate_recording_duration(config_file_name):
+    """Calculate the total recording duration from availability data"""
+    try:
+        if not os.path.exists(config_file_name):
+            log(f"Data file not found: {config_file_name}")
+            return 0, None, None
+        
+        with h5py.File(config_file_name, 'r', swmr=True) as f:
+            if 'availability' not in f:
+                log("No availability group found in data file")
+                return 0, None, None
+            
+            availability_group = f['availability']
+            all_timestamps = []
+            
+            # Collect all timestamps from all CIs
+            for ci_name in availability_group.keys():
+                ci_group = availability_group[ci_name]
+                for timestamp_str in ci_group.keys():
+                    try:
+                        timestamp = pd.to_datetime(float(timestamp_str), unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
+                        all_timestamps.append(timestamp)
+                    except:
+                        continue
+            
+            log(f"Collected {len(all_timestamps)} timestamps from {len(availability_group.keys())} CIs")
+            
+            if all_timestamps:
+                earliest_timestamp = min(all_timestamps)
+                latest_timestamp = max(all_timestamps)
+                
+                # Calculate total recording time from the overall time range
+                total_recording_minutes = (latest_timestamp - earliest_timestamp).total_seconds() / 60
+                log(f"Total recording time: {earliest_timestamp} to {latest_timestamp} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
+                
+                return total_recording_minutes, earliest_timestamp, latest_timestamp
+            else:
+                log("No timestamps found in availability data")
+                return 0, None, None
+                
+    except Exception as e:
+        log(f"Error calculating recording duration: {e}")
+        return 0, None, None
+
+def format_duration(hours):
+    """Format duration in a human-readable way"""
+    if hours < 1:
+        minutes = int(hours * 60)
+        return f"{minutes} Minuten"
+    elif hours < 24:
+        return f"{hours:.1f} Stunden"
+    else:
+        days = hours / 24
+        return f"{days:.1f} Tage"
+
+def calculate_overall_statistics(config_file_name, cis):
+    """
+    Calculate overall statistics for all Configuration Items including:
+    - Total counts and current availability
+    - Overall availability percentage
+    - Recording time range
+    - Product distribution
+    - Organization distribution
+    """
+    if cis.empty:
+        return {}
+    
+    # Basic counts
+    total_cis = len(cis)
+    currently_available = cis['current_availability'].sum()
+    currently_unavailable = total_cis - currently_available
+    overall_availability_percentage = (currently_available / total_cis) * 100 if total_cis > 0 else 0
+    
+    # Product distribution
+    product_counts = cis['product'].value_counts()
+    total_products = len(product_counts)
+    
+    # Organization distribution
+    organization_counts = cis['organization'].value_counts()
+    total_organizations = len(organization_counts)
+    
+    # Current status distribution
+    status_counts = cis['current_availability'].value_counts()
+    available_count = status_counts.get(1, 0)
+    unavailable_count = status_counts.get(0, 0)
+    
+    # Recent changes (availability_difference != 0)
+    recent_changes = cis[cis['availability_difference'] != 0]
+    changes_count = len(recent_changes)
+    
+    # Get recording duration from availability data
+    total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration(config_file_name)
+    
+    # Get current time in Europe/Berlin
+    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+    if latest_timestamp:
+        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
+        data_age_formatted = format_duration(data_age_hours)
+    else:
+        data_age_formatted = "Unbekannt"
+    
+    return {
+        'total_cis': int(total_cis),
+        'currently_available': int(currently_available),
+        'currently_unavailable': int(currently_unavailable),
+        'overall_availability_percentage': float(overall_availability_percentage),
+        'overall_availability_percentage_total': float(overall_availability_percentage),  # Same as current availability for now
+        'total_products': int(total_products),
+        'total_organizations': int(total_organizations),
+        'available_count': int(available_count),
+        'unavailable_count': int(unavailable_count),
+        'changes_count': int(changes_count),
+        'latest_timestamp': latest_timestamp.isoformat() if latest_timestamp else None,
+        'earliest_timestamp': earliest_timestamp.isoformat() if earliest_timestamp else None,
+        'data_age_formatted': data_age_formatted,
+        'product_counts': product_counts.to_dict(),
+        'organization_counts': organization_counts.to_dict(),
+        'total_recording_minutes': float(total_recording_minutes),
+        'calculated_at': time.time()
+    }
+
+def update_statistics_file(config_file_name):
+    """Update the statistics JSON file with current data"""
+    try:
+        # Get current CI data
+        cis = get_data_of_all_cis(config_file_name)
+        if cis.empty:
+            log("No CI data available for statistics calculation")
+            return False
+        
+        # Calculate statistics
+        stats = calculate_overall_statistics(config_file_name, cis)
+        if not stats:
+            log("Failed to calculate statistics")
+            return False
+        
+        # Save to JSON file
+        statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
+        with open(statistics_file_path, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, indent=2, ensure_ascii=False)
+        
+        log(f"Updated statistics file: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
+        return True
+        
+    except Exception as e:
+        log(f"Error updating statistics file: {e}")
+        return False

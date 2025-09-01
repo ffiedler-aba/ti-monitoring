@@ -577,6 +577,19 @@ a:any-link:hover {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.9rem;
   }
+  
+  /* Remove card borders on mobile for stats page */
+  .stat-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  .stat-card h4 {
+    margin-bottom: var(--spacing-sm) !important;
+  }
 }
 
 /* Dark Mode Support */
