@@ -133,6 +133,14 @@ Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, so
 
 ![Beispiel einer Telegram-Benachrichtigung](screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
 
+### Web-Oberfläche für Benachrichtigungseinstellungen
+
+Ab Version 1.2.0 steht eine webbasierte Oberfläche zur Verwaltung der Benachrichtigungseinstellungen zur Verfügung. Über die Seite "Notification Settings" in der Web-App können Benachrichtigungsprofile erstellt, bearbeitet und gelöscht werden.
+
+![Screenshot der Notifications-Seite](screenshot_notification-page.png "Screenshot der Notifications-Seite - Einheitliche Breite aller Elemente und responsives Design")
+
+Die Seite ist durch ein einfaches Passwortschutzsystem gesichert. Das Passwort wird über eine Umgebungsvariable `NOTIFICATION_SETTINGS_PASSWORD` konfiguriert, die in einer `.env` Datei im Projektverzeichnis gespeichert wird.
+
 In der Datei `notifications.json` können mehrere Profile definiert werden. Ein Profil besteht aus folgenden Eigenschaften:
 
 | Name | Beschreibung |
@@ -143,12 +151,6 @@ In der Datei `notifications.json` können mehrere Profile definiert werden. Ein 
 | type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationsobjekte behandelt wird) |
 
 Die neue Konfigurationsstruktur ist abwärtskompatibel - bestehende E-Mail-Konfigurationen mit dem Feld `recipients` funktionieren weiterhin.
-
-### Web-Oberfläche für Benachrichtigungseinstellungen
-
-Ab Version 1.2.0 steht eine webbasierte Oberfläche zur Verwaltung der Benachrichtigungseinstellungen zur Verfügung. Über die Seite "Notification Settings" in der Web-App können Benachrichtigungsprofile erstellt, bearbeitet und gelöscht werden.
-
-Die Seite ist durch ein einfaches Passwortschutzsystem gesichert. Das Passwort wird über eine Umgebungsvariable `NOTIFICATION_SETTINGS_PASSWORD` konfiguriert, die in einer `.env` Datei im Projektverzeichnis gespeichert wird.
 
 Um den Passwortschutz zu konfigurieren:
 
