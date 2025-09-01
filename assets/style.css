@@ -447,6 +447,9 @@ a:any-link:hover {
   header {
     padding: 0 var(--spacing-md);
     height: 70px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
   
   body {
@@ -458,17 +461,40 @@ a:any-link:hover {
   }
   
   .navigation {
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
+    min-width: max-content;
   }
   
   .nav-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+    margin-left: var(--spacing-xs);
+    flex-shrink: 0;
+  }
+  
+  .nav-icon .material-icons {
+    font-size: 18px;
   }
   
   #logo {
     height: 40px;
     width: 40px;
+    flex-shrink: 0;
+  }
+  
+  #logo-wrapper {
+    margin-right: var(--spacing-md);
+    flex-shrink: 0;
+  }
+  
+  header h1 {
+    font-size: 1.2rem;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .box {
@@ -497,10 +523,42 @@ a:any-link:hover {
 @media (max-width: 480px) {
   header {
     padding: 0 var(--spacing-sm);
+    height: 60px;
+  }
+  
+  body {
+    padding-top: 60px;
   }
   
   main, #footer {
     padding: var(--spacing-sm);
+  }
+  
+  .navigation {
+    gap: 2px;
+  }
+  
+  .nav-icon {
+    width: 32px;
+    height: 32px;
+    margin-left: 2px;
+  }
+  
+  .nav-icon .material-icons {
+    font-size: 16px;
+  }
+  
+  #logo {
+    height: 35px;
+    width: 35px;
+  }
+  
+  #logo-wrapper {
+    margin-right: var(--spacing-sm);
+  }
+  
+  header h1 {
+    font-size: 1rem;
   }
   
   .accordion-element-title {
