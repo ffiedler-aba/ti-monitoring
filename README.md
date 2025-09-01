@@ -131,6 +131,8 @@ Auf Wunsch können bei Änderungen der Verfügbarkeit Benachrichtigungen versend
 
 Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, sofern in der Datei `myconfig.py` die Variable `notifications` den Wert `True` besitzt.
 
+![Beispiel einer Telegram-Benachrichtigung](screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
+
 In der Datei `notifications.json` können mehrere Profile definiert werden. Ein Profil besteht aus folgenden Eigenschaften:
 
 | Name | Beschreibung |
