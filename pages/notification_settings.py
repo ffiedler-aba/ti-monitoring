@@ -186,6 +186,7 @@ def serve_layout():
                 dcc.Store(id='editing-profile-index'),
                 dcc.Store(id='available-cis-data'),
                 dcc.Store(id='selected-cis-data', data=[]),
+                dcc.Store(id='ci-filter-text', data=''),
                 dcc.Input(
                     id='profile-name-input',
                     placeholder='Profile Name',
@@ -225,12 +226,33 @@ def serve_layout():
                         'color': '#2c3e50'
                     }),
                     html.Div([
+                        dcc.Input(
+                            id='ci-filter-input',
+                            type='text',
+                            placeholder='CIs filtern (z.B. "CI-0000" oder "gematik")',
+                            style={
+                                'flex': '1',
+                                'padding': '8px 12px',
+                                'border': '2px solid #e9ecef',
+                                'borderRadius': '6px',
+                                'fontSize': '14px',
+                                'marginRight': '10px',
+                                'transition': 'border-color 0.3s ease'
+                            }
+                        ),
                         html.Button('Alle aktivieren', id='select-all-cis-button', n_clicks=0, style=get_button_style('secondary')),
                         html.Button('Alle deaktivieren', id='deselect-all-cis-button', n_clicks=0, style=get_button_style('secondary'))
                     ], style={
                         'display': 'flex',
                         'gap': '10px',
-                        'marginBottom': '10px'
+                        'marginBottom': '10px',
+                        'alignItems': 'center'
+                    }),
+                    html.Div(id='ci-filter-info', style={
+                        'fontSize': '12px',
+                        'color': '#7f8c8d',
+                        'marginBottom': '8px',
+                        'fontStyle': 'italic'
                     }),
                     html.Div(id='ci-checkboxes-container', style={
                         'maxHeight': '200px',
@@ -401,10 +423,11 @@ def load_available_cis(auth_data):
 @callback(
     Output('ci-checkboxes-container', 'children'),
     [Input('available-cis-data', 'data'),
-     Input('editing-profile-index', 'data')],
+     Input('editing-profile-index', 'data'),
+     Input('ci-filter-text', 'data')],
     [State('auth-status', 'data')]
 )
-def render_ci_checkboxes(cis_data, editing_index, auth_data):
+def render_ci_checkboxes(cis_data, editing_index, filter_text, auth_data):
     if not auth_data or not auth_data.get('authenticated', False) or not cis_data:
         return html.P('Loading CIs...', style={'color': '#7f8c8d', 'textAlign': 'center'})
     
@@ -418,9 +441,29 @@ def render_ci_checkboxes(cis_data, editing_index, auth_data):
             if 0 <= editing_index < len(config):
                 selected_cis = config[editing_index].get('ci_list', [])
         
-        # Create checkboxes for each CI
+        # Filter CIs based on filter text
+        filtered_cis = []
+        if filter_text and filter_text.strip():
+            filter_lower = filter_text.lower().strip()
+            for ci_info in cis_data:
+                ci_id = ci_info.get('ci', '').lower()
+                ci_name = ci_info.get('name', '').lower()
+                ci_org = ci_info.get('organization', '').lower()
+                ci_product = ci_info.get('product', '').lower()
+                
+                # Check if any field contains the filter text
+                if (filter_lower in ci_id or 
+                    filter_lower in ci_name or 
+                    filter_lower in ci_org or 
+                    filter_lower in ci_product):
+                    filtered_cis.append(ci_info)
+        else:
+            # No filter, show all CIs
+            filtered_cis = cis_data
+        
+        # Create checkboxes for each filtered CI
         checkbox_children = []
-        for ci_info in cis_data:
+        for ci_info in filtered_cis:
             ci_id = ci_info.get('ci', '')
             ci_name = ci_info.get('name', '')
             ci_org = ci_info.get('organization', '')
@@ -518,6 +561,49 @@ def deselect_all_cis(n_clicks):
     # Return empty list to deselect all
     return []
 
+# Callback to store filter text
+@callback(
+    Output('ci-filter-text', 'data'),
+    [Input('ci-filter-input', 'value')],
+    prevent_initial_call=True
+)
+def update_filter_text(filter_text):
+    """Store the filter text for CI filtering"""
+    return filter_text or ''
+
+# Callback to update filter info display
+@callback(
+    Output('ci-filter-info', 'children'),
+    [Input('ci-filter-text', 'data'),
+     Input('available-cis-data', 'data')]
+)
+def update_filter_info(filter_text, available_cis_data):
+    """Update the filter information display"""
+    if not available_cis_data:
+        return ''
+    
+    total_cis = len(available_cis_data)
+    
+    if not filter_text or not filter_text.strip():
+        return f'Zeige alle {total_cis} Configuration Items'
+    
+    # Count filtered results
+    filter_lower = filter_text.lower().strip()
+    filtered_count = 0
+    for ci_info in available_cis_data:
+        ci_id = ci_info.get('ci', '').lower()
+        ci_name = ci_info.get('name', '').lower()
+        ci_org = ci_info.get('organization', '').lower()
+        ci_product = ci_info.get('product', '').lower()
+        
+        if (filter_lower in ci_id or 
+            filter_lower in ci_name or 
+            filter_lower in ci_org or 
+            filter_lower in ci_product):
+            filtered_count += 1
+    
+    return f'Filter: "{filter_text}" - {filtered_count} von {total_cis} CIs angezeigt'
+
 # Callback to collect selected CIs from checkboxes
 @callback(
     Output('selected-cis-data', 'data'),
@@ -546,10 +632,11 @@ def update_selected_cis(checkbox_values, available_cis_data):
     Output('ci-checkboxes-container', 'children', allow_duplicate=True),
     [Input('selected-cis-data', 'data')],
     [State('available-cis-data', 'data'),
-     State('editing-profile-index', 'data')],
+     State('editing-profile-index', 'data'),
+     State('ci-filter-text', 'data')],
     prevent_initial_call=True
 )
-def update_checkbox_states(selected_cis, available_cis_data, editing_index):
+def update_checkbox_states(selected_cis, available_cis_data, editing_index, filter_text):
     """Update all checkbox states when selected-cis-data changes"""
     if not available_cis_data:
         return no_update
@@ -567,9 +654,29 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index):
         # Use current selection from store, fallback to existing if editing
         current_selected_cis = selected_cis if selected_cis is not None else existing_selected_cis
         
-        # Create checkboxes for each CI
+        # Filter CIs based on filter text
+        filtered_cis = []
+        if filter_text and filter_text.strip():
+            filter_lower = filter_text.lower().strip()
+            for ci_info in available_cis_data:
+                ci_id = ci_info.get('ci', '').lower()
+                ci_name = ci_info.get('name', '').lower()
+                ci_org = ci_info.get('organization', '').lower()
+                ci_product = ci_info.get('product', '').lower()
+                
+                # Check if any field contains the filter text
+                if (filter_lower in ci_id or 
+                    filter_lower in ci_name or 
+                    filter_lower in ci_org or 
+                    filter_lower in ci_product):
+                    filtered_cis.append(ci_info)
+        else:
+            # No filter, show all CIs
+            filtered_cis = available_cis_data
+        
+        # Create checkboxes for each filtered CI
         checkbox_children = []
-        for ci_info in available_cis_data:
+        for ci_info in filtered_cis:
             ci_id = ci_info.get('ci', '')
             ci_name = ci_info.get('name', '')
             ci_org = ci_info.get('organization', '')
