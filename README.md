@@ -20,7 +20,7 @@ Der aktuelle Status sämtlicher TI-Komponenten lässt sich nach Produkten gruppi
 
 ## Installation
 
-Für detaillierte Installationsanweisungen siehe [INSTALL.md](INSTALL.md).
+Für detaillierte Installationsanweisungen siehe [INSTALL.md](docs/INSTALL.md).
 
 TI-Monitoring kann sowohl mit Docker als auch mit Python venv installiert werden. Docker wird für die meisten Anwendungsfälle empfohlen.
 
@@ -55,7 +55,7 @@ Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigke
 
 ## Konfiguration
 
-Für detaillierte Konfigurationsanweisungen siehe [INSTALL.md](INSTALL.md).
+Für detaillierte Konfigurationsanweisungen siehe [INSTALL.md](docs/INSTALL.md).
 
 Die Anwendung kann über mehrere Konfigurationsdateien konfiguriert werden:
 
@@ -172,7 +172,7 @@ In der neuesten Version wurde ein Fehler behoben, bei dem der Bestätigungsdialo
 
 ## Docker Deployment
 
-Für detaillierte Docker-Installationsanweisungen siehe [INSTALL.md](INSTALL.md).
+Für detaillierte Docker-Installationsanweisungen siehe [INSTALL.md](docs/INSTALL.md).
 
 Das TI-Monitoring kann als Docker-Container betrieben werden. Dazu ist ein Dockerfile sowie eine docker-compose.yml Datei im Projekt enthalten.
 
