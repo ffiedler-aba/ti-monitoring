@@ -91,11 +91,14 @@ core:
   # Home URL for dash app (Ihre Domain)
   home_url: "https://ti-monitoring.example.com"
   
-  # Time frame for statistics in web app
+  # Time frame for statistics in web app (Standardwert für Plots)
   stats_delta_hours: 12
   
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
+```
+
+**Hinweis:** Der Wert `stats_delta_hours` dient als Standardwert für die Plot-Darstellung. Benutzer können den Zeitraum für jeden Plot individuell über ein Dropdown-Menü anpassen (1 Stunde bis 1 Woche). Der gewählte Zeitraum wird in der URL gespeichert.
 ```
 
 ## Installation mit Docker (Empfohlen)

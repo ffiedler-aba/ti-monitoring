@@ -22,6 +22,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 - Auswahl der zu abonnierenden Topics aus der Liste der *Configuration Items* der gematik API, täglich von `cron.py` aktualisiert
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
+- Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
 
 ### Entwicklungsstand
 
@@ -228,8 +229,25 @@ Auf der Startseite der App werden die Komponenten nach Produkt gruppiert dargest
 ![Screenshot aus der App: Startseite der App (Beispiel)](docs/img/App%20Home%20Beispiel.png "Startseite der App (Beispiel)")
 ![Screenshot aus der App: Startseite der App mit Störung (Beispiel)](docs/img/App%20Home%20Beispiel%20Störung.png "Startseite der App mit Störung (Beispiel)")
 Per Klick auf die ID einer Komponente lässt sich eine Statistik der letzten Stunden aufrufen.
-![Screenshot aus der App: Statistik für eine Komponente (Beispiel)](docs/img/App%20Statistik%20Beispiel.png "Statistik für eine Komponente (Beispiel)")
-Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `myconfig.py` reduziert werden. Zudem kann es ratsam sein, die Datei `data.hdf5` regelmäßig zu archivieren bzw. zu leeren.
+![Screenshot aus der App: Statistik für eine Komponente (Beispiel)](docs/img/App%20Statistik%20Beispiel.png "Screenshot aus der App: Statistik für eine Komponente (Beispiel)")
+
+### Individuelle Zeitraum-Anpassung
+
+Ab Version 1.3.0 können Benutzer den Darstellungszeitraum für jeden Plot individuell anpassen. Über ein Dropdown-Menü können verschiedene Zeiträume von 1 Stunde bis zu 1 Woche ausgewählt werden. Der Standardwert wird aus der `config.yaml` Datei übernommen und kann dort global konfiguriert werden.
+
+**Verfügbare Zeiträume:**
+- 1 Stunde
+- 3 Stunden  
+- 6 Stunden
+- 12 Stunden (Standard)
+- 24 Stunden
+- 48 Stunden
+- 72 Stunden
+- 1 Woche (168 Stunden)
+
+Der gewählte Zeitraum wird in der URL gespeichert, sodass er bei der nächsten Nutzung beibehalten wird.
+
+Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `config.yaml` reduziert werden. Zudem kann es ratsam sein, die Datei `data.hdf5` regelmäßig zu archivieren bzw. zu leeren.
 
 Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Dateien irrelevant und können entfernt werden:
 

@@ -406,6 +406,42 @@ a:any-link:hover {
   border-bottom-color: var(--primary-color);
 }
 
+/* Time Selector Styles */
+.time-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin: var(--spacing-md) 0;
+}
+
+.time-selector label {
+  font-weight: 500;
+  color: var(--gray-700);
+  margin: 0;
+}
+
+.time-selector .dash-dropdown {
+  min-width: 200px;
+}
+
+.time-selector .button {
+  background: var(--primary-color);
+  color: var(--white);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.time-selector .button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   header {
@@ -446,6 +482,16 @@ a:any-link:hover {
   .accordion-element-content ul {
     padding: var(--spacing-md);
   }
+  
+  .time-selector {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .time-selector .dash-dropdown {
+    min-width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
@@ -463,6 +509,15 @@ a:any-link:hover {
   
   .accordion-element-content ul {
     padding: var(--spacing-sm);
+  }
+  
+  .time-selector {
+    gap: var(--spacing-xs);
+  }
+  
+  .time-selector .button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
   }
 }
 
