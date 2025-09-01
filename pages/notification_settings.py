@@ -81,6 +81,23 @@ def get_button_style(button_type='primary'):
     base_style = MODERN_BUTTON_STYLES[button_type].copy()
     return base_style
 
+# Error div styles
+def get_error_style(visible=True):
+    base_style = {
+        'color': '#e74c3c', 
+        'marginBottom': '15px',
+        'fontWeight': '500',
+        'padding': '10px',
+        'backgroundColor': '#fdf2f2',
+        'borderRadius': '6px',
+        'border': '1px solid #fecaca'
+    }
+    if visible:
+        base_style['display'] = 'block'
+    else:
+        base_style['display'] = 'none'
+    return base_style
+
 def load_config():
     """Load configuration from YAML file"""
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
@@ -230,15 +247,7 @@ def serve_layout():
                         'transition': 'border-color 0.3s ease'
                     }
                 ),
-                html.Div(id='form-error', style={
-                    'color': '#e74c3c', 
-                    'marginBottom': '15px',
-                    'fontWeight': '500',
-                    'padding': '10px',
-                    'backgroundColor': '#fdf2f2',
-                    'borderRadius': '6px',
-                    'border': '1px solid #fecaca'
-                }),
+                html.Div(id='form-error', style=get_error_style(visible=False)),
                 html.Div([
                     html.Button('Save Profile', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
                     html.Button('Cancel', id='cancel-profile-button', n_clicks=0, style=get_button_style('secondary'))
@@ -452,6 +461,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
 @callback(
     [Output('profile-form-container', 'style', allow_duplicate=True),
      Output('form-error', 'children'),
+     Output('form-error', 'style'),
      Output('save-profile-button', 'n_clicks')],
     [Input('save-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
@@ -467,19 +477,19 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
     # Check which button was clicked
     ctx = dash.callback_context
     if not ctx.triggered:
-        return [no_update, '', 0]
+        return [no_update, '', get_error_style(visible=False), 0]
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     # Handle cancel button
     if button_id == 'cancel-profile-button':
-        return [{'display': 'none'}, '', 0]
+        return [{'display': 'none'}, '', get_error_style(visible=False), 0]
     
     # Handle save button
     if button_id == 'save-profile-button' and save_clicks > 0:
         # Validate inputs
         if not name:
-            return [no_update, 'Profile name is required.', 0]
+            return [no_update, 'Profile name is required.', get_error_style(visible=True), 0]
         
         # Process CI list
         ci_items = [ci.strip() for ci in ci_list.split('\n') if ci.strip()]
@@ -489,7 +499,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
         
         # Validate Apprise URLs
         if url_items and not validate_apprise_urls(url_items):
-            return [no_update, 'One or more Apprise URLs are invalid.', 0]
+            return [no_update, 'One or more Apprise URLs are invalid.', get_error_style(visible=True), 0]
         
         # Create profile object
         profile = {
@@ -516,13 +526,13 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
             
             # Save config
             if save_notification_config(config_notifications_config_file, config):
-                return [{'display': 'none'}, '', 0]  # Hide form and reset clicks
+                return [{'display': 'none'}, '', get_error_style(visible=False), 0]  # Hide form and reset clicks
             else:
-                return [no_update, 'Error saving configuration.', 0]
+                return [no_update, 'Error saving configuration.', get_error_style(visible=True), 0]
         except Exception as e:
-            return [no_update, f'Error: {str(e)}', 0]
+            return [no_update, f'Error: {str(e)}', get_error_style(visible=True), 0]
     
-    return [no_update, '', 0]
+    return [no_update, '', get_error_style(visible=False), 0]
 
 # Callback to handle delete confirmation
 @callback(
@@ -684,3 +694,4 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
             html.Br(),
             html.Span('mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-family': 'monospace'})
         ])
+        
