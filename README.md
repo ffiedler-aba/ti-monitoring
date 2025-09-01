@@ -23,7 +23,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
 - Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
-- Ausführliche Statisitken in den einzelnen Configuration Items und als Gesamtstatistik auf der Hauptseite
+- Ausführliche Statisitken in den einzelnen Configuration Items und als Gesamtstatistik unter /stats
 
 ### Entwicklungsstand
 
@@ -258,6 +258,56 @@ Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Date
 * assets
 * pages
 * app.py
+
+## Statistiken-Seite
+
+Ab Version 1.4.0 steht eine dedizierte Statistiken-Seite zur Verfügung, die eine umfassende Gesamtübersicht aller Configuration Items (CIs) bereitstellt. Die Seite ist über den Navigationslink "Stats" (Analytics-Icon) in der Web-App erreichbar.
+
+![Screenshot der Statistiken-Seite](docs/img/screenshot-stats-page.png "Screenshot der Statistiken-Seite - Umfassende Gesamtstatistiken aller Configuration Items")
+
+### Verfügbare Statistiken
+
+Die Statistiken-Seite bietet folgende Informationen:
+
+#### 🎯 Übersicht
+- **Gesamtanzahl CIs**: Anzahl aller überwachten Configuration Items
+- **Aktuell verfügbar**: Anzahl der derzeit verfügbaren CIs
+- **Aktuell nicht verfügbar**: Anzahl der derzeit nicht verfügbaren CIs
+- **Gesamtverfügbarkeit**: Prozentsatz der verfügbaren CIs
+
+#### 📅 Datenstatus
+- **Letzte Aktualisierung**: Zeitstempel der letzten Datenaktualisierung (Europe/Berlin)
+- **Datenalter**: Wie alt die aktuellen Daten sind
+- **Kürzliche Änderungen**: Anzahl der CIs mit Statusänderungen
+
+#### 🏢 Struktur
+- **Produkte**: Anzahl der verschiedenen Produktkategorien
+- **Organisationen**: Anzahl der verschiedenen Organisationen
+
+#### 🔴 Summierte Ausfallzeiten aller CIs
+- **Gesamtausfallzeit**: Absolute Summe aller Ausfallzeiten in Minuten
+- **Gesamtausfallzeit (⌀ pro Tag)**: Durchschnittliche Ausfallzeit pro Tag
+- **Gesamtausfallzeit (⌀ pro Woche)**: Durchschnittliche Ausfallzeit pro Woche
+- **Gesamtausfallzeit (⌀ pro Jahr)**: Durchschnittliche Ausfallzeit pro Jahr
+
+#### 📈 Durchschnittliche Ausfallzeiten pro Zeitintervall
+- **Pro Tag**: Durchschnittliche Ausfallzeit pro Tag über den gesamten Aufzeichnungszeitraum
+- **Pro Woche**: Durchschnittliche Ausfallzeit pro Woche über den gesamten Aufzeichnungszeitraum
+- **Pro Jahr**: Durchschnittliche Ausfallzeit pro Jahr über den gesamten Aufzeichnungszeitraum
+
+### Performance-Optimierung
+
+Die Statistiken werden gecacht, um die Ladezeiten zu optimieren:
+- **Cache-TTL**: 5 Minuten
+- **Automatische Erneuerung**: Statistiken werden automatisch neu berechnet, wenn der Cache abläuft
+- **Cache-Informationen**: Anzeige der letzten Berechnung und verbleibenden Cache-Zeit
+
+### Berechnungsmethodik
+
+Die Ausfallzeit-Statistiken basieren auf einer Stichprobe der CIs (maximal 20 CIs) zur Performance-Optimierung:
+- **Sampling**: Repräsentative Stichprobe mit festem Seed für konsistente Ergebnisse
+- **Skalierung**: Ergebnisse werden auf die Gesamtanzahl der CIs hochskaliert
+- **Zeitbasis**: Berechnungen basieren auf dem gesamten Aufzeichnungszeitraum aller CIs
 
 ---
 
