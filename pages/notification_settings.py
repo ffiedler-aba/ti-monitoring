@@ -129,8 +129,8 @@ def serve_layout():
             'borderBottom': '2px solid #3498db',
             'paddingBottom': '10px'
         }),
-        # Store for authentication status
-        dcc.Store(id='auth-status', storage_type='memory', data=auth_status),
+        # Store for authentication status (persistent in browser)
+        dcc.Store(id='auth-status', storage_type='local', data=auth_status),
         
         # Login form (shown when not authenticated)
         html.Div(id='login-container', children=[
@@ -338,6 +338,8 @@ def handle_login(n_clicks, password, auth_data):
             return [no_update, no_update, 'Please enter a password.', auth_data]
     return [no_update, no_update, '', auth_data]
 
+
+
 # Callback to handle Enter key in password input
 @callback(
     Output('login-button', 'n_clicks'),
@@ -348,6 +350,8 @@ def handle_enter_key(n_submit, current_clicks):
     if n_submit and n_submit > 0:
         return (current_clicks or 0) + 1
     return current_clicks
+
+
 
 # Callback to load and display profiles
 @callback(
