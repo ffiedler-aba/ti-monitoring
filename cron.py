@@ -343,6 +343,7 @@ def main():
     max_consecutive_errors = 10  # Stop after 10 consecutive errors
     
     log("Entering main loop...")
+    last_stats_update_time = 0  # epoch seconds; controls hourly stats updates
     while True:
         try:
             iteration_count += 1
@@ -380,11 +381,13 @@ def main():
                 except Exception as e:
                     log(f"ERROR in CI list update: {e}")
             
-            # Update statistics file every 2 iterations (10 minutes) with error handling
-            if iteration_count % 2 == 0:
+            # Update statistics file hourly (time-based) with error handling
+            now_epoch = time.time()
+            if now_epoch - last_stats_update_time >= 3600:
                 try:
-                    log("Updating statistics file...")
+                    log("Updating statistics file (hourly)...")
                     update_statistics_file(config_file_name)
+                    last_stats_update_time = now_epoch
                     log("Statistics update completed")
                 except Exception as e:
                     log(f"ERROR in statistics update: {e}")
