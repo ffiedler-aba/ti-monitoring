@@ -15,29 +15,38 @@ WizardStyle=modern
 Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 
 [Files]
-; Keine App-Dateien, das Repo wird zur Laufzeit geklont
-Source: "scripts\\install-services.ps1"; DestDir: "{app}\\scripts"; Flags: ignoreversion
-Source: "scripts\\uninstall-services.ps1"; DestDir: "{app}\\scripts"; Flags: ignoreversion
-; PortableGit wird mitgeliefert und nach {app}\tools\PortableGit entpackt
-Source: "PortableGit\\*"; DestDir: "{app}\\tools\\PortableGit"; Flags: recursesubdirs ignoreversion
+; NSSM (mitliefern)
+Source: "nssm-2.24\\win64\\nssm.exe"; DestDir: "{app}\\tools\\nssm"; Flags: ignoreversion
 
 [Run]
 ; 1) winget Vorprüfung und Installationen (silent)
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(-not (Get-Command winget -ErrorAction SilentlyContinue)) {{ Write-Error 'winget nicht gefunden. Bitte App-Installer installieren.'; exit 1 }}"; StatusMsg: "Prüfe winget..."; Flags: runhidden
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere Python..."; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere NSSM..."; Flags: runhidden
+; keine winget-Installation von NSSM nötig; wird mitgeliefert
 
-; 2) Repo & venv werden vollständig im folgenden Skript erledigt
-; ZUERST: Repository direkt klonen (mit gebundletem PortableGit), damit das PS-Skript nur noch venv+Services macht
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(!(Test-Path -LiteralPath '{app}')){{ New-Item -ItemType Directory -Path '{app}' | Out-Null }}; & '{app}\\tools\\PortableGit\\cmd\\git.exe' -c http.sslBackend=schannel clone --depth 1 https://github.com/elpatron68/ti-monitoring.git '{app}'; if($LASTEXITCODE -ne 0){{ exit $LASTEXITCODE }}"; StatusMsg: "Klonen des Repositories..."; Flags: runhidden
+; 2) Zielordner anlegen
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(!(Test-Path -LiteralPath '{app}')){{ New-Item -ItemType Directory -Path '{app}' | Out-Null }}"; StatusMsg: "Lege Installationsordner an..."; Flags: runhidden
+
+; 3) Venv anlegen
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command python -m venv '{app}\\.venv'"; StatusMsg: "Erzeuge virtuelles Umfeld..."; Flags: runhidden
+
+; 4) Code laden (ZIP) und entpacken
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command $tmp=Join-Path $env:TEMP 'ti-mon.zip'; Invoke-WebRequest -Uri 'https://github.com/elpatron68/ti-monitoring/archive/refs/heads/main.zip' -OutFile $tmp -UseBasicParsing; $dir=Join-Path $env:TEMP ('ti-mon-' + [guid]::NewGuid()); New-Item -ItemType Directory -Path $dir | Out-Null; Expand-Archive -Path $tmp -DestinationPath $dir -Force; $src=Get-ChildItem -Path $dir -Directory | Select-Object -First 1; Copy-Item -Path (Join-Path $src.FullName '*') -Destination '{app}' -Recurse -Force"; StatusMsg: "Lade und entpacke Anwendung..."; Flags: runhidden
+
+; 5) Requirements installieren
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command '{app}\\.venv\\Scripts\\python.exe' -m pip install --upgrade pip"; StatusMsg: "Aktualisiere pip..."; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command '{app}\\.venv\\Scripts\\pip.exe' install -r '{app}\\requirements.txt'"; StatusMsg: "Installiere Abhängigkeiten..."; Flags: runhidden
+
+; 6) Dienste mit gebundletem NSSM anlegen und starten
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(!(Test-Path -LiteralPath '{app}\\data')){{ New-Item -ItemType Directory -Path '{app}\\data' | Out-Null }}; & '{app}\\tools\\nssm\\nssm.exe' install TIMon-UI '{app}\\.venv\\Scripts\\python.exe' '{app}\\app.py'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-UI AppDirectory '{app}'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-UI AppStdout '{app}\\data\\ui.out.log'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-UI AppStderr '{app}\\data\\ui.err.log'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-UI Start SERVICE_AUTO_START; & '{app}\\tools\\nssm\\nssm.exe' install TIMon-Cron '{app}\\.venv\\Scripts\\python.exe' '{app}\\cron.py'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-Cron AppDirectory '{app}'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-Cron AppStdout '{app}\\data\\cron.out.log'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-Cron AppStderr '{app}\\data\\cron.err.log'; & '{app}\\tools\\nssm\\nssm.exe' set TIMon-Cron Start SERVICE_AUTO_START; & '{app}\\tools\\nssm\\nssm.exe' start TIMon-UI; & '{app}\\tools\\nssm\\nssm.exe' start TIMon-Cron"; StatusMsg: "Richte Dienste ein..."; Flags: runhidden
 
 ; 4) Dienste und Firewall einrichten
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File '{app}\\scripts\\install-services.ps1'"; StatusMsg: "Richte Dienste ein..."; Flags: runhidden
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(-not (Get-NetFirewallRule -DisplayName 'TI Monitoring UI' -ErrorAction SilentlyContinue)) {{ New-NetFirewallRule -DisplayName 'TI Monitoring UI' -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8050 }}"; StatusMsg: "Öffne Firewall-Port 8050..."; Flags: runhidden skipifsilent
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File '{app}\\scripts\\uninstall-services.ps1'"; RunOnceId: "svc_cleanup"; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(Get-NetFirewallRule -DisplayName 'TI Monitoring UI' -ErrorAction SilentlyContinue){{ Remove-NetFirewallRule -DisplayName 'TI Monitoring UI' }}"; RunOnceId: "fw_cleanup"; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(Get-Service TIMon-UI -ErrorAction SilentlyContinue){{ sc.exe stop TIMon-UI; '{app}\\tools\\nssm\\nssm.exe' remove TIMon-UI confirm }}"; RunOnceId: "svc_ui_cleanup"; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(Get-Service TIMon-Cron -ErrorAction SilentlyContinue){{ sc.exe stop TIMon-Cron; '{app}\\tools\\nssm\\nssm.exe' remove TIMon-Cron confirm }}"; RunOnceId: "svc_cron_cleanup"; Flags: runhidden
 
 [Code]
 function InitializeSetup(): Boolean;
