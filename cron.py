@@ -532,28 +532,34 @@ def calculate_recording_duration(config_file_name):
                 return 0, None, None
             
             availability_group = f['availability']
-            all_timestamps = []
+            total_ci_count = 0
+            total_ts_count = 0
+            min_epoch = None
+            max_epoch = None
             
-            # Collect all timestamps from all CIs
+            # Stream-only min/max over all CI timestamp keys (avoid per-item tz conversion & list)
             for ci_name in availability_group.keys():
                 ci_group = availability_group[ci_name]
+                total_ci_count += 1
                 for timestamp_str in ci_group.keys():
                     try:
-                        timestamp = pd.to_datetime(float(timestamp_str), unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
-                        all_timestamps.append(timestamp)
-                    except:
+                        epoch_val = float(timestamp_str)
+                    except Exception:
+                        # Skip invalid keys
                         continue
+                    total_ts_count += 1
+                    if (min_epoch is None) or (epoch_val < min_epoch):
+                        min_epoch = epoch_val
+                    if (max_epoch is None) or (epoch_val > max_epoch):
+                        max_epoch = epoch_val
             
-            log(f"Collected {len(all_timestamps)} timestamps from {len(availability_group.keys())} CIs")
+            log(f"Collected {total_ts_count} timestamps from {total_ci_count} CIs")
             
-            if all_timestamps:
-                earliest_timestamp = min(all_timestamps)
-                latest_timestamp = max(all_timestamps)
-                
-                # Calculate total recording time from the overall time range
-                total_recording_minutes = (latest_timestamp - earliest_timestamp).total_seconds() / 60
+            if (min_epoch is not None) and (max_epoch is not None):
+                earliest_timestamp = pd.to_datetime(min_epoch, unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
+                latest_timestamp = pd.to_datetime(max_epoch, unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
+                total_recording_minutes = (max_epoch - min_epoch) / 60
                 log(f"Total recording time: {earliest_timestamp} to {latest_timestamp} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
-                
                 return total_recording_minutes, earliest_timestamp, latest_timestamp
             else:
                 log("No timestamps found in availability data")
