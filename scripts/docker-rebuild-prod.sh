@@ -1,1 +1,1 @@
-docker compose -f docker-compose.yml down && docker compose -f docker-compose.yml up --build -d
+git pull && docker compose -f docker-compose.yml down && docker compose -f docker-compose.yml up --build -d
