@@ -162,6 +162,8 @@ echo - Service stoppen:   nssm stop ^<service-name^>
 echo - Service entfernen: nssm remove ^<service-name^> confirm
 echo - Service Status:    nssm status ^<service-name^>
 echo.
+echo Web-Interface: http://localhost:8050
+echo.
 echo Logs finden Sie in: %BASE_PATH%logs\
 echo.
 pause
