@@ -9,6 +9,7 @@ statistics.json
 .gitignore
 .env
 *.log
+*.zip
 
 # Configuration files (use .example files instead)
 config.yaml
@@ -22,3 +23,5 @@ data/*.gz
 
 portable-build/
 windows-setup-src/
+build/
+dist/

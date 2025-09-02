@@ -51,20 +51,20 @@ function Copy-RepositoryToStage([string]$StagePath) {
 }
 
 function Ensure-ExampleFiles([string]$StagePath) {
-    Set-Location -LiteralPath $StagePath
+    Push-Location -LiteralPath $StagePath
     try {
         Write-Info "Übernehme Beispielkonfigurationen falls nötig"
-        if (Test-Path 'config.yaml.example' -PathType Leaf -and -not (Test-Path 'config.yaml')) {
+        if ((Test-Path 'config.yaml.example' -PathType Leaf) -and -not (Test-Path 'config.yaml')) {
             Copy-Item 'config.yaml.example' 'config.yaml'
         }
-        if (Test-Path 'notifications.json.example' -PathType Leaf -and -not (Test-Path 'notifications.json')) {
+        if ((Test-Path 'notifications.json.example' -PathType Leaf) -and -not (Test-Path 'notifications.json')) {
             Copy-Item 'notifications.json.example' 'notifications.json'
         }
-        if (Test-Path '.env.example' -PathType Leaf -and -not (Test-Path '.env')) {
+        if ((Test-Path '.env.example' -PathType Leaf) -and -not (Test-Path '.env')) {
             Copy-Item '.env.example' '.env'
         }
     }
-    finally { Set-Location -LiteralPath (Split-Path -Parent $StagePath) | Out-Null }
+    finally { Pop-Location }
 }
 
 function Ensure-DataFolder([string]$StagePath) {
