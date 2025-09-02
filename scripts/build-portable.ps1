@@ -85,6 +85,23 @@ function Ensure-DataFolder([string]$StagePath) {
     }
 }
 
+function Ensure-ToolsFolder([string]$StagePath) {
+    $toolsStage = Join-Path $StagePath 'tools'
+    if (-not (Test-Path -LiteralPath $toolsStage)) {
+        Write-Info "Erstelle '$toolsStage'"
+        New-Item -ItemType Directory -Path $toolsStage | Out-Null
+    }
+
+    if (Test-Path -LiteralPath 'tools' -PathType Container) {
+        Write-Info "Übernehme tools nach '$toolsStage'"
+        $rc = Start-Process -FilePath robocopy -ArgumentList @('tools', $toolsStage, '/E') -NoNewWindow -PassThru -Wait
+        if ($rc.ExitCode -gt 7) { throw "Robocopy (tools) fehlgeschlagen (ExitCode=$($rc.ExitCode))" }
+    }
+    else {
+        Write-Info "Kein tools-Verzeichnis gefunden – überspringe"
+    }
+}
+
 function New-WindowsVenv([string]$StagePath, [string]$Python) {
     Write-Info "Erzeuge venv im Staging"
     $venvPath = Join-Path $StagePath '.venv'
@@ -130,10 +147,13 @@ Ensure-ExampleFiles -StagePath $StageDir
 # 4) data/ sicherstellen und befüllen
 Ensure-DataFolder -StagePath $StageDir
 
-# 5) venv erstellen und Requirements installieren
+# 5) tools/ sicherstellen und befüllen
+Ensure-ToolsFolder -StagePath $StageDir
+
+# 6) venv erstellen und Requirements installieren
 New-WindowsVenv -StagePath $StageDir -Python $PythonExe
 
-# 6) ZIP erzeugen
+# 7) ZIP erzeugen
 $zip = New-PortableZip -StagePath $StageDir
 
 Write-Host ""; Write-Info "Fertig. ZIP erstellt: $zip"
