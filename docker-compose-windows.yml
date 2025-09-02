@@ -1,0 +1,49 @@
+version: '3.8'
+
+volumes:
+  ti-monitoring-data:
+  ti-monitoring-logs:
+
+services:
+  ti-monitoring-web:
+    build: .
+    container_name: ti-monitoring-web
+    volumes:
+      - ti-monitoring-data:/app/data
+      - ti-monitoring-logs:/app/logs
+      - ./config.yaml:/app/config.yaml:ro
+      - ./notifications.json:/app/notifications.json:ro
+    environment:
+      - PYTHONPATH=/app
+      - TZ=Europe/Berlin
+    restart: unless-stopped
+    ports:
+      - "8050:8050"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ti-monitoring-cron:
+    build: .
+    container_name: ti-monitoring-cron
+    volumes:
+      - ti-monitoring-data:/app/data
+      - ti-monitoring-logs:/app/logs
+      - ./config.yaml:/app/config.yaml:ro
+      - ./notifications.json:/app/notifications.json:ro
+    environment:
+      - PYTHONPATH=/app
+      - TZ=Europe/Berlin
+    command: ["python", "-u", "cron.py"]
+    restart: unless-stopped
+    depends_on:
+      - ti-monitoring-web
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
