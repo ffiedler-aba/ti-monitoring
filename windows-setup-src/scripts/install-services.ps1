@@ -7,6 +7,7 @@ $App = $App.Path
 
 # Konfiguration
 $RepoUrl = 'https://github.com/elpatron68/ti-monitoring.git'
+$RepoZip = 'https://github.com/elpatron68/ti-monitoring/archive/refs/heads/main.zip'
 
 # Executables / Pfade
 $Python     = Join-Path $App '.venv\Scripts\python.exe'
@@ -24,7 +25,7 @@ function Resolve-GitPath {
     (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\git.exe')
   )
   foreach ($c in $candidates) { if ($c -and (Test-Path -LiteralPath $c)) { return $c } }
-  throw 'git.exe wurde nicht gefunden. Bitte stellen Sie sicher, dass Git installiert ist.'
+  return $null
 }
 
 function Resolve-NssmPath {
@@ -46,13 +47,31 @@ function Resolve-NssmPath {
 }
 
 function Ensure-Repo {
-  $git = Resolve-GitPath
   if (Test-Path -LiteralPath $AppScript -PathType Leaf -ErrorAction SilentlyContinue) { return }
   if (Test-Path -LiteralPath (Join-Path $App '.git')) {
-    try { Push-Location $App; & $git pull --ff-only; Pop-Location } catch { }
+    try { Push-Location $App; & (Resolve-GitPath) pull --ff-only; $code=$LASTEXITCODE; Pop-Location; if ($code -ne 0) { throw "git pull ExitCode $code" } } catch { Write-Warning $_ }
   } else {
     if (!(Test-Path -LiteralPath $App)) { New-Item -ItemType Directory -Path $App | Out-Null }
-    & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App
+    $git = Resolve-GitPath
+    $cloned = $false
+    if ($git) {
+      try {
+        & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App 2>&1 | Out-String | Write-Verbose
+        $code = $LASTEXITCODE
+        if ($code -eq 0) { $cloned = $true } else { Write-Warning "git clone ExitCode $code" }
+      } catch { Write-Warning "git clone Fehler: $_" }
+    } else {
+      Write-Warning 'git.exe wurde nicht gefunden, versuche ZIP-Download.'
+    }
+    if (-not $cloned) {
+      $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("ti-monitoring-" + [guid]::NewGuid()))
+      $zip = Join-Path $tmp.FullName 'repo.zip'
+      Invoke-WebRequest -Uri $RepoZip -OutFile $zip -UseBasicParsing
+      Expand-Archive -Path $zip -DestinationPath $tmp.FullName
+      $src = Get-ChildItem -Path $tmp.FullName -Directory | Select-Object -First 1
+      if (-not $src) { throw 'ZIP-Archiv konnte nicht entpackt werden.' }
+      Copy-Item -Path (Join-Path $src.FullName '*') -Destination $App -Recurse -Force
+    }
   }
   if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" }
 }
