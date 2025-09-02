@@ -113,14 +113,8 @@ jobs:
         $pyvenvCfg = Join-Path $venvPath 'pyvenv.cfg'
         if (Test-Path -LiteralPath $pyvenvCfg) {
             # Erstelle neue pyvenv.cfg mit relativen Pfaden
-            $newPyvenvCfg = @"
-home = .
-include-system-site-packages = false
-version = 3.12.10
-executable = .\Scripts\python.exe
-command = .\Scripts\python.exe -m venv .
-"@
-            $newPyvenvCfg | Out-File -FilePath $pyvenvCfg -Encoding UTF8
+            $pyvenvContent = "home = .`ninclude-system-site-packages = false`nversion = 3.12.10`nexecutable = .\Scripts\python.exe`ncommand = .\Scripts\python.exe -m venv ."
+            $pyvenvContent | Out-File -FilePath $pyvenvCfg -Encoding UTF8
             Write-Host "pyvenv.cfg repariert"
         }
         
