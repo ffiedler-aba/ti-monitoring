@@ -285,6 +285,33 @@ def update_ci_list_file(config_file_name, ci_list_file_path):
 
 
 
+def update_statistics_file(config_file_name):
+    """Update the statistics JSON file with current data"""
+    try:
+        # Get current CI data
+        cis = get_data_of_all_cis(config_file_name)
+        if cis.empty:
+            log("No CI data available for statistics calculation")
+            return False
+        
+        # Calculate statistics
+        stats = calculate_overall_statistics(config_file_name, cis)
+        if not stats:
+            log("Failed to calculate statistics")
+            return False
+        
+        # Save to JSON file
+        statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
+        with open(statistics_file_path, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, indent=2, ensure_ascii=False)
+        
+        log(f"Updated statistics file: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
+        return True
+        
+    except Exception as e:
+        log(f"Error updating statistics file: {e}")
+        return False
+
 def main():
     # Initialize logger first
     setup_logger()
@@ -821,30 +848,3 @@ def calculate_overall_statistics(config_file_name, cis):
         'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
         'database_size_mb': float(database_size_mb)
     }
-
-def update_statistics_file(config_file_name):
-    """Update the statistics JSON file with current data"""
-    try:
-        # Get current CI data
-        cis = get_data_of_all_cis(config_file_name)
-        if cis.empty:
-            log("No CI data available for statistics calculation")
-            return False
-        
-        # Calculate statistics
-        stats = calculate_overall_statistics(config_file_name, cis)
-        if not stats:
-            log("Failed to calculate statistics")
-            return False
-        
-        # Save to JSON file
-        statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
-        with open(statistics_file_path, 'w', encoding='utf-8') as f:
-            json.dump(stats, f, indent=2, ensure_ascii=False)
-        
-        log(f"Updated statistics file: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
-        return True
-        
-    except Exception as e:
-        log(f"Error updating statistics file: {e}")
-        return False
