@@ -1,6 +1,7 @@
 import dash
-from dash import html
+from dash import html, dcc
 from dash import dash_table
+from dash import Input, Output, callback, no_update, State
 from mylibrary import *
 from myconfig import *
 import yaml
@@ -67,7 +68,8 @@ def load_ci_metadata_map():
             items = json.load(f) or []
         mapping = {str(item.get('ci')): {
             'name': item.get('name') or '',
-            'organization': item.get('organization') or ''
+            'organization': item.get('organization') or '',
+            'product': item.get('product') or ''
         } for item in items if isinstance(item, dict) and item.get('ci')}
         _ci_meta_cache = mapping
         _ci_meta_cache_mtime = mtime
@@ -481,6 +483,9 @@ def serve_layout():
         # Overall statistics section
         create_overall_statistics_display(overall_stats),
         
+        # Location component for navigation
+        dcc.Location(id='stats-location', refresh=False),
+        
         # Top-Listen (sortable DataTable)
         html.Div(className='overall-statistics box', children=[
             html.Div(className='stat-card', children=[
@@ -488,9 +493,12 @@ def serve_layout():
                 (lambda rows: dash_table.DataTable(
                     id='unstable-cis-table',
                     data=rows,
+                    row_selectable=False,
+                    row_deletable=False,
                     columns=[
                         {"name": "CI", "id": "ci"},
                         {"name": "Name", "id": "name"},
+                        {"name": "Produkt", "id": "product"},
                         {"name": "Incidents", "id": "incidents", "type": "numeric"},
                         {"name": "Downtime (Minuten)", "id": "downtime_minutes", "type": "numeric", "format": {"specifier": ".0f"}},
                         {"name": "Verfügbarkeit (%)", "id": "availability_percentage", "type": "numeric", "format": {"specifier": ".2f"}},
@@ -500,13 +508,33 @@ def serve_layout():
                     style_table={'overflowX': 'auto'},
                     style_cell={'padding': '8px', 'fontSize': '0.95rem'},
                     style_cell_conditional=[
+                        {"if": {"column_id": "name"}, "textAlign": "left"},
+                        {"if": {"column_id": "product"}, "textAlign": "left"},
                         {"if": {"column_id": "incidents"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
                         {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
                         {"if": {"column_id": "availability_percentage"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
                     ],
+                    style_data_conditional=[
+                        {
+                            'if': {'state': 'active'},
+                            'backgroundColor': 'var(--primary-color)',
+                            'color': 'white',
+                        },
+                        {
+                            'if': {'state': 'selected'},
+                            'backgroundColor': 'var(--primary-color-light)',
+                            'color': 'white',
+                        }
+                    ],
+                    css=[
+                        {
+                            'selector': '.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table',
+                            'rule': 'cursor: pointer;'
+                        }
+                    ],
                     tooltip_data=[
                         {
-                            'ci': {'value': f"{r.get('name','—')} — {r.get('organization','—')}", 'type': 'text'}
+                            'ci': {'value': f"Organisation: {r.get('organization','—')}", 'type': 'text'}
                         } for r in rows
                     ],
                     tooltip_duration=None
@@ -521,6 +549,11 @@ def serve_layout():
                         'organization': (
                             overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('organization')
                             or load_ci_metadata_map().get(entry['ci'], {}).get('organization')
+                            or ''
+                        ),
+                        'product': (
+                            overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('product')
+                            or load_ci_metadata_map().get(entry['ci'], {}).get('product')
                             or ''
                         ),
                         'incidents': int(entry['incidents']),
@@ -542,3 +575,27 @@ def serve_layout():
     return layout
 
 layout = serve_layout
+
+# Add a clientside callback for navigation
+from dash import clientside_callback
+
+clientside_callback(
+    """
+    function(active_cell, table_data) {
+        if (active_cell && table_data) {
+            const rowIndex = active_cell.row;
+            if (rowIndex !== null && rowIndex < table_data.length) {
+                const ci = table_data[rowIndex].ci;
+                if (ci) {
+                    window.location.href = '/plot?ci=' + ci;
+                }
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output('stats-location', 'href'),
+    [Input('unstable-cis-table', 'active_cell')],
+    [State('unstable-cis-table', 'data')],
+    prevent_initial_call=True
+)
