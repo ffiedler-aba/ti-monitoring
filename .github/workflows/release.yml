@@ -27,7 +27,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
@@ -50,7 +50,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
@@ -65,7 +65,7 @@ jobs:
         pwsh -File .\scripts\build-portable.ps1 -Force
         
     - name: Upload Portable Build
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ti-monitoring-portable-${{ github.ref_name }}
         path: ti-monitoring-portable-*.zip
