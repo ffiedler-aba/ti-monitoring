@@ -11,22 +11,22 @@ echo ========================================
 echo.
 
 REM Service-Konfiguration
-set "USE_LOCAL_SERVICE=true"
-set "SERVICE_USER=LocalService"
+set "USE_CURRENT_USER=true"
+set "SERVICE_USER=%USERNAME%"
 
 echo ========================================
 echo Konfiguriere Service-Berechtigungen
 echo ========================================
 
-echo Verwende LocalService für Services (ohne Passwort erforderlich).
-echo Konfiguriere Berechtigungen für LocalService...
+echo Verwende aktuellen Benutzer %USERNAME% für Services.
+echo Konfiguriere Berechtigungen für aktuellen Benutzer...
 
-REM Setze Berechtigungen für das Installationsverzeichnis für LocalService
+REM Setze Berechtigungen für das Installationsverzeichnis für aktuellen Benutzer
 echo Setze Berechtigungen für Installationsverzeichnis...
-icacls "%BASE_PATH%" /grant "NT AUTHORITY\LOCAL SERVICE":^(OI^)^(CI^)F /T >nul 2>&1
+icacls "%BASE_PATH%" /grant "%USERNAME%":^(OI^)^(CI^)F /T >nul 2>&1
 icacls "%BASE_PATH%" /grant "NT AUTHORITY\SYSTEM":^(OI^)^(CI^)F /T >nul 2>&1
 
-echo Berechtigungen für LocalService konfiguriert.
+echo Berechtigungen für aktuellen Benutzer konfiguriert.
 echo.
 
 REM Aktuelles Verzeichnis als Basis-Pfad
@@ -114,13 +114,17 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStdout "%BASE_PATH%logs\cron.log"
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStderr "%BASE_PATH%logs\cron-error.log"
     
-    REM WICHTIG: Service mit LocalService laufen lassen (ohne Passwort)
-    echo Konfiguriere Service für LocalService...
-    "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+    REM WICHTIG: Service mit aktuellem Benutzer laufen lassen
+    echo Konfiguriere Service für aktuellen Benutzer %USERNAME%...
+    echo HINWEIS: Services laufen im Kontext des angemeldeten Benutzers.
+    echo Dies ermöglicht Zugriff auf Python-Installation und venv.
+    "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "%USERNAME%"
     if !errorlevel! equ 0 (
-        echo LocalService erfolgreich konfiguriert.
+        echo Service erfolgreich für Benutzer %USERNAME% konfiguriert.
     ) else (
-        echo WARNUNG: LocalService Konfiguration fehlgeschlagen.
+        echo WARNUNG: Service-Konfiguration für Benutzer fehlgeschlagen.
+        echo Versuche LocalService als Fallback...
+        "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
     )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
@@ -165,13 +169,17 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStdout "%BASE_PATH%logs\ui.log"
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStderr "%BASE_PATH%logs\ui-error.log"
     
-    REM WICHTIG: Service mit LocalService laufen lassen (ohne Passwort)
-    echo Konfiguriere Service für LocalService...
-    "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+    REM WICHTIG: Service mit aktuellem Benutzer laufen lassen
+    echo Konfiguriere Service für aktuellen Benutzer %USERNAME%...
+    echo HINWEIS: Services laufen im Kontext des angemeldeten Benutzers.
+    echo Dies ermöglicht Zugriff auf Python-Installation und venv.
+    "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "%USERNAME%"
     if !errorlevel! equ 0 (
-        echo LocalService erfolgreich konfiguriert.
+        echo Service erfolgreich für Benutzer %USERNAME% konfiguriert.
     ) else (
-        echo WARNUNG: LocalService Konfiguration fehlgeschlagen.
+        echo WARNUNG: Service-Konfiguration für Benutzer fehlgeschlagen.
+        echo Versuche LocalService als Fallback...
+        "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
     )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
