@@ -284,12 +284,32 @@ def create_overall_statistics_display(stats):
                         html.Span(f'{stats["currently_unavailable"]:,}')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Gesamtverfügbarkeit: '),
-                        html.Span(f'{stats["overall_availability_percentage"]:.1f}%')
+                        html.Strong('Gesamtverfügbarkeit (aktuelle Daten): '),
+                        html.Span(f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.1f}%")
                     ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtdauer Aufzeichnung: '),
                         html.Span(format_duration(stats["total_recording_minutes"] / 60) if stats.get("total_recording_minutes", 0) > 0 else 'Unbekannt')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Gesamte Uptime: '),
+                        html.Span(format_duration((stats.get('overall_uptime_minutes') or 0) / 60))
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Gesamte Downtime: '),
+                        html.Span(format_duration((stats.get('overall_downtime_minutes') or 0) / 60))
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Incidents (gesamt): '),
+                        html.Span(f"{int(stats.get('total_incidents', 0))}")
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('MTTR (Ø, Minuten): '),
+                        html.Span(f"{(stats.get('mttr_minutes_mean') or 0):.1f}")
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('MTBF (Ø, Minuten): '),
+                        html.Span(f"{(stats.get('mtbf_minutes_mean') or 0):.1f}")
                     ])
                 ])
             ]),
@@ -406,16 +426,32 @@ def serve_layout():
         gc.collect()
     
     layout = html.Div([
-        html.P('Hier finden Sie eine umfassende Gesamtstatistik aller Configuration Items. Neue Daten werden alle 10 Minuten von cron.py berechnet und gecacht. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
+        html.P('Hier finden Sie eine umfassende Gesamtstatistik aller Configuration Items. Neue Daten werden stündlich von cron.py berechnet und gecacht. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
         
         # Cache information
         html.Div(className='cache-info', children=[
-            html.P(f'📊 Statistiken werden alle 10 Minuten von cron.py berechnet und gecacht'),
-            html.P(f'🔄 Nächste Aktualisierung: Alle 10 Minuten (bei jedem 2. Cron-Lauf)')
+            html.P(f'📊 Statistiken werden stündlich von cron.py berechnet und gecacht'),
+            html.P(f'🔄 Nächste Aktualisierung: Stündlich')
         ]),
         
         # Overall statistics section
-        create_overall_statistics_display(overall_stats)
+        create_overall_statistics_display(overall_stats),
+        
+        # Top-Listen
+        html.Div(className='stats-overview', children=[
+            html.Div(className='stat-card', children=[
+                html.H4('🚨 Top instabile CIs (Incidents)'),
+                html.Ul(children=[
+                    html.Li(f"{entry['ci']}: {entry['incidents']} Incidents") for entry in overall_stats.get('top_unstable_cis_by_incidents', [])
+                ])
+            ]),
+            html.Div(className='stat-card', children=[
+                html.H4('⏱️ Top Downtime CIs (Minuten)'),
+                html.Ul(children=[
+                    html.Li(f"{entry['ci']}: {int(entry['downtime_minutes'])} Minuten") for entry in overall_stats.get('top_downtime_cis', [])
+                ])
+            ])
+        ])
     ])
     
     return layout
