@@ -10,8 +10,8 @@ echo ========================================
 echo.
 
 REM Service-Benutzer Name
-set "SERVICE_USER=ti-monitoring-service"
-set "SERVICE_PASSWORD=TiMonitoring2024!"
+set "SERVICE_USER=timonitoringservice"
+set "SERVICE_PASSWORD=TiMonit2024!"
 
 echo ========================================
 echo Erstelle Service-Benutzer
@@ -21,6 +21,7 @@ REM Prüfe ob Service-Benutzer bereits existiert
 net user "%SERVICE_USER%" >nul 2>&1
 if !errorlevel! equ 0 (
     echo Service-Benutzer %SERVICE_USER% existiert bereits.
+    set "USE_SERVICE_USER=true"
 ) else (
     echo Erstelle Service-Benutzer %SERVICE_USER%...
     echo Verwende einfache net user Syntax...
@@ -31,6 +32,7 @@ if !errorlevel! equ 0 (
         net user %SERVICE_USER% /passwordchg:no /passwordreq:yes /expires:never
         net user %SERVICE_USER% /fullname:"TI-Monitoring Service Account"
         net user %SERVICE_USER% /comment:"Dedizierter Benutzer für TI-Monitoring Services"
+	    set "USE_SERVICE_USER=true"
     ) else (
         echo WARNUNG: Service-Benutzer konnte nicht erstellt werden.
         echo Möglicherweise fehlen Administrator-Rechte.
@@ -170,7 +172,16 @@ if !errorlevel! equ 0 (
     REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
     if defined USE_SERVICE_USER (
         echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        echo Benutzername: %SERVICE_USER%
+        echo Passwort: %SERVICE_PASSWORD%
         "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+        if !errorlevel! equ 0 (
+            echo Service-Benutzer erfolgreich konfiguriert.
+        ) else (
+            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
+            echo Verwende LocalService als Fallback.
+            "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+        )
     ) else (
         echo Konfiguriere Service für LocalService...
         "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
@@ -228,7 +239,16 @@ if !errorlevel! equ 0 (
     REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
     if defined USE_SERVICE_USER (
         echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        echo Benutzername: %SERVICE_USER%
+        echo Passwort: %SERVICE_PASSWORD%
         "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+        if !errorlevel! equ 0 (
+            echo Service-Benutzer erfolgreich konfiguriert.
+        ) else (
+            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
+            echo Verwende LocalService als Fallback.
+            "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+        )
     ) else (
         echo Konfiguriere Service für LocalService...
         "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"

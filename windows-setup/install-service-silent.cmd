@@ -146,7 +146,16 @@ if !errorlevel! equ 0 (
     REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
     if defined USE_SERVICE_USER (
         echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        echo Benutzername: %SERVICE_USER%
+        echo Passwort: %SERVICE_PASSWORD%
         "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+        if !errorlevel! equ 0 (
+            echo Service-Benutzer erfolgreich konfiguriert.
+        ) else (
+            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
+            echo Verwende LocalService als Fallback.
+            "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+        )
     ) else (
         echo Konfiguriere Service für LocalService...
         "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
@@ -197,7 +206,16 @@ if !errorlevel! equ 0 (
     REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
     if defined USE_SERVICE_USER (
         echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        echo Benutzername: %SERVICE_USER%
+        echo Passwort: %SERVICE_PASSWORD%
         "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+        if !errorlevel! equ 0 (
+            echo Service-Benutzer erfolgreich konfiguriert.
+        ) else (
+            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
+            echo Verwende LocalService als Fallback.
+            "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+        )
     ) else (
         echo Konfiguriere Service für LocalService...
         "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
