@@ -1,5 +1,6 @@
 import dash
 from dash import html
+from dash import dash_table
 from mylibrary import *
 from myconfig import *
 import yaml
@@ -480,75 +481,61 @@ def serve_layout():
         # Overall statistics section
         create_overall_statistics_display(overall_stats),
         
-        # Top-Listen
+        # Top-Listen (sortable DataTable)
         html.Div(className='overall-statistics box', children=[
             html.Div(className='stat-card', children=[
                 html.H4('🚨 Top instabile CIs (Incidents)'),
-                html.Table(className='stat-table', style={
-                    'width': '100%',
-                    'borderCollapse': 'collapse',
-                    'fontSize': '0.95rem'
-                }, children=[
-                    html.Thead(html.Tr(children=[
-                        html.Th('CI', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'}),
-                        html.Th('Name', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'}),
-                        html.Th('Incidents', style={'textAlign': 'right', 'padding': '8px', 'borderBottom': '1px solid #ddd', 'width': '110px'}),
-                        html.Th('Downtime (Minuten)', style={'textAlign': 'right', 'padding': '8px', 'borderBottom': '1px solid #ddd', 'width': '160px'}),
-                        html.Th('Verfügbarkeit', title='Zeitgewichtete Verfügbarkeit des CI im Zeitraum', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'})
-                    ])),
-                    html.Tbody(children=[
-                        (lambda ci_name, incidents, availability, downtime_min, display_name, org: html.Tr(style={'backgroundColor': '#fafafa' if i % 2 else 'white'}, children=[
-                            html.Td(ci_name, title=(display_name or '—') + ' — ' + (org or '—'), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
-                            html.Td(display_name or '—', style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
-                            html.Td(str(incidents), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'}),
-                            html.Td(str(int(downtime_min)), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'}),
-                            html.Td(style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}, children=[
-                                html.Div(style={'display': 'flex', 'gap': '8px', 'alignItems': 'center'}, children=[
-                                    html.Div(style={
-                                        'flex': '1',
-                                        'background': '#eee',
-                                        'height': '8px',
-                                        'borderRadius': '4px',
-                                        'overflow': 'hidden'
-                                    }, children=[
-                                        html.Div(style={
-                                            'width': f"{availability:.1f}%",
-                                            'height': '100%',
-                                            'background': ('#d9534f' if availability < 95 else ('#f0ad4e' if availability < 99.5 else '#5cb85c'))
-                                        })
-                                    ]),
-                                    html.Span(f"{availability:.1f}%", style={'minWidth': '64px', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'})
-                                ])
-                            ])
-                        ]))(
-                            entry['ci'],
-                            entry['incidents'],
+                (lambda rows: dash_table.DataTable(
+                    id='unstable-cis-table',
+                    data=rows,
+                    columns=[
+                        {"name": "CI", "id": "ci"},
+                        {"name": "Name", "id": "name"},
+                        {"name": "Incidents", "id": "incidents", "type": "numeric"},
+                        {"name": "Downtime (Minuten)", "id": "downtime_minutes", "type": "numeric"},
+                        {"name": "Verfügbarkeit (%)", "id": "availability_percentage", "type": "numeric"},
+                    ],
+                    sort_action='native',
+                    sort_mode='multi',
+                    style_table={'overflowX': 'auto'},
+                    style_cell={'padding': '8px', 'fontSize': '0.95rem'},
+                    style_cell_conditional=[
+                        {"if": {"column_id": "incidents"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
+                        {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
+                        {"if": {"column_id": "availability_percentage"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
+                    ],
+                    tooltip_data=[
+                        {
+                            'ci': {'value': f"{r.get('name','—')} — {r.get('organization','—')}", 'type': 'text'}
+                        } for r in rows
+                    ],
+                    tooltip_duration=None
+                ))([
+                    {
+                        'ci': entry['ci'],
+                        'name': (
+                            overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('name')
+                            or load_ci_metadata_map().get(entry['ci'], {}).get('name')
+                            or ''
+                        ),
+                        'organization': (
+                            overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('organization')
+                            or load_ci_metadata_map().get(entry['ci'], {}).get('organization')
+                            or ''
+                        ),
+                        'incidents': int(entry['incidents']),
+                        'downtime_minutes': float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('downtime_minutes', 0.0)),
+                        'availability_percentage': float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
+                    }
+                    for entry in sorted(
+                        overall_stats.get('top_unstable_cis_by_incidents', []),
+                        key=lambda entry: (
                             float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
-                            float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('downtime_minutes', 0.0)),
-                            # Resolve display name using per_ci_metrics first, then ci_list.json mapping
-                            (
-                                overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('name')
-                                or load_ci_metadata_map().get(entry['ci'], {}).get('name')
-                                or ''
-                            ),
-                            (
-                                overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('organization')
-                                or load_ci_metadata_map().get(entry['ci'], {}).get('organization')
-                                or ''
-                            )
+                            -int(entry['incidents'])
                         )
-                        for i, entry in enumerate(
-                            sorted(
-                                overall_stats.get('top_unstable_cis_by_incidents', []),
-                                key=lambda entry: (
-                                    float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
-                                    -int(entry['incidents'])
-                                )
-                            )
-                        )
-                    ])
+                    )
                 ])
-            ]),
+            ])
         ])
     ])
     
