@@ -23,7 +23,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
 - Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
-- Ausführliche Statisitken in den einzelnen Configuration Items und als Gesamtstatistik unter /stats
+- Ausführliche Statistiken in den Plots der einzelnen Configuration Items und als Gesamtstatistik unter /stats
 
 ### Entwicklungsstand
 
