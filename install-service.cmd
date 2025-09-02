@@ -17,21 +17,23 @@ if not exist "tools\nssm.exe" (
     exit /b 1
 )
 
+REM Aktuelles Verzeichnis als Basis-Pfad
+set "BASE_PATH=%~dp0"
+set "PYTHON_EXE=%BASE_PATH%.venv\Scripts\python.exe"
+
 REM Prüfe ob Python venv existiert
-if not exist ".venv\Scripts\python.exe" (
+if not exist "%PYTHON_EXE%" (
     echo FEHLER: .venv\Scripts\python.exe nicht gefunden!
+    echo Erwarteter Pfad: %PYTHON_EXE%
     echo Bitte führe dieses Skript aus dem portable-build Verzeichnis aus.
     pause
     exit /b 1
 )
 
-REM Aktuelles Verzeichnis als Basis-Pfad (für Requirements-Installation)
-set "BASE_PATH=%~dp0"
-set "PYTHON_EXE=%BASE_PATH%.venv\Scripts\python.exe"
-
 REM Prüfe ob requirements.txt existiert
-if not exist "requirements.txt" (
+if not exist "%BASE_PATH%requirements.txt" (
     echo WARNUNG: requirements.txt nicht gefunden!
+    echo Erwarteter Pfad: %BASE_PATH%requirements.txt
     echo Überspringe Requirements-Installation.
     goto :skip_requirements
 )
@@ -45,7 +47,7 @@ echo Aktualisiere pip...
 "%PYTHON_EXE%" -m pip install --upgrade pip --quiet
 
 echo Installiere Requirements aus requirements.txt...
-"%PYTHON_EXE%" -m pip install -r requirements.txt --quiet
+"%PYTHON_EXE%" -m pip install -r "%BASE_PATH%requirements.txt" --quiet
 
 if !errorlevel! equ 0 (
     echo Requirements erfolgreich installiert.
