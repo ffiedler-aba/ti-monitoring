@@ -157,6 +157,24 @@ jobs:
                 Write-Host "pyvenv.cfg für portable Verwendung konfiguriert"
             }
             
+            # Repariere Python-Executables in der venv
+            Write-Host "Repariere Python-Executables für portable Verwendung..."
+            $pythonExe = Join-Path '.venv' 'Scripts\python.exe'
+            $pythonwExe = Join-Path '.venv' 'Scripts\pythonw.exe'
+            
+            # Kopiere Python-Executables von der System-Installation
+            $systemPython = (Get-Command python).Source
+            if (Test-Path -LiteralPath $systemPython) {
+                Copy-Item -LiteralPath $systemPython -Destination $pythonExe -Force
+                Write-Host "Python-Executable repariert: $pythonExe"
+            }
+            
+            $systemPythonw = $systemPython -replace 'python.exe', 'pythonw.exe'
+            if (Test-Path -LiteralPath $systemPythonw) {
+                Copy-Item -LiteralPath $systemPythonw -Destination $pythonwExe -Force
+                Write-Host "Pythonw-Executable repariert: $pythonwExe"
+            }
+            
             if (Test-Path -LiteralPath 'requirements.txt' -PathType Leaf) {
                 Write-Host "Installiere Requirements in venv"
                 & $pip -m pip install --upgrade pip
