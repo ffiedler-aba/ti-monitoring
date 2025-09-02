@@ -18,6 +18,8 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 ; Keine App-Dateien, das Repo wird zur Laufzeit geklont
 Source: "scripts\\install-services.ps1"; DestDir: "{app}\\scripts"; Flags: ignoreversion
 Source: "scripts\\uninstall-services.ps1"; DestDir: "{app}\\scripts"; Flags: ignoreversion
+; PortableGit wird mitgeliefert und nach {app}\tools\PortableGit entpackt
+Source: "PortableGit\\*"; DestDir: "{app}\\tools\\PortableGit"; Flags: recursesubdirs ignoreversion
 
 [Run]
 ; 1) winget Vorprüfung und Installationen (silent)

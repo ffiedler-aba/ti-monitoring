@@ -9,7 +9,7 @@ $ToolsDir = Join-Path $App 'tools'
 # Konfiguration
 $RepoUrl = 'https://github.com/elpatron68/ti-monitoring.git'
 $RepoZip = 'https://github.com/elpatron68/ti-monitoring/archive/refs/heads/main.zip'
-$PortableGitUrl = 'https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.1/PortableGit-2.51.0-64-bit.7z.exe'
+ # PortableGit wird mit dem Installer ausgeliefert und liegt unter {app}\tools\PortableGit
 
 # Executables / Pfade
 $Python     = Join-Path $App '.venv\Scripts\python.exe'
@@ -17,32 +17,10 @@ $Pip        = Join-Path $App '.venv\Scripts\pip.exe'
 $AppScript  = Join-Path $App 'app.py'
 $CronScript = Join-Path $App 'cron.py'
 
-function Ensure-PortableGit {
-  $pgRoot = Join-Path $ToolsDir 'PortableGit'
-  $pgExe  = Join-Path $pgRoot 'cmd\git.exe'
-  if (Test-Path -LiteralPath $pgExe) { return $pgExe }
-  if (!(Test-Path -LiteralPath $ToolsDir)) { New-Item -ItemType Directory -Path $ToolsDir | Out-Null }
-  $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("portablegit-" + [guid]::NewGuid()))
-  $dl  = Join-Path $tmp.FullName 'PortableGit.exe'
-  Invoke-WebRequest -Uri $PortableGitUrl -OutFile $dl -UseBasicParsing
-  & $dl -y -o"$pgRoot" | Out-Null
-  if (!(Test-Path -LiteralPath $pgExe)) { throw 'PortableGit konnte nicht entpackt werden.' }
-  return $pgExe
-}
-
 function Resolve-GitPath {
-  try { return (Get-Command git.exe -ErrorAction Stop).Source } catch {}
-  $candidates = @(
-    (Join-Path $ToolsDir 'PortableGit\cmd\git.exe'),
-    (Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),
-    (Join-Path $env:ProgramFiles 'Git\bin\git.exe'),
-    (Join-Path ${env:ProgramFiles(x86)} 'Git\cmd\git.exe'),
-    (Join-Path ${env:ProgramFiles(x86)} 'Git\bin\git.exe'),
-    (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\git.exe')
-  )
-  foreach ($c in $candidates) { if ($c -and (Test-Path -LiteralPath $c)) { return $c } }
-  # Fallback: PortableGit
-  return Ensure-PortableGit
+  $bundled = Join-Path $ToolsDir 'PortableGit\cmd\git.exe'
+  if (Test-Path -LiteralPath $bundled) { return $bundled }
+  throw "Bundled PortableGit nicht gefunden: $bundled"
 }
 
 function Resolve-NssmPath {
@@ -66,27 +44,13 @@ function Resolve-NssmPath {
 function Ensure-Repo {
   if (Test-Path -LiteralPath $AppScript -PathType Leaf -ErrorAction SilentlyContinue) { return }
   if (Test-Path -LiteralPath (Join-Path $App '.git')) {
-    try { Push-Location $App; & (Resolve-GitPath) pull --ff-only; $code=$LASTEXITCODE; Pop-Location; if ($code -ne 0) { throw "git pull ExitCode $code" } } catch { Write-Warning $_ }
+    Push-Location $App; & (Resolve-GitPath) pull --ff-only; $code=$LASTEXITCODE; Pop-Location; if ($code -ne 0) { throw "git pull ExitCode $code" }
   } else {
     if (!(Test-Path -LiteralPath $App)) { New-Item -ItemType Directory -Path $App | Out-Null }
     $git = Resolve-GitPath
-    $cloned = $false
-    if ($git) {
-      try {
-        & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App 2>&1 | Out-String | Write-Verbose
-        $code = $LASTEXITCODE
-        if ($code -eq 0) { $cloned = $true } else { Write-Warning "git clone ExitCode $code" }
-      } catch { Write-Warning "git clone Fehler: $_" }
-    }
-    if (-not $cloned) {
-      $tmp = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("ti-monitoring-" + [guid]::NewGuid()))
-      $zip = Join-Path $tmp.FullName 'repo.zip'
-      Invoke-WebRequest -Uri $RepoZip -OutFile $zip -UseBasicParsing
-      Expand-Archive -Path $zip -DestinationPath $tmp.FullName -Force
-      $src = Get-ChildItem -Path $tmp.FullName -Directory | Select-Object -First 1
-      if (-not $src) { throw 'ZIP-Archiv konnte nicht entpackt werden.' }
-      Copy-Item -Path (Join-Path $src.FullName '*') -Destination $App -Recurse -Force
-    }
+    & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App 2>&1 | Out-String | Write-Verbose
+    $code = $LASTEXITCODE
+    if ($code -ne 0) { throw "git clone ExitCode $code" }
   }
   if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" }
 }
