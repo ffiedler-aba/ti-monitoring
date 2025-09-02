@@ -332,6 +332,159 @@ def calculate_recording_duration(config_file_name):
         log(f"Error calculating recording duration: {e}")
         return 0, None, None
 
+def compute_incident_and_availability_metrics(config_file_name):
+    """
+    Compute per-CI and aggregated availability metrics using availability time series in HDF5.
+    - Treat each timestamp's value (0/1) as status until the next timestamp (right-open interval).
+    - For the last timestamp, extend interval to 'now'.
+    - Incidents are 1->0 transitions; repair is 0->1.
+    Returns dict with rollups and per_ci details.
+    """
+    metrics = {
+        'overall_uptime_minutes': 0.0,
+        'overall_downtime_minutes': 0.0,
+        'overall_availability_percentage_rollup': 0.0,
+        'total_incidents': 0,
+        'mttr_minutes_mean': 0.0,
+        'mtbf_minutes_mean': 0.0,
+        'top_unstable_cis_by_incidents': [],
+        'top_downtime_cis': [],
+        'per_ci_metrics': {}
+    }
+    try:
+        if not os.path.exists(config_file_name):
+            return metrics
+        now_epoch = time.time()
+        with h5py.File(config_file_name, 'r', swmr=True) as f:
+            if 'availability' not in f:
+                return metrics
+            availability_group = f['availability']
+            # Enrich CI metadata (name, organization) from general CI data
+            ci_metadata = {}
+            try:
+                cis_df = get_data_of_all_cis(config_file_name)
+                if not cis_df.empty and all(c in cis_df.columns for c in ['ci','name','organization']):
+                    for _, row in cis_df[['ci','name','organization']].iterrows():
+                        ci_metadata[str(row['ci'])] = {
+                            'name': str(row['name']) if not pd.isna(row['name']) else '',
+                            'organization': str(row['organization']) if not pd.isna(row['organization']) else ''
+                        }
+            except Exception as e:
+                log(f"Warning: could not enrich CI metadata: {e}")
+            per_ci_results = {}
+            total_downtime_list = []
+            total_mttr_values = []
+            total_mtbf_values = []
+            total_incidents = 0
+            overall_uptime = 0.0
+            overall_downtime = 0.0
+            for ci_name in availability_group.keys():
+                ci_group = availability_group[ci_name]
+                # Collect and sort all timestamps as floats
+                ts_list = []
+                for k in ci_group.keys():
+                    try:
+                        ts_list.append(float(k))
+                    except Exception:
+                        continue
+                if not ts_list:
+                    continue
+                ts_list.sort()
+                # Build status sequence aligned to ts_list
+                statuses = []
+                for ts in ts_list:
+                    try:
+                        ds = ci_group[str(ts)]
+                        val = int(ds[()]) if isinstance(ds, h5py.Dataset) else int(ds)
+                        statuses.append(1 if val != 0 else 0)
+                    except Exception:
+                        statuses.append(0)
+                # Compute intervals
+                downtime_minutes = 0.0
+                uptime_minutes = 0.0
+                incidents = 0
+                mttr_list = []
+                mtbf_list = []
+                current_state = statuses[0]
+                last_change_epoch = ts_list[0]
+                last_epoch = ts_list[0]
+                # Track last up-period start for MTBF (time between incidents)
+                last_repair_epoch = None
+                for idx in range(len(ts_list) - 1):
+                    start = ts_list[idx]
+                    end = ts_list[idx + 1]
+                    dur_min = (end - start) / 60.0
+                    if statuses[idx] == 1:
+                        uptime_minutes += dur_min
+                    else:
+                        downtime_minutes += dur_min
+                    # Transition detection at idx+1 (state applies from ts_list[idx])
+                    if statuses[idx + 1] != statuses[idx]:
+                        # state changes at 'end'
+                        prev_state = statuses[idx]
+                        new_state = statuses[idx + 1]
+                        if prev_state == 1 and new_state == 0:
+                            incidents += 1
+                            last_change_epoch = end
+                            # end of an up period -> start of downtime; close MTBF if there was a prior repair
+                            if last_repair_epoch is not None:
+                                mtbf_list.append((end - last_repair_epoch) / 60.0)
+                        elif prev_state == 0 and new_state == 1:
+                            # repair completed: downtime from last_change to end
+                            if last_change_epoch is not None:
+                                mttr_list.append((end - last_change_epoch) / 60.0)
+                            last_repair_epoch = end
+                        current_state = new_state
+                    last_epoch = end
+                # Extend last interval to now
+                if last_epoch < now_epoch:
+                    tail_min = (now_epoch - last_epoch) / 60.0
+                    if statuses[-1] == 1:
+                        uptime_minutes += tail_min
+                    else:
+                        downtime_minutes += tail_min
+                # If last state is down, we have an open incident; do not close MTTR until repair occurs
+                availability_pct = (uptime_minutes / (uptime_minutes + downtime_minutes) * 100.0) if (uptime_minutes + downtime_minutes) > 0 else 0.0
+                meta = ci_metadata.get(ci_name, {})
+                ci_result = {
+                    'incidents': int(incidents),
+                    'uptime_minutes': float(uptime_minutes),
+                    'downtime_minutes': float(downtime_minutes),
+                    'availability_percentage': float(availability_pct),
+                    'mttr_minutes_mean': float(np.mean(mttr_list)) if mttr_list else 0.0,
+                    'mtbf_minutes_mean': float(np.mean(mtbf_list)) if mtbf_list else 0.0,
+                    'longest_outage_minutes': float(max(mttr_list)) if mttr_list else ( (now_epoch - last_change_epoch) / 60.0 if statuses[-1] == 0 else 0.0 ),
+                    'name': meta.get('name', ''),
+                    'organization': meta.get('organization', '')
+                }
+                per_ci_results[ci_name] = ci_result
+                total_incidents += incidents
+                overall_uptime += uptime_minutes
+                overall_downtime += downtime_minutes
+                total_downtime_list.append((ci_name, downtime_minutes))
+                if mttr_list:
+                    total_mttr_values.extend(mttr_list)
+                if mtbf_list:
+                    total_mtbf_values.extend(mtbf_list)
+            overall_pct = (overall_uptime / (overall_uptime + overall_downtime) * 100.0) if (overall_uptime + overall_downtime) > 0 else 0.0
+            # Rankings
+            top_unstable = sorted(((ci, per_ci_results[ci]['incidents']) for ci in per_ci_results), key=lambda x: x[1], reverse=True)[:10]
+            top_downtime = sorted(total_downtime_list, key=lambda x: x[1], reverse=True)[:10]
+            metrics.update({
+                'overall_uptime_minutes': overall_uptime,
+                'overall_downtime_minutes': overall_downtime,
+                'overall_availability_percentage_rollup': overall_pct,
+                'total_incidents': total_incidents,
+                'mttr_minutes_mean': float(np.mean(total_mttr_values)) if total_mttr_values else 0.0,
+                'mtbf_minutes_mean': float(np.mean(total_mtbf_values)) if total_mtbf_values else 0.0,
+                'top_unstable_cis_by_incidents': [{'ci': ci, 'incidents': inc} for ci, inc in top_unstable],
+                'top_downtime_cis': [{'ci': ci, 'downtime_minutes': mins} for ci, mins in top_downtime],
+                'per_ci_metrics': per_ci_results
+            })
+    except Exception as e:
+        log(f"Error computing availability metrics: {e}")
+    return metrics
+
 def calculate_overall_statistics(config_file_name, cis):
     """
     Calculate overall statistics for all Configuration Items including:
