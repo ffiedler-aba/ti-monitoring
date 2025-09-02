@@ -485,6 +485,17 @@ def compute_incident_and_availability_metrics(config_file_name):
         log(f"Error computing availability metrics: {e}")
     return metrics
 
+def format_duration(hours):
+    """Format duration in a human-readable way"""
+    if hours < 1:
+        minutes = int(hours * 60)
+        return f"{minutes} Minuten"
+    elif hours < 24:
+        return f"{hours:.1f} Stunden"
+    else:
+        days = hours / 24
+        return f"{days:.1f} Tage"
+
 def calculate_overall_statistics(config_file_name, cis):
     """
     Calculate overall statistics for all Configuration Items including:
@@ -837,17 +848,6 @@ def cleanup_old_logs():
                     
     except Exception as e:
         log(f"Error in cleanup_old_logs: {e}")
-
-def format_duration(hours):
-    """Format duration in a human-readable way"""
-    if hours < 1:
-        minutes = int(hours * 60)
-        return f"{minutes} Minuten"
-    elif hours < 24:
-        return f"{hours:.1f} Stunden"
-    else:
-        days = hours / 24
-        return f"{days:.1f} Tage"
 
 def compute_incident_and_availability_metrics(config_file_name):
     """
