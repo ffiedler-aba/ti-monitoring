@@ -23,12 +23,17 @@ if !errorlevel! equ 0 (
     echo Service-Benutzer %SERVICE_USER% existiert bereits.
 ) else (
     echo Erstelle Service-Benutzer %SERVICE_USER%...
-    net user %SERVICE_USER% %SERVICE_PASSWORD% /add /passwordchg:no /passwordreq:yes /expires:never
+    echo Verwende einfache net user Syntax...
+    net user %SERVICE_USER% %SERVICE_PASSWORD% /add
     if !errorlevel! equ 0 (
         echo Service-Benutzer erfolgreich erstellt.
-        net user %SERVICE_USER% /fullname:"TI-Monitoring Service Account" /comment:"Dedizierter Benutzer für TI-Monitoring Services"
+        echo Konfiguriere Service-Benutzer Eigenschaften...
+        net user %SERVICE_USER% /passwordchg:no /passwordreq:yes /expires:never
+        net user %SERVICE_USER% /fullname:"TI-Monitoring Service Account"
+        net user %SERVICE_USER% /comment:"Dedizierter Benutzer für TI-Monitoring Services"
     ) else (
         echo WARNUNG: Service-Benutzer konnte nicht erstellt werden.
+        echo Möglicherweise fehlen Administrator-Rechte.
         echo Services werden als LocalService ausgeführt.
         set "USE_SERVICE_USER=false"
     )
