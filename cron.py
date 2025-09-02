@@ -285,6 +285,53 @@ def update_ci_list_file(config_file_name, ci_list_file_path):
 
 
 
+def calculate_recording_duration(config_file_name):
+    """Calculate the total recording duration from availability data"""
+    try:
+        if not os.path.exists(config_file_name):
+            log(f"Data file not found: {config_file_name}")
+            return 0, None, None
+        
+        with h5py.File(config_file_name, 'r', swmr=True) as f:
+            if 'availability' not in f:
+                log("No availability group found in data file")
+                return 0, None, None
+            
+            availability_group = f['availability']
+            total_ci_count = 0
+            total_ts_count = 0
+            min_epoch = None
+            
+            # Stream-only min over all CI timestamp keys (avoid per-item tz conversion & list)
+            for ci_name in availability_group.keys():
+                ci_group = availability_group[ci_name]
+                total_ci_count += 1
+                for timestamp_str in ci_group.keys():
+                    try:
+                        epoch_val = float(timestamp_str)
+                    except Exception:
+                        # Skip invalid keys
+                        continue
+                    total_ts_count += 1
+                    if (min_epoch is None) or (epoch_val < min_epoch):
+                        min_epoch = epoch_val
+            
+            log(f"Collected {total_ts_count} timestamps from {total_ci_count} CIs")
+            
+            if (min_epoch is not None):
+                earliest_timestamp = pd.to_datetime(min_epoch, unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
+                current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                total_recording_minutes = (current_time.timestamp() - min_epoch) / 60
+                log(f"Approx. recording time (earliest to now): {earliest_timestamp} to {current_time} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
+                return total_recording_minutes, earliest_timestamp, current_time
+            else:
+                log("No timestamps found in availability data")
+                return 0, None, None
+                
+    except Exception as e:
+        log(f"Error calculating recording duration: {e}")
+        return 0, None, None
+
 def calculate_overall_statistics(config_file_name, cis):
     """
     Calculate overall statistics for all Configuration Items including:
@@ -637,53 +684,6 @@ def cleanup_old_logs():
                     
     except Exception as e:
         log(f"Error in cleanup_old_logs: {e}")
-
-def calculate_recording_duration(config_file_name):
-    """Calculate the total recording duration from availability data"""
-    try:
-        if not os.path.exists(config_file_name):
-            log(f"Data file not found: {config_file_name}")
-            return 0, None, None
-        
-        with h5py.File(config_file_name, 'r', swmr=True) as f:
-            if 'availability' not in f:
-                log("No availability group found in data file")
-                return 0, None, None
-            
-            availability_group = f['availability']
-            total_ci_count = 0
-            total_ts_count = 0
-            min_epoch = None
-            
-            # Stream-only min over all CI timestamp keys (avoid per-item tz conversion & list)
-            for ci_name in availability_group.keys():
-                ci_group = availability_group[ci_name]
-                total_ci_count += 1
-                for timestamp_str in ci_group.keys():
-                    try:
-                        epoch_val = float(timestamp_str)
-                    except Exception:
-                        # Skip invalid keys
-                        continue
-                    total_ts_count += 1
-                    if (min_epoch is None) or (epoch_val < min_epoch):
-                        min_epoch = epoch_val
-            
-            log(f"Collected {total_ts_count} timestamps from {total_ci_count} CIs")
-            
-            if (min_epoch is not None):
-                earliest_timestamp = pd.to_datetime(min_epoch, unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
-                current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
-                total_recording_minutes = (current_time.timestamp() - min_epoch) / 60
-                log(f"Approx. recording time (earliest to now): {earliest_timestamp} to {current_time} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
-                return total_recording_minutes, earliest_timestamp, current_time
-            else:
-                log("No timestamps found in availability data")
-                return 0, None, None
-                
-    except Exception as e:
-        log(f"Error calculating recording duration: {e}")
-        return 0, None, None
 
 def format_duration(hours):
     """Format duration in a human-readable way"""
