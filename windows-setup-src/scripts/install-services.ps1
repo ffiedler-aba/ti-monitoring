@@ -8,8 +8,25 @@ $App = $App.Path
 # Executables
 $Python = Join-Path $App '.venv\Scripts\python.exe'
 
+function Resolve-NssmPath {
+  param()
+  try {
+    $cmd = Get-Command nssm.exe -ErrorAction Stop
+    return $cmd.Source
+  } catch {}
+  $candidates = @(
+    Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\nssm.exe'),
+    (Join-Path $env:ProgramFiles 'nssm\win64\nssm.exe'),
+    (Join-Path ${env:ProgramFiles(x86)} 'nssm\win32\nssm.exe'),
+    (Join-Path $env:SystemRoot 'System32\nssm.exe')
+  foreach ($c in $candidates) {
+    if ($c -and (Test-Path -LiteralPath $c)) { return $c }
+  }
+  throw 'nssm.exe wurde nicht gefunden. Bitte sicherstellen, dass NSSM per winget installiert ist und der Link unter %LOCALAPPDATA%\\Microsoft\\WinGet\\Links vorhanden ist.'
+}
+
 # NSSM
-$nssm = (Get-Command nssm.exe -ErrorAction Stop).Source
+$nssm = Resolve-NssmPath
 
 # Logs-Verzeichnis
 $logDir = Join-Path $App 'data'
