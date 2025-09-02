@@ -4,12 +4,9 @@ $ErrorActionPreference = 'Stop'
 $App = Split-Path -Parent $MyInvocation.MyCommand.Path
 $App = Join-Path $App '..' | Resolve-Path
 $App = $App.Path
-$ToolsDir = Join-Path $App 'tools'
+ $ToolsDir = Join-Path $App 'tools'
 
-# Konfiguration
-$RepoUrl = 'https://github.com/elpatron68/ti-monitoring.git'
-$RepoZip = 'https://github.com/elpatron68/ti-monitoring/archive/refs/heads/main.zip'
- # PortableGit wird mit dem Installer ausgeliefert und liegt unter {app}\tools\PortableGit
+# Konfiguration (kein Git mehr im Skript)
 
 # Executables / Pfade
 $Python     = Join-Path $App '.venv\Scripts\python.exe'
@@ -17,33 +14,15 @@ $Pip        = Join-Path $App '.venv\Scripts\pip.exe'
 $AppScript  = Join-Path $App 'app.py'
 $CronScript = Join-Path $App 'cron.py'
 
-function Resolve-GitPath {
-  $bundled = Join-Path $ToolsDir 'PortableGit\cmd\git.exe'
-  if (Test-Path -LiteralPath $bundled) { return $bundled }
-  throw "Bundled PortableGit nicht gefunden: $bundled"
-}
+ # Keine Git-Funktionen mehr erforderlich
 
 function Resolve-NssmPath {
-  param()
-  try {
-    $cmd = Get-Command nssm.exe -ErrorAction Stop
-    return $cmd.Source
-  } catch {}
-  $candidates = @(
-    (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\nssm.exe'),
-    (Join-Path $env:ProgramFiles 'nssm\win64\nssm.exe'),
-    (Join-Path ${env:ProgramFiles(x86)} 'nssm\win32\nssm.exe'),
-    (Join-Path $env:SystemRoot 'System32\nssm.exe')
-  )
-  foreach ($c in $candidates) {
-    if ($c -and (Test-Path -LiteralPath $c)) { return $c }
-  }
-  throw 'nssm.exe wurde nicht gefunden. Bitte sicherstellen, dass NSSM per winget installiert ist und der Link unter %LOCALAPPDATA%\Microsoft\WinGet\Links vorhanden ist.'
+  $bundled = Join-Path $ToolsDir 'nssm\nssm.exe'
+  if (Test-Path -LiteralPath $bundled) { return $bundled }
+  throw "Bundled NSSM nicht gefunden: $bundled"
 }
 
-function Ensure-Repo {
-  if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" }
-}
+function Ensure-Repo { if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" } }
 
 function Ensure-Venv {
   if (!(Test-Path -LiteralPath $Python)) {
