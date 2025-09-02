@@ -124,28 +124,46 @@ jobs:
         
         # Erstelle neue venv mit relativen Pfaden
         Write-Host "Erstelle portable venv..."
+        Write-Host "Staging-Verzeichnis: $StageDir"
+        Write-Host "Venv-Pfad: $venvPath"
+        
+        # Wechsle ins Staging-Verzeichnis
         Push-Location -LiteralPath $StageDir
         try {
+            Write-Host "Aktuelles Verzeichnis: $(Get-Location)"
+            
             # Verwende python -m venv mit --copies um relative Pfade zu erzwingen
+            Write-Host "Erstelle venv mit --copies Flag..."
             python -m venv .venv --copies
             
-            $pip = Join-Path $venvPath 'Scripts\python.exe'
-            if (-not (Test-Path -LiteralPath $pip)) { throw "Venv wurde nicht korrekt erstellt: $venvPath" }
+            # Prüfe ob venv erstellt wurde
+            if (-not (Test-Path -LiteralPath '.venv')) {
+                throw "Venv-Verzeichnis wurde nicht erstellt"
+            }
+            
+            $pip = Join-Path '.venv' 'Scripts\python.exe'
+            Write-Host "Pip-Pfad: $pip"
+            if (-not (Test-Path -LiteralPath $pip)) { 
+                Write-Host "Verfügbare Dateien in .venv:"
+                Get-ChildItem -LiteralPath '.venv' -Recurse | Select-Object FullName
+                throw "Venv wurde nicht korrekt erstellt: $pip"
+            }
             
             # Repariere pyvenv.cfg für portable Verwendung
-            $pyvenvCfg = Join-Path $venvPath 'pyvenv.cfg'
+            $pyvenvCfg = Join-Path '.venv' 'pyvenv.cfg'
             if (Test-Path -LiteralPath $pyvenvCfg) {
                 $pyvenvContent = "home = .`ninclude-system-site-packages = false`nversion = 3.12.10`nexecutable = .\Scripts\python.exe`ncommand = .\Scripts\python.exe -m venv ."
                 $pyvenvContent | Out-File -FilePath $pyvenvCfg -Encoding UTF8
                 Write-Host "pyvenv.cfg für portable Verwendung konfiguriert"
             }
             
-            $req = Join-Path $StageDir 'requirements.txt'
-            if (Test-Path -LiteralPath $req -PathType Leaf) {
+            if (Test-Path -LiteralPath 'requirements.txt' -PathType Leaf) {
                 Write-Host "Installiere Requirements in venv"
                 & $pip -m pip install --upgrade pip
-                & $pip -m pip install -r $req --no-cache-dir
+                & $pip -m pip install -r 'requirements.txt' --no-cache-dir
                 Write-Host "Requirements-Installation abgeschlossen"
+            } else {
+                Write-Host "requirements.txt nicht gefunden, überspringe Installation"
             }
         }
         finally {
