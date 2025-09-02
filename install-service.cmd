@@ -23,7 +23,7 @@ if !errorlevel! equ 0 (
     echo Service-Benutzer %SERVICE_USER% existiert bereits.
 ) else (
     echo Erstelle Service-Benutzer %SERVICE_USER%...
-    net user "%SERVICE_USER%" "%SERVICE_PASSWORD%" /add /passwordchg:no /passwordreq:yes /expires:never /fullname:"TI-Monitoring Service Account" /comment:"Dedizierter Benutzer für TI-Monitoring Services"
+    net user %SERVICE_USER% %SERVICE_PASSWORD% /add /passwordchg:no /passwordreq:yes /expires:never /fullname:"TI-Monitoring Service Account" /comment:"Dedizierter Benutzer für TI-Monitoring Services"
     if !errorlevel! equ 0 (
         echo Service-Benutzer erfolgreich erstellt.
     ) else (
@@ -43,7 +43,7 @@ if defined USE_SERVICE_USER (
     
     REM Setze Berechtigungen für das Installationsverzeichnis
     echo Setze Berechtigungen für Installationsverzeichnis...
-    icacls "%BASE_PATH%" /grant "%SERVICE_USER%":(OI)(CI)F /T >nul 2>&1
+    icacls "%BASE_PATH%" /grant "%SERVICE_USER%":^(OI^)^(CI^)F /T >nul 2>&1
     
     echo Service-Benutzer konfiguriert.
 ) else (
