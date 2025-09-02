@@ -493,13 +493,15 @@ def serve_layout():
                         html.Th('CI', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'}),
                         html.Th('Name', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'}),
                         html.Th('Incidents', style={'textAlign': 'right', 'padding': '8px', 'borderBottom': '1px solid #ddd', 'width': '110px'}),
+                        html.Th('Downtime (Minuten)', style={'textAlign': 'right', 'padding': '8px', 'borderBottom': '1px solid #ddd', 'width': '160px'}),
                         html.Th('Verfügbarkeit', title='Zeitgewichtete Verfügbarkeit des CI im Zeitraum', style={'textAlign': 'left', 'padding': '8px', 'borderBottom': '1px solid #ddd'})
                     ])),
                     html.Tbody(children=[
-                        (lambda ci_name, incidents, availability, display_name, org: html.Tr(style={'backgroundColor': '#fafafa' if i % 2 else 'white'}, children=[
+                        (lambda ci_name, incidents, availability, downtime_min, display_name, org: html.Tr(style={'backgroundColor': '#fafafa' if i % 2 else 'white'}, children=[
                             html.Td(ci_name, title=(display_name or '—') + ' — ' + (org or '—'), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
                             html.Td(display_name or '—', style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
                             html.Td(str(incidents), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'}),
+                            html.Td(str(int(downtime_min)), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'}),
                             html.Td(style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}, children=[
                                 html.Div(style={'display': 'flex', 'gap': '8px', 'alignItems': 'center'}, children=[
                                     html.Div(style={
@@ -522,6 +524,7 @@ def serve_layout():
                             entry['ci'],
                             entry['incidents'],
                             float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
+                            float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('downtime_minutes', 0.0)),
                             # Resolve display name using per_ci_metrics first, then ci_list.json mapping
                             (
                                 overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('name')
@@ -546,12 +549,6 @@ def serve_layout():
                     ])
                 ])
             ]),
-            html.Div(className='stat-card', children=[
-                html.H4('⏱️ Top Downtime CIs (Minuten)'),
-                html.Ul(children=[
-                    html.Li(f"{entry['ci']}: {int(entry['downtime_minutes'])} Minuten") for entry in overall_stats.get('top_downtime_cis', [])
-                ])
-            ])
         ])
     ])
     
