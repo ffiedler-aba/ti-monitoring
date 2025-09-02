@@ -25,9 +25,44 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-REM Aktuelles Verzeichnis als Basis-Pfad
+REM Aktuelles Verzeichnis als Basis-Pfad (für Requirements-Installation)
 set "BASE_PATH=%~dp0"
 set "PYTHON_EXE=%BASE_PATH%.venv\Scripts\python.exe"
+
+REM Prüfe ob requirements.txt existiert
+if not exist "requirements.txt" (
+    echo WARNUNG: requirements.txt nicht gefunden!
+    echo Überspringe Requirements-Installation.
+    goto :skip_requirements
+)
+
+REM Installiere/Update Requirements
+echo ========================================
+echo Installiere Python Requirements
+echo ========================================
+echo.
+echo Aktualisiere pip...
+"%PYTHON_EXE%" -m pip install --upgrade pip --quiet
+
+echo Installiere Requirements aus requirements.txt...
+"%PYTHON_EXE%" -m pip install -r requirements.txt --quiet
+
+if !errorlevel! equ 0 (
+    echo Requirements erfolgreich installiert.
+) else (
+    echo WARNUNG: Requirements-Installation fehlgeschlagen!
+    echo Die Anwendung könnte nicht korrekt funktionieren.
+    set /p "choice=Fortfahren trotz Fehler? (j/n): "
+    if /i not "!choice!"=="j" (
+        echo Installation abgebrochen.
+        pause
+        exit /b 1
+    )
+)
+
+:skip_requirements
+
+REM NSSM-Pfad setzen
 set "NSSM_EXE=%BASE_PATH%tools\nssm.exe"
 
 echo Basis-Pfad: %BASE_PATH%

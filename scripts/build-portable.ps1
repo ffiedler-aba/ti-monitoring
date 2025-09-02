@@ -114,7 +114,24 @@ function New-WindowsVenv([string]$StagePath, [string]$Python) {
     if (Test-Path -LiteralPath $req -PathType Leaf) {
         Write-Info "Installiere Requirements in venv"
         & $pip -m pip install --upgrade pip
-        & $pip -m pip install -r $req
+        & $pip -m pip install -r $req --no-cache-dir
+        Write-Info "Requirements-Installation abgeschlossen"
+        
+        # Validiere wichtige Pakete
+        Write-Info "Validiere Installation wichtiger Pakete..."
+        $criticalPackages = @('dash', 'plotly', 'requests', 'apprise')
+        foreach ($pkg in $criticalPackages) {
+            try {
+                & $pip show $pkg | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Info "✓ $pkg installiert"
+                } else {
+                    Write-Warn "✗ $pkg nicht gefunden"
+                }
+            } catch {
+                Write-Warn "✗ $pkg Validierung fehlgeschlagen"
+            }
+        }
     }
     else {
         Write-Warn "requirements.txt nicht gefunden – überspringe Paketinstallation"
