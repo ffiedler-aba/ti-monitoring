@@ -22,6 +22,15 @@ REM Prüfe ob Service-Benutzer bereits existiert
 net user "%SERVICE_USER%" >nul 2>&1
 if !errorlevel! equ 0 (
     echo Service-Benutzer %SERVICE_USER% existiert bereits.
+    echo Prüfe ob Service-Benutzer korrekt konfiguriert ist...
+    net user "%SERVICE_USER%" | findstr /C:"Account active" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo Service-Benutzer ist aktiv und kann verwendet werden.
+        set "USE_SERVICE_USER=true"
+    ) else (
+        echo Service-Benutzer ist nicht aktiv. Verwende LocalService.
+        set "USE_SERVICE_USER=false"
+    )
 ) else (
     echo Erstelle Service-Benutzer %SERVICE_USER%...
     echo Verwende einfache net user Syntax...
@@ -32,6 +41,15 @@ if !errorlevel! equ 0 (
         net user %SERVICE_USER% /passwordchg:no /passwordreq:yes /expires:never
         net user %SERVICE_USER% /fullname:"TI-Monitoring Service Account"
         net user %SERVICE_USER% /comment:"Dedizierter Benutzer für TI-Monitoring Services"
+        echo Prüfe ob Service-Benutzer korrekt erstellt wurde...
+        net user "%SERVICE_USER%" >nul 2>&1
+        if !errorlevel! equ 0 (
+            echo Service-Benutzer ist verfügbar und kann verwendet werden.
+            set "USE_SERVICE_USER=true"
+        ) else (
+            echo Service-Benutzer ist nicht verfügbar. Verwende LocalService.
+            set "USE_SERVICE_USER=false"
+        )
     ) else (
         echo WARNUNG: Service-Benutzer konnte nicht erstellt werden.
         echo Möglicherweise fehlen Administrator-Rechte.
