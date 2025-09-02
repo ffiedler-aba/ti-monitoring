@@ -63,6 +63,11 @@ REM Installiere Cron Service
 echo Installiere %CRON_SERVICE%...
 "%NSSM_EXE%" install "%CRON_SERVICE%" "%PYTHON_EXE%" "%CRON_SCRIPT%"
 
+REM WICHTIG: Service-Pfade explizit auf lokale Pfade setzen
+echo Korrigiere Service-Pfade...
+"%NSSM_EXE%" set "%CRON_SERVICE%" Application "%PYTHON_EXE%"
+"%NSSM_EXE%" set "%CRON_SERVICE%" AppParameters "%CRON_SCRIPT%"
+
 if !errorlevel! equ 0 (
     echo Service %CRON_SERVICE% erfolgreich installiert.
     
@@ -106,6 +111,11 @@ if !errorlevel! equ 0 (
 REM Installiere UI Service
 echo Installiere %UI_SERVICE%...
 "%NSSM_EXE%" install "%UI_SERVICE%" "%PYTHON_EXE%" "%UI_SCRIPT%"
+
+REM WICHTIG: Service-Pfade explizit auf lokale Pfade setzen
+echo Korrigiere Service-Pfade...
+"%NSSM_EXE%" set "%UI_SERVICE%" Application "%PYTHON_EXE%"
+"%NSSM_EXE%" set "%UI_SERVICE%" AppParameters "%UI_SCRIPT%"
 
 if !errorlevel! equ 0 (
     echo Service %UI_SERVICE% erfolgreich installiert.
