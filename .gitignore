@@ -20,5 +20,5 @@ data/cron.log.*
 data/*.log
 data/*.gz
 
-windows-setup-src/nssm-2.24/
-windows-setup-src/PortableGit/portable-build/
+portable-build/
+windows-setup-src/
