@@ -105,7 +105,7 @@ function New-GitHubRelease([string]$Version, [string]$ZipPath, [bool]$IsPrerelea
 ### Features
 - Automatische TI-Service-Überwachung
 - Web-basierte Benutzeroberfläche
-- E-Mail und Telegram-Benachrichtigungen
+- Beliebige Benachrichtigungsmöglichkeiten über Apprise
 - Detaillierte Statistiken und Logs
 
 ### Changelog
