@@ -26,13 +26,7 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Com
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id Git.Git --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere Git..."; Flags: runhidden
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere NSSM..."; Flags: runhidden
 
-; 2) Projekt-Clone (oder aktualisieren)
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(!(Test-Path -LiteralPath '{app}')){{ New-Item -ItemType Directory -Path '{app}' | Out-Null }}; if(!(Test-Path -LiteralPath '{app}\\.git')){{ git clone https://github.com/elpatron68/ti-monitoring.git '{app}' }} else {{ try {{ Set-Location '{app}'; git pull --ff-only }} catch {{ Write-Host 'Konnte git pull nicht ausführen, überspringe.' }} }}"; StatusMsg: "Klonen/Aktualisieren des Repositories..."; Flags: runhidden
-
-; 3) venv & requirements
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command python -m venv '{app}\\.venv'"; StatusMsg: "Erzeuge virtuelles Umfeld..."; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command '{app}\\.venv\\Scripts\\python.exe' -m pip install --upgrade pip"; StatusMsg: "Aktualisiere pip..."; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command '{app}\\.venv\\Scripts\\pip.exe' install -r '{app}\\requirements.txt'"; StatusMsg: "Installiere Python-Abhängigkeiten..."; Flags: runhidden
+; 2) Repo & venv werden vollständig im folgenden Skript erledigt
 
 ; 4) Dienste und Firewall einrichten
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File '{app}\\scripts\\install-services.ps1'"; StatusMsg: "Richte Dienste ein..."; Flags: runhidden
