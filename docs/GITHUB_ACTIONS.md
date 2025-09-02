@@ -51,11 +51,10 @@ gh auth login
 
 ### Portable Build testen
 ```powershell
-# Build erstellen
-.\scripts\build-portable.ps1 -Force
-
-# Release publizieren (optional)
-.\scripts\publish.ps1 -Version "1.2.3"
+# Build wird automatisch in GitHub Actions erstellt
+# Release publizieren (automatisch via GitHub Actions)
+# Erstelle Git Tag: git tag -a v1.2.3 -m "Release v1.2.3"
+# Push Tag: git push origin v1.2.3
 ```
 
 ### Workflow testen
@@ -139,8 +138,8 @@ Tags mit `alpha`, `beta`, `rc` werden automatisch als Pre-Release markiert.
 
 3. **ZIP-Datei fehlt**
    ```bash
-   # Build lokal testen
-   .\scripts\build-portable.ps1 -Force
+   # Build wird automatisch in GitHub Actions erstellt
+   # Lokaler Test nicht mehr nötig - alles läuft in der Cloud
    ```
 
 ### Debug-Modus

@@ -61,8 +61,81 @@ jobs:
         
     - name: Create Portable Build
       run: |
-        # PowerShell-Skript ausführen
-        pwsh -File .\scripts\build-portable.ps1 -Force
+        # Erstelle portable-build Verzeichnis
+        $StageDir = "portable-build"
+        if (Test-Path $StageDir) { Remove-Item $StageDir -Recurse -Force }
+        New-Item -ItemType Directory -Path $StageDir | Out-Null
+        
+        # Kopiere Repository-Inhalt (ohne .git, node_modules, etc.)
+        $excludeDirs = @('.git','node_modules','.venv','portable-build','dist','build','out','.mypy_cache','.pytest_cache','.ruff_cache','__pycache__')
+        $excludeFiles = @('.DS_Store')
+        
+        $src = (Get-Location).Path
+        $dst = (Resolve-Path -LiteralPath $StageDir).Path
+        
+        $excludeDirsArgs = @()
+        foreach ($d in $excludeDirs) { $excludeDirsArgs += @('/XD', (Join-Path $src $d)) }
+        $excludeFilesArgs = @()
+        foreach ($f in $excludeFiles) { $excludeFilesArgs += @('/XF', (Join-Path $src $f)) }
+        
+        $args = @($src, $dst, '/E') + $excludeDirsArgs + $excludeFilesArgs
+        $rc = Start-Process -FilePath robocopy -ArgumentList $args -NoNewWindow -PassThru -Wait
+        if ($rc.ExitCode -gt 7) { throw "Robocopy fehlgeschlagen (ExitCode=$($rc.ExitCode))" }
+        
+        # Beispielkonfigurationen übernehmen
+        Push-Location -LiteralPath $StageDir
+        try {
+          if ((Test-Path 'config.yaml.example' -PathType Leaf) -and -not (Test-Path 'config.yaml')) {
+              Copy-Item 'config.yaml.example' 'config.yaml'
+          }
+          if ((Test-Path 'notifications.json.example' -PathType Leaf) -and -not (Test-Path 'notifications.json')) {
+              Copy-Item 'notifications.json.example' 'notifications.json'
+          }
+        }
+        finally { Pop-Location }
+        
+        # data/ Verzeichnis sicherstellen
+        $dataStage = Join-Path $StageDir 'data'
+        if (-not (Test-Path -LiteralPath $dataStage)) {
+            New-Item -ItemType Directory -Path $dataStage | Out-Null
+        }
+        if (Test-Path -LiteralPath 'data' -PathType Container) {
+            $rc = Start-Process -FilePath robocopy -ArgumentList @('data', $dataStage, '/E') -NoNewWindow -PassThru -Wait
+            if ($rc.ExitCode -gt 7) { throw "Robocopy (data) fehlgeschlagen (ExitCode=$($rc.ExitCode))" }
+        }
+        
+        # tools/ Verzeichnis sicherstellen
+        $toolsStage = Join-Path $StageDir 'tools'
+        if (-not (Test-Path -LiteralPath $toolsStage)) {
+            New-Item -ItemType Directory -Path $toolsStage | Out-Null
+        }
+        if (Test-Path -LiteralPath 'tools' -PathType Container) {
+            $rc = Start-Process -FilePath robocopy -ArgumentList @('tools', $toolsStage, '/E') -NoNewWindow -PassThru -Wait
+            if ($rc.ExitCode -gt 7) { throw "Robocopy (tools) fehlgeschlagen (ExitCode=$($rc.ExitCode))" }
+        }
+        
+        # venv erstellen und Requirements installieren
+        $venvPath = Join-Path $StageDir '.venv'
+        python -m venv $venvPath
+        
+        $pip = Join-Path $venvPath 'Scripts\python.exe'
+        if (-not (Test-Path -LiteralPath $pip)) { throw "Venv wurde nicht korrekt erstellt: $venvPath" }
+        
+        $req = Join-Path $StageDir 'requirements.txt'
+        if (Test-Path -LiteralPath $req -PathType Leaf) {
+            Write-Host "Installiere Requirements in venv"
+            & $pip -m pip install --upgrade pip
+            & $pip -m pip install -r $req --no-cache-dir
+            Write-Host "Requirements-Installation abgeschlossen"
+        }
+        
+        # ZIP erstellen
+        $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $zipName = "ti-monitoring-portable-$timestamp.zip"
+        $zipPath = Join-Path (Get-Location) $zipName
+        Write-Host "Erzeuge ZIP: $zipPath"
+        if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+        Compress-Archive -Path $StageDir -DestinationPath $zipPath -Force
         
     - name: Upload Portable Build
       uses: actions/upload-artifact@v4
@@ -95,7 +168,7 @@ jobs:
           ### ✨ Features
           - 🔍 Automatische TI-Service-Überwachung
           - 🌐 Web-basierte Benutzeroberfläche
-          - 📧 E-Mail und Telegram-Benachrichtigungen
+          - 📧 Universelle Benachrichtigungsoptionen via Apprise
           - 📊 Detaillierte Statistiken und Logs
           
           ### 📋 Systemanforderungen

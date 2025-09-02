@@ -1,78 +1,61 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM TI-Monitoring Service Installation Script
+REM TI-Monitoring Service Installation Script (Silent Mode)
 REM Erstellt Windows-Dienste für cron.py und app.py mit NSSM
+REM Läuft ohne Benutzerinteraktion
 
 echo ========================================
-echo TI-Monitoring Service Installation
+echo TI-Monitoring Service Installation (Silent)
 echo ========================================
 echo.
 
-REM Prüfe ob NSSM verfügbar ist
-if not exist "tools\nssm.exe" (
-    echo FEHLER: tools\nssm.exe nicht gefunden!
-    echo Bitte führe dieses Skript aus dem portable-build Verzeichnis aus.
-    pause
-    exit /b 1
-)
-
 REM Aktuelles Verzeichnis als Basis-Pfad
 set "BASE_PATH=%~dp0"
+set "NSSM_EXE=%BASE_PATH%tools\nssm.exe"
+
+REM Prüfe ob NSSM verfügbar ist
+if not exist "%NSSM_EXE%" (
+    echo FEHLER: tools\nssm.exe nicht gefunden!
+    echo Erwarteter Pfad: %NSSM_EXE%
+    echo Bitte führe dieses Skript aus dem portable-build Verzeichnis aus.
+    exit /b 1
+)
 
 REM Prüfe ob Python venv existiert
 if not exist "%BASE_PATH%.venv\Scripts\python.exe" (
     echo FEHLER: .venv\Scripts\python.exe nicht gefunden!
     echo Erwarteter Pfad: %BASE_PATH%.venv\Scripts\python.exe
     echo Bitte führe dieses Skript aus dem portable-build Verzeichnis aus.
-    pause
     exit /b 1
 )
 
 REM Python-Executable Pfad setzen (nach der Prüfung)
 set "PYTHON_EXE=%BASE_PATH%.venv\Scripts\python.exe"
 
-REM Prüfe ob requirements.txt existiert
-if not exist "%BASE_PATH%requirements.txt" (
-    echo WARNUNG: requirements.txt nicht gefunden!
-    echo Erwarteter Pfad: %BASE_PATH%requirements.txt
-    echo Überspringe Requirements-Installation.
-    goto :skip_requirements
-)
+REM Prüfe ob requirements.txt existiert und installiere Requirements
+if exist "%BASE_PATH%requirements.txt" (
+    echo ========================================
+    echo Installiere Python Requirements
+    echo ========================================
+    echo.
+    echo Aktualisiere pip...
+    "%PYTHON_EXE%" -m pip install --upgrade pip --quiet
 
-REM Installiere/Update Requirements
-echo ========================================
-echo Installiere Python Requirements
-echo ========================================
-echo.
-echo Aktualisiere pip...
-"%PYTHON_EXE%" -m pip install --upgrade pip --quiet
+    echo Installiere Requirements aus requirements.txt...
+    "%PYTHON_EXE%" -m pip install -r "%BASE_PATH%requirements.txt" --quiet
 
-echo Installiere Requirements aus requirements.txt...
-"%PYTHON_EXE%" -m pip install -r "%BASE_PATH%requirements.txt" --quiet
-
-if !errorlevel! equ 0 (
-    echo Requirements erfolgreich installiert.
-) else (
-    echo WARNUNG: Requirements-Installation fehlgeschlagen!
-    echo Die Anwendung könnte nicht korrekt funktionieren.
-    set /p "choice=Fortfahren trotz Fehler? (j/n): "
-    if /i not "!choice!"=="j" (
-        echo Installation abgebrochen.
-        pause
-        exit /b 1
+    if !errorlevel! equ 0 (
+        echo Requirements erfolgreich installiert.
+    ) else (
+        echo WARNUNG: Requirements-Installation fehlgeschlagen!
+        echo Die Anwendung könnte nicht korrekt funktionieren.
+        echo Fortfahren mit der Service-Installation...
     )
+) else (
+    echo WARNUNG: requirements.txt nicht gefunden!
+    echo Überspringe Requirements-Installation.
 )
-
-:skip_requirements
-
-REM NSSM-Pfad setzen
-set "NSSM_EXE=%BASE_PATH%tools\nssm.exe"
-
-echo Basis-Pfad: %BASE_PATH%
-echo Python: %PYTHON_EXE%
-echo NSSM: %NSSM_EXE%
-echo.
 
 REM Service-Konfiguration
 set "CRON_SERVICE=TI-Monitoring-Cron"
@@ -84,25 +67,18 @@ echo ========================================
 echo Installiere %CRON_SERVICE%
 echo ========================================
 
-REM Prüfe ob Service bereits existiert
+REM Prüfe ob Service bereits existiert und entferne ihn
 "%NSSM_EXE%" status "%CRON_SERVICE%" >nul 2>&1
 if !errorlevel! equ 0 (
-    echo Service %CRON_SERVICE% existiert bereits.
-    set /p "choice=Service entfernen und neu installieren? (j/n): "
-    if /i "!choice!"=="j" (
-        echo Entferne bestehenden Service...
-        "%NSSM_EXE%" remove "%CRON_SERVICE%" confirm
-    ) else (
-        echo Überspringe %CRON_SERVICE%
-        goto :install_ui
-    )
+    echo Service %CRON_SERVICE% existiert bereits. Entferne ihn...
+    "%NSSM_EXE%" remove "%CRON_SERVICE%" confirm
 )
 
 REM Installiere Cron Service
 echo Installiere %CRON_SERVICE%...
 "%NSSM_EXE%" install "%CRON_SERVICE%" "%PYTHON_EXE%" "%CRON_SCRIPT%"
 
-REM WICHTIG: Service-Pfade explizit auf lokale Pfade setzen
+REM Service-Pfade explizit auf lokale Pfade setzen
 echo Korrigiere Service-Pfade...
 "%NSSM_EXE%" set "%CRON_SERVICE%" Application "%PYTHON_EXE%"
 "%NSSM_EXE%" set "%CRON_SERVICE%" AppParameters "%CRON_SCRIPT%"
@@ -125,33 +101,26 @@ if !errorlevel! equ 0 (
     echo %CRON_SERVICE% konfiguriert.
 ) else (
     echo FEHLER: Installation von %CRON_SERVICE% fehlgeschlagen!
+    exit /b 1
 )
 
-:install_ui
 echo.
 echo ========================================
 echo Installiere %UI_SERVICE%
 echo ========================================
 
-REM Prüfe ob Service bereits existiert
+REM Prüfe ob Service bereits existiert und entferne ihn
 "%NSSM_EXE%" status "%UI_SERVICE%" >nul 2>&1
 if !errorlevel! equ 0 (
-    echo Service %UI_SERVICE% existiert bereits.
-    set /p "choice=Service entfernen und neu installieren? (j/n): "
-    if /i "!choice!"=="j" (
-        echo Entferne bestehenden Service...
-        "%NSSM_EXE%" remove "%UI_SERVICE%" confirm
-    ) else (
-        echo Überspringe %UI_SERVICE%
-        goto :start_services
-    )
+    echo Service %UI_SERVICE% existiert bereits. Entferne ihn...
+    "%NSSM_EXE%" remove "%UI_SERVICE%" confirm
 )
 
 REM Installiere UI Service
 echo Installiere %UI_SERVICE%...
 "%NSSM_EXE%" install "%UI_SERVICE%" "%PYTHON_EXE%" "%UI_SCRIPT%"
 
-REM WICHTIG: Service-Pfade explizit auf lokale Pfade setzen
+REM Service-Pfade explizit auf lokale Pfade setzen
 echo Korrigiere Service-Pfade...
 "%NSSM_EXE%" set "%UI_SERVICE%" Application "%PYTHON_EXE%"
 "%NSSM_EXE%" set "%UI_SERVICE%" AppParameters "%UI_SCRIPT%"
@@ -174,27 +143,24 @@ if !errorlevel! equ 0 (
     echo %UI_SERVICE% konfiguriert.
 ) else (
     echo FEHLER: Installation von %UI_SERVICE% fehlgeschlagen!
+    exit /b 1
 )
 
-:start_services
 echo.
 echo ========================================
 echo Starte Dienste
 echo ========================================
 
-set /p "choice=Dienste jetzt starten? (j/n): "
-if /i "%choice%"=="j" (
-    echo Starte %CRON_SERVICE%...
-    "%NSSM_EXE%" start "%CRON_SERVICE%"
-    
-    echo Starte %UI_SERVICE%...
-    "%NSSM_EXE%" start "%UI_SERVICE%"
-    
-    echo.
-    echo Dienste gestartet. Status:
-    "%NSSM_EXE%" status "%CRON_SERVICE%"
-    "%NSSM_EXE%" status "%UI_SERVICE%"
-)
+echo Starte %CRON_SERVICE%...
+"%NSSM_EXE%" start "%CRON_SERVICE%"
+
+echo Starte %UI_SERVICE%...
+"%NSSM_EXE%" start "%UI_SERVICE%"
+
+echo.
+echo Dienste gestartet. Status:
+"%NSSM_EXE%" status "%CRON_SERVICE%"
+"%NSSM_EXE%" status "%UI_SERVICE%"
 
 echo.
 echo ========================================
@@ -215,4 +181,8 @@ echo Web-Interface: http://localhost:8050
 echo.
 echo Logs finden Sie in: %BASE_PATH%logs\
 echo.
-pause
+
+REM Kurze Pause damit der Benutzer die Ausgabe lesen kann
+timeout /t 5 /nobreak >nul
+
+exit /b 0
