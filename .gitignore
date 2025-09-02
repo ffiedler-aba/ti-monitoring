@@ -13,3 +13,9 @@ statistics.json
 # Configuration files (use .example files instead)
 config.yaml
 notifications.json
+
+# Logs for cron and rotation
+data/cron.log
+data/cron.log.*
+data/*.log
+data/*.gz
