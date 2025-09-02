@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Change to the project root directory (one level up from scripts/)
+cd "$(dirname "$0")/.."
+
 if [ -f .env ]; then
   # Export only non-comment lines from .env file
   export $(grep -v '^#' .env | xargs)
