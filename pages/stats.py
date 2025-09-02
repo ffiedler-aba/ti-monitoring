@@ -516,16 +516,17 @@ def serve_layout():
                     ],
                     sort_action='native',
                     sort_mode='multi',
-                    style_table={'overflowX': 'auto'},
-                    style_cell={'padding': '8px', 'fontSize': '0.95rem'},
+                    style_table={'overflowX': 'auto', 'minWidth': '100%', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)'},
+                    style_cell={'padding': '8px', 'fontSize': '0.95rem', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)', 'border': '1px solid var(--border-color)'},
                     style_cell_conditional=[
-                        {"if": {"column_id": "organization"}, "textAlign": "left", "maxWidth": "150px", "overflow": "hidden", "textOverflow": "ellipsis"},
-                        {"if": {"column_id": "name"}, "textAlign": "left"},
-                        {"if": {"column_id": "product"}, "textAlign": "left"},
-                        {"if": {"column_id": "incidents"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
-                        {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
-                        {"if": {"column_id": "availability_percentage"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
+                        {"if": {"column_id": "organization"}, "textAlign": "left", "maxWidth": "120px", "minWidth": "100px", "overflow": "hidden", "textOverflow": "ellipsis"},
+                        {"if": {"column_id": "name"}, "textAlign": "left", "maxWidth": "150px", "minWidth": "120px", "overflow": "hidden", "textOverflow": "ellipsis"},
+                        {"if": {"column_id": "product"}, "textAlign": "left", "maxWidth": "120px", "minWidth": "100px", "overflow": "hidden", "textOverflow": "ellipsis"},
+                        {"if": {"column_id": "incidents"}, "textAlign": "right", "maxWidth": "80px", "minWidth": "60px", 'fontVariantNumeric': 'tabular-nums'},
+                        {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
+                        {"if": {"column_id": "availability_percentage"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
                     ],
+                    style_header={'backgroundColor': 'var(--card-bg-color)', 'color': 'var(--text-color)', 'fontWeight': 'bold'},
                     style_data_conditional=[
                         {
                             'if': {'state': 'active'},
@@ -542,6 +543,14 @@ def serve_layout():
                         {
                             'selector': '.dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table',
                             'rule': 'cursor: pointer;'
+                        },
+                        {
+                            'selector': '.dash-table-container',
+                            'rule': 'overflow-x: auto; -webkit-overflow-scrolling: touch;'
+                        },
+                        {
+                            'selector': '.dash-table-container .dash-spreadsheet-container',
+                            'rule': 'min-width: 600px;'
                         }
                     ],
                     tooltip_data=[
