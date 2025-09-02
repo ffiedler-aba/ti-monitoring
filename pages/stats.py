@@ -495,7 +495,15 @@ def serve_layout():
                             entry['incidents'],
                             float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0))
                         )
-                        for i, entry in enumerate(overall_stats.get('top_unstable_cis_by_incidents', []))
+                        for i, entry in enumerate(
+                            sorted(
+                                overall_stats.get('top_unstable_cis_by_incidents', []),
+                                key=lambda entry: (
+                                    float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
+                                    -int(entry['incidents'])
+                                )
+                            )
+                        )
                     ])
                 ])
             ]),
