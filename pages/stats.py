@@ -455,7 +455,7 @@ def serve_layout():
         create_overall_statistics_display(overall_stats),
         
         # Top-Listen
-        html.Div(className='stats-overview', children=[
+        html.Div(className='overall-statistics box', children=[
             html.Div(className='stat-card', children=[
                 html.H4('🚨 Top instabile CIs (Incidents)'),
                 html.Table(className='stat-table', style={
@@ -470,7 +470,11 @@ def serve_layout():
                     ])),
                     html.Tbody(children=[
                         (lambda ci_name, incidents, availability: html.Tr(style={'backgroundColor': '#fafafa' if i % 2 else 'white'}, children=[
-                            html.Td(ci_name, style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
+                            html.Td(ci_name, title=(
+                                (overall_stats.get('per_ci_metrics', {}).get(ci_name, {}).get('name', '') or '—')
+                                + ' — '
+                                + (overall_stats.get('per_ci_metrics', {}).get(ci_name, {}).get('organization', '') or '—')
+                            ), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}),
                             html.Td(str(incidents), style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0', 'textAlign': 'right', 'fontVariantNumeric': 'tabular-nums'}),
                             html.Td(style={'padding': '8px', 'borderBottom': '1px solid #f0f0f0'}, children=[
                                 html.Div(style={'display': 'flex', 'gap': '8px', 'alignItems': 'center'}, children=[
