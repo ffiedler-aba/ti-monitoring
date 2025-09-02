@@ -1,0 +1,75 @@
+name: Build Portable Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (z.B. 1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Als Pre-Release erstellen'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  build-portable:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Create Portable Build
+      run: |
+        # PowerShell-Skript ausführen
+        pwsh -File .\scripts\build-portable.ps1 -Force
+        
+    - name: Upload Portable Build
+      uses: actions/upload-artifact@v3
+      with:
+        name: ti-monitoring-portable
+        path: ti-monitoring-portable-*.zip
+        
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ti-monitoring-portable-*.zip
+        prerelease: ${{ github.event.inputs.prerelease == 'true' || contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+        body: |
+          ## TI-Monitoring Portable ${{ github.ref_name }}
+          
+          ### Windows Portable Build
+          - Vollständig portable Windows-Anwendung
+          - Automatische Service-Installation mit NSSM
+          - Virtuelle Python-Umgebung enthalten
+          - Umfassende Installationsanleitung
+          
+          ### Installation
+          1. ZIP-Datei entpacken
+          2. `install-service.cmd` als Administrator ausführen
+          3. Web-Interface unter http://localhost:8050 aufrufen
+          
+          ### Features
+          - Automatische TI-Service-Überwachung
+          - Web-basierte Benutzeroberfläche
+          - E-Mail und Telegram-Benachrichtigungen
+          - Detaillierte Statistiken und Logs
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
