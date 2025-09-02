@@ -103,27 +103,40 @@ jobs:
         
         # venv erstellen und Requirements installieren
         $venvPath = Join-Path $StageDir '.venv'
-        python -m venv $venvPath
         
-        $pip = Join-Path $venvPath 'Scripts\python.exe'
-        if (-not (Test-Path -LiteralPath $pip)) { throw "Venv wurde nicht korrekt erstellt: $venvPath" }
-        
-        # venv für portable Verwendung reparieren
-        Write-Host "Repariere venv für portable Verwendung..."
-        $pyvenvCfg = Join-Path $venvPath 'pyvenv.cfg'
-        if (Test-Path -LiteralPath $pyvenvCfg) {
-            # Erstelle neue pyvenv.cfg mit relativen Pfaden
-            $pyvenvContent = "home = .`ninclude-system-site-packages = false`nversion = 3.12.10`nexecutable = .\Scripts\python.exe`ncommand = .\Scripts\python.exe -m venv ."
-            $pyvenvContent | Out-File -FilePath $pyvenvCfg -Encoding UTF8
-            Write-Host "pyvenv.cfg repariert"
+        # Lösche alte venv falls vorhanden
+        if (Test-Path -LiteralPath $venvPath) {
+            Remove-Item -LiteralPath $venvPath -Recurse -Force
         }
         
-        $req = Join-Path $StageDir 'requirements.txt'
-        if (Test-Path -LiteralPath $req -PathType Leaf) {
-            Write-Host "Installiere Requirements in venv"
-            & $pip -m pip install --upgrade pip
-            & $pip -m pip install -r $req --no-cache-dir
-            Write-Host "Requirements-Installation abgeschlossen"
+        # Erstelle neue venv mit relativen Pfaden
+        Write-Host "Erstelle portable venv..."
+        Push-Location -LiteralPath $StageDir
+        try {
+            # Verwende python -m venv mit --copies um relative Pfade zu erzwingen
+            python -m venv .venv --copies
+            
+            $pip = Join-Path $venvPath 'Scripts\python.exe'
+            if (-not (Test-Path -LiteralPath $pip)) { throw "Venv wurde nicht korrekt erstellt: $venvPath" }
+            
+            # Repariere pyvenv.cfg für portable Verwendung
+            $pyvenvCfg = Join-Path $venvPath 'pyvenv.cfg'
+            if (Test-Path -LiteralPath $pyvenvCfg) {
+                $pyvenvContent = "home = .`ninclude-system-site-packages = false`nversion = 3.12.10`nexecutable = .\Scripts\python.exe`ncommand = .\Scripts\python.exe -m venv ."
+                $pyvenvContent | Out-File -FilePath $pyvenvCfg -Encoding UTF8
+                Write-Host "pyvenv.cfg für portable Verwendung konfiguriert"
+            }
+            
+            $req = Join-Path $StageDir 'requirements.txt'
+            if (Test-Path -LiteralPath $req -PathType Leaf) {
+                Write-Host "Installiere Requirements in venv"
+                & $pip -m pip install --upgrade pip
+                & $pip -m pip install -r $req --no-cache-dir
+                Write-Host "Requirements-Installation abgeschlossen"
+            }
+        }
+        finally {
+            Pop-Location
         }
         
         # ZIP erstellen
