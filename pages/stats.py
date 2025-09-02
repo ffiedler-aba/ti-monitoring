@@ -292,8 +292,18 @@ def create_overall_statistics_display(stats):
                         html.Span(format_duration(stats["total_recording_minutes"] / 60) if stats.get("total_recording_minutes", 0) > 0 else 'Unbekannt')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Gesamte Uptime: '),
+                        html.Strong('Kumulative Uptime (über alle CIs): '),
                         html.Span(format_duration((stats.get('overall_uptime_minutes') or 0) / 60))
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Ø Uptime pro CI im Zeitraum: '),
+                        html.Span(
+                            format_duration(
+                                (
+                                    ((stats.get('overall_uptime_minutes') or 0) / max(1, int(stats.get('total_cis', 0))))
+                                ) / 60
+                            )
+                        )
                     ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamte Downtime: '),
