@@ -42,16 +42,6 @@ function Resolve-NssmPath {
 }
 
 function Ensure-Repo {
-  if (Test-Path -LiteralPath $AppScript -PathType Leaf -ErrorAction SilentlyContinue) { return }
-  if (Test-Path -LiteralPath (Join-Path $App '.git')) {
-    Push-Location $App; & (Resolve-GitPath) pull --ff-only; $code=$LASTEXITCODE; Pop-Location; if ($code -ne 0) { throw "git pull ExitCode $code" }
-  } else {
-    if (!(Test-Path -LiteralPath $App)) { New-Item -ItemType Directory -Path $App | Out-Null }
-    $git = Resolve-GitPath
-    & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App 2>&1 | Out-String | Write-Verbose
-    $code = $LASTEXITCODE
-    if ($code -ne 0) { throw "git clone ExitCode $code" }
-  }
   if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" }
 }
 

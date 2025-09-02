@@ -29,6 +29,8 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Com
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere NSSM..."; Flags: runhidden
 
 ; 2) Repo & venv werden vollständig im folgenden Skript erledigt
+; ZUERST: Repository direkt klonen (mit gebundletem PortableGit), damit das PS-Skript nur noch venv+Services macht
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(!(Test-Path -LiteralPath '{app}')){{ New-Item -ItemType Directory -Path '{app}' | Out-Null }}; & '{app}\\tools\\PortableGit\\cmd\\git.exe' -c http.sslBackend=schannel clone --depth 1 https://github.com/elpatron68/ti-monitoring.git '{app}'; if($LASTEXITCODE -ne 0){{ exit $LASTEXITCODE }}"; StatusMsg: "Klonen des Repositories..."; Flags: runhidden
 
 ; 4) Dienste und Firewall einrichten
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File '{app}\\scripts\\install-services.ps1'"; StatusMsg: "Richte Dienste ein..."; Flags: runhidden
