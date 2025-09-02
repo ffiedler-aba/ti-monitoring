@@ -14,6 +14,19 @@ $Pip        = Join-Path $App '.venv\Scripts\pip.exe'
 $AppScript  = Join-Path $App 'app.py'
 $CronScript = Join-Path $App 'cron.py'
 
+function Resolve-GitPath {
+  try { return (Get-Command git.exe -ErrorAction Stop).Source } catch {}
+  $candidates = @(
+    (Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),
+    (Join-Path $env:ProgramFiles 'Git\bin\git.exe'),
+    (Join-Path ${env:ProgramFiles(x86)} 'Git\cmd\git.exe'),
+    (Join-Path ${env:ProgramFiles(x86)} 'Git\bin\git.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\git.exe')
+  )
+  foreach ($c in $candidates) { if ($c -and (Test-Path -LiteralPath $c)) { return $c } }
+  throw 'git.exe wurde nicht gefunden. Bitte stellen Sie sicher, dass Git installiert ist.'
+}
+
 function Resolve-NssmPath {
   param()
   try {
@@ -33,12 +46,13 @@ function Resolve-NssmPath {
 }
 
 function Ensure-Repo {
+  $git = Resolve-GitPath
   if (Test-Path -LiteralPath $AppScript -PathType Leaf -ErrorAction SilentlyContinue) { return }
   if (Test-Path -LiteralPath (Join-Path $App '.git')) {
-    try { Push-Location $App; git pull --ff-only; Pop-Location } catch { }
+    try { Push-Location $App; & $git pull --ff-only; Pop-Location } catch { }
   } else {
     if (!(Test-Path -LiteralPath $App)) { New-Item -ItemType Directory -Path $App | Out-Null }
-    git clone $RepoUrl $App | Out-Null
+    & $git -c http.sslBackend=schannel clone --depth 1 $RepoUrl $App
   }
   if (!(Test-Path -LiteralPath $AppScript)) { throw "Repository fehlt oder ungültig im Pfad: $App" }
 }
