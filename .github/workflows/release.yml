@@ -177,9 +177,36 @@ jobs:
             
             if (Test-Path -LiteralPath 'requirements.txt' -PathType Leaf) {
                 Write-Host "Installiere Requirements in venv"
+                Write-Host "Aktualisiere pip..."
                 & $pip -m pip install --upgrade pip
+                if ($LASTEXITCODE -ne 0) {
+                    throw "pip upgrade fehlgeschlagen (ExitCode=$LASTEXITCODE)"
+                }
+                
+                Write-Host "Installiere Requirements aus requirements.txt..."
                 & $pip -m pip install -r 'requirements.txt' --no-cache-dir
-                Write-Host "Requirements-Installation abgeschlossen"
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Requirements-Installation fehlgeschlagen (ExitCode=$LASTEXITCODE)"
+                }
+                
+                Write-Host "Validiere Installation wichtiger Pakete..."
+                $criticalPackages = @('dash', 'plotly', 'requests', 'apprise', 'pandas', 'numpy')
+                foreach ($pkg in $criticalPackages) {
+                    try {
+                        $result = & $pip show $pkg 2>&1
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Host "✓ $pkg installiert"
+                        } else {
+                            Write-Host "✗ $pkg nicht gefunden: $result"
+                            throw "Kritisches Paket $pkg nicht installiert"
+                        }
+                    } catch {
+                        Write-Host "✗ $pkg Validierung fehlgeschlagen: $_"
+                        throw "Validierung von $pkg fehlgeschlagen"
+                    }
+                }
+                
+                Write-Host "Requirements-Installation und Validierung erfolgreich abgeschlossen"
             } else {
                 Write-Host "requirements.txt nicht gefunden, überspringe Installation"
             }
