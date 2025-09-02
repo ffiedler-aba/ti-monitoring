@@ -132,6 +132,14 @@ def format_duration(hours):
         days = hours / 24
         return f"{days:.1f} Tage"
 
+def truncate_organization(org_name, max_length=40):
+    """Truncate organization name if too long"""
+    if not org_name:
+        return ""
+    if len(org_name) <= max_length:
+        return org_name
+    return org_name[:max_length-3] + "..."
+
 def calculate_overall_statistics(config_file_name, cis):
     """
     Calculate overall statistics for all Configuration Items including:
@@ -176,7 +184,6 @@ def calculate_overall_statistics(config_file_name, cis):
     # Try to get timestamps from availability data (where the real time series data is stored)
     try:
         import h5py
-        config_file_name = os.path.join(os.path.dirname(__file__), '..', 'data', 'data.hdf5')
         if os.path.exists(config_file_name):
             with h5py.File(config_file_name, 'r', swmr=True) as f:
                 if 'availability' in f:
@@ -374,6 +381,10 @@ def create_overall_statistics_display(stats):
                     html.Div(className='stat-item', children=[
                         html.Strong('Kürzliche Änderungen: '),
                         html.Span(f'{stats["changes_count"]:,}')
+                    ]),
+                    html.Div(className='stat-item', children=[
+                        html.Strong('Datenbankgröße: '),
+                        html.Span(f'{stats.get("database_size_mb", 0):.1f} MB')
                     ])
                 ])
             ]),
@@ -496,7 +507,7 @@ def serve_layout():
                     row_selectable=False,
                     row_deletable=False,
                     columns=[
-                        {"name": "CI", "id": "ci"},
+                        {"name": "Organisation", "id": "organization"},
                         {"name": "Name", "id": "name"},
                         {"name": "Produkt", "id": "product"},
                         {"name": "Incidents", "id": "incidents", "type": "numeric"},
@@ -508,6 +519,7 @@ def serve_layout():
                     style_table={'overflowX': 'auto'},
                     style_cell={'padding': '8px', 'fontSize': '0.95rem'},
                     style_cell_conditional=[
+                        {"if": {"column_id": "organization"}, "textAlign": "left", "maxWidth": "150px", "overflow": "hidden", "textOverflow": "ellipsis"},
                         {"if": {"column_id": "name"}, "textAlign": "left"},
                         {"if": {"column_id": "product"}, "textAlign": "left"},
                         {"if": {"column_id": "incidents"}, "textAlign": "right", 'fontVariantNumeric': 'tabular-nums'},
@@ -534,10 +546,13 @@ def serve_layout():
                     ],
                     tooltip_data=[
                         {
-                            'ci': {'value': f"Organisation: {r.get('organization','—')}", 'type': 'text'}
+                            'organization': {'value': r.get('ci','—'), 'type': 'text'},
+                            'name': {'value': r.get('ci','—'), 'type': 'text'},
+                            'product': {'value': r.get('ci','—'), 'type': 'text'}
                         } for r in rows
                     ],
                     tooltip_duration=None
+
                 ))([
                     {
                         'ci': entry['ci'],
@@ -546,7 +561,7 @@ def serve_layout():
                             or load_ci_metadata_map().get(entry['ci'], {}).get('name')
                             or ''
                         ),
-                        'organization': (
+                        'organization': truncate_organization(
                             overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('organization')
                             or load_ci_metadata_map().get(entry['ci'], {}).get('organization')
                             or ''

@@ -771,6 +771,15 @@ def calculate_overall_statistics(config_file_name, cis):
     # Get recording duration from availability data
     total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration(config_file_name)
 
+    # Get database file size
+    database_size_mb = 0
+    try:
+        if os.path.exists(config_file_name):
+            database_size_bytes = os.path.getsize(config_file_name)
+            database_size_mb = database_size_bytes / (1024 * 1024)
+    except Exception as e:
+        log(f"Error getting database file size: {e}")
+
     # Compute incident and availability metrics from HDF5 availability data
     availability_metrics = compute_incident_and_availability_metrics(config_file_name)
     
@@ -809,7 +818,8 @@ def calculate_overall_statistics(config_file_name, cis):
         'mtbf_minutes_mean': float(availability_metrics.get('mtbf_minutes_mean', 0.0)),
         'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
         'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
-        'per_ci_metrics': availability_metrics.get('per_ci_metrics', {})
+        'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
+        'database_size_mb': float(database_size_mb)
     }
 
 def update_statistics_file(config_file_name):
