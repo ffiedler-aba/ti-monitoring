@@ -119,6 +119,10 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStdout "%BASE_PATH%logs\cron.log"
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStderr "%BASE_PATH%logs\cron-error.log"
     
+    REM WICHTIG: Service im User-Kontext laufen lassen (nicht als Systemkonto)
+    echo Konfiguriere Service für User-Kontext...
+    "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+    
     REM Erstelle logs Verzeichnis falls nicht vorhanden
     if not exist "%BASE_PATH%logs" mkdir "%BASE_PATH%logs"
     
@@ -167,6 +171,10 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%UI_SERVICE%" AppDirectory "%BASE_PATH:~0,-1%"
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStdout "%BASE_PATH%logs\ui.log"
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStderr "%BASE_PATH%logs\ui-error.log"
+    
+    REM WICHTIG: Service im User-Kontext laufen lassen (nicht als Systemkonto)
+    echo Konfiguriere Service für User-Kontext...
+    "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
     if not exist "%BASE_PATH%logs" mkdir "%BASE_PATH%logs"
