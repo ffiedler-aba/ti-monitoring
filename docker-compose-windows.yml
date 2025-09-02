@@ -1,5 +1,3 @@
-version: '3.8'
-
 volumes:
   ti-monitoring-data:
   ti-monitoring-logs:

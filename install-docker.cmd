@@ -25,7 +25,46 @@ docker --version >nul 2>&1
 if !errorlevel! equ 0 (
     echo Docker ist bereits installiert.
     docker --version
-    goto :docker_ready
+    
+    REM Prüfe ob Docker Daemon läuft
+    echo Prüfe Docker Daemon Status...
+    docker info >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo Docker Daemon läuft korrekt.
+        goto :docker_ready
+    ) else (
+        echo WARNUNG: Docker Daemon läuft nicht!
+        echo.
+        echo LÖSUNG: Docker Desktop starten
+        echo ========================================
+        echo.
+        echo 1. Öffne Docker Desktop aus dem Startmenü
+        echo 2. Warte bis Docker Desktop vollständig gestartet ist
+        echo 3. Starte dieses Skript erneut
+        echo.
+        echo Alternative: Docker Desktop neu starten
+        echo - Rechtsklick auf Docker Desktop Icon in der Taskleiste
+        echo - "Restart Docker Desktop" wählen
+        echo.
+        set /p "choice=Docker Desktop bereits gestartet? (j/n): "
+        if /i "!choice!"=="j" (
+            echo Prüfe Docker Daemon erneut...
+            docker info >nul 2>&1
+            if !errorlevel! equ 0 (
+                echo Docker Daemon läuft jetzt!
+                goto :docker_ready
+            ) else (
+                echo Docker Daemon läuft immer noch nicht.
+                echo Bitte starte Docker Desktop manuell.
+                pause
+                exit /b 1
+            )
+        ) else (
+            echo Bitte starte Docker Desktop und versuche es erneut.
+            pause
+            exit /b 1
+        )
+    )
 )
 
 echo ========================================
