@@ -285,6 +285,95 @@ def update_ci_list_file(config_file_name, ci_list_file_path):
 
 
 
+def calculate_overall_statistics(config_file_name, cis):
+    """
+    Calculate overall statistics for all Configuration Items including:
+    - Total counts and current availability
+    - Overall availability percentage
+    - Recording time range
+    - Product distribution
+    - Organization distribution
+    """
+    if cis.empty:
+        return {}
+    
+    # Basic counts
+    total_cis = len(cis)
+    currently_available = cis['current_availability'].sum()
+    currently_unavailable = total_cis - currently_available
+    overall_availability_percentage = (currently_available / total_cis) * 100 if total_cis > 0 else 0
+    
+    # Product distribution
+    product_counts = cis['product'].value_counts()
+    total_products = len(product_counts)
+    
+    # Organization distribution
+    organization_counts = cis['organization'].value_counts()
+    total_organizations = len(organization_counts)
+    
+    # Current status distribution
+    status_counts = cis['current_availability'].value_counts()
+    available_count = status_counts.get(1, 0)
+    unavailable_count = status_counts.get(0, 0)
+    
+    # Recent changes (availability_difference != 0)
+    recent_changes = cis[cis['availability_difference'] != 0]
+    changes_count = len(recent_changes)
+    
+    # Get recording duration from availability data
+    total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration(config_file_name)
+
+    # Get database file size
+    database_size_mb = 0
+    try:
+        if os.path.exists(config_file_name):
+            database_size_bytes = os.path.getsize(config_file_name)
+            database_size_mb = database_size_bytes / (1024 * 1024)
+    except Exception as e:
+        log(f"Error getting database file size: {e}")
+
+    # Compute incident and availability metrics from HDF5 availability data
+    availability_metrics = compute_incident_and_availability_metrics(config_file_name)
+    
+    # Get current time in Europe/Berlin
+    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+    if latest_timestamp:
+        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
+        data_age_formatted = format_duration(data_age_hours)
+    else:
+        data_age_formatted = "Unbekannt"
+    
+    return {
+        'total_cis': int(total_cis),
+        'currently_available': int(currently_available),
+        'currently_unavailable': int(currently_unavailable),
+        'overall_availability_percentage': float(overall_availability_percentage),
+        'overall_availability_percentage_total': float(overall_availability_percentage),  # Same as current availability for now
+        'total_products': int(total_products),
+        'total_organizations': int(total_organizations),
+        'available_count': int(available_count),
+        'unavailable_count': int(unavailable_count),
+        'changes_count': int(changes_count),
+        'latest_timestamp': latest_timestamp.isoformat() if latest_timestamp else None,
+        'earliest_timestamp': earliest_timestamp.isoformat() if earliest_timestamp else None,
+        'data_age_formatted': data_age_formatted,
+        'product_counts': product_counts.to_dict(),
+        'organization_counts': organization_counts.to_dict(),
+        'total_recording_minutes': float(total_recording_minutes),
+        'calculated_at': time.time(),
+        # New metrics (availability/incidents)
+        'overall_uptime_minutes': float(availability_metrics.get('overall_uptime_minutes', 0.0)),
+        'overall_downtime_minutes': float(availability_metrics.get('overall_downtime_minutes', 0.0)),
+        'overall_availability_percentage_rollup': float(availability_metrics.get('overall_availability_percentage_rollup', 0.0)),
+        'total_incidents': int(availability_metrics.get('total_incidents', 0)),
+        'mttr_minutes_mean': float(availability_metrics.get('mttr_minutes_mean', 0.0)),
+        'mtbf_minutes_mean': float(availability_metrics.get('mtbf_minutes_mean', 0.0)),
+        'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
+        'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
+        'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
+        'database_size_mb': float(database_size_mb)
+    }
+
 def update_statistics_file(config_file_name):
     """Update the statistics JSON file with current data"""
     try:
@@ -759,92 +848,3 @@ def compute_incident_and_availability_metrics(config_file_name):
     except Exception as e:
         log(f"Error computing availability metrics: {e}")
     return metrics
-
-def calculate_overall_statistics(config_file_name, cis):
-    """
-    Calculate overall statistics for all Configuration Items including:
-    - Total counts and current availability
-    - Overall availability percentage
-    - Recording time range
-    - Product distribution
-    - Organization distribution
-    """
-    if cis.empty:
-        return {}
-    
-    # Basic counts
-    total_cis = len(cis)
-    currently_available = cis['current_availability'].sum()
-    currently_unavailable = total_cis - currently_available
-    overall_availability_percentage = (currently_available / total_cis) * 100 if total_cis > 0 else 0
-    
-    # Product distribution
-    product_counts = cis['product'].value_counts()
-    total_products = len(product_counts)
-    
-    # Organization distribution
-    organization_counts = cis['organization'].value_counts()
-    total_organizations = len(organization_counts)
-    
-    # Current status distribution
-    status_counts = cis['current_availability'].value_counts()
-    available_count = status_counts.get(1, 0)
-    unavailable_count = status_counts.get(0, 0)
-    
-    # Recent changes (availability_difference != 0)
-    recent_changes = cis[cis['availability_difference'] != 0]
-    changes_count = len(recent_changes)
-    
-    # Get recording duration from availability data
-    total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration(config_file_name)
-
-    # Get database file size
-    database_size_mb = 0
-    try:
-        if os.path.exists(config_file_name):
-            database_size_bytes = os.path.getsize(config_file_name)
-            database_size_mb = database_size_bytes / (1024 * 1024)
-    except Exception as e:
-        log(f"Error getting database file size: {e}")
-
-    # Compute incident and availability metrics from HDF5 availability data
-    availability_metrics = compute_incident_and_availability_metrics(config_file_name)
-    
-    # Get current time in Europe/Berlin
-    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
-    if latest_timestamp:
-        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
-        data_age_formatted = format_duration(data_age_hours)
-    else:
-        data_age_formatted = "Unbekannt"
-    
-    return {
-        'total_cis': int(total_cis),
-        'currently_available': int(currently_available),
-        'currently_unavailable': int(currently_unavailable),
-        'overall_availability_percentage': float(overall_availability_percentage),
-        'overall_availability_percentage_total': float(overall_availability_percentage),  # Same as current availability for now
-        'total_products': int(total_products),
-        'total_organizations': int(total_organizations),
-        'available_count': int(available_count),
-        'unavailable_count': int(unavailable_count),
-        'changes_count': int(changes_count),
-        'latest_timestamp': latest_timestamp.isoformat() if latest_timestamp else None,
-        'earliest_timestamp': earliest_timestamp.isoformat() if earliest_timestamp else None,
-        'data_age_formatted': data_age_formatted,
-        'product_counts': product_counts.to_dict(),
-        'organization_counts': organization_counts.to_dict(),
-        'total_recording_minutes': float(total_recording_minutes),
-        'calculated_at': time.time(),
-        # New metrics (availability/incidents)
-        'overall_uptime_minutes': float(availability_metrics.get('overall_uptime_minutes', 0.0)),
-        'overall_downtime_minutes': float(availability_metrics.get('overall_downtime_minutes', 0.0)),
-        'overall_availability_percentage_rollup': float(availability_metrics.get('overall_availability_percentage_rollup', 0.0)),
-        'total_incidents': int(availability_metrics.get('total_incidents', 0)),
-        'mttr_minutes_mean': float(availability_metrics.get('mttr_minutes_mean', 0.0)),
-        'mtbf_minutes_mean': float(availability_metrics.get('mtbf_minutes_mean', 0.0)),
-        'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
-        'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
-        'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
-        'database_size_mb': float(database_size_mb)
-    }
