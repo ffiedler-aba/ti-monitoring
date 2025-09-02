@@ -10,6 +10,48 @@ echo TI-Monitoring Service Installation (Silent)
 echo ========================================
 echo.
 
+REM Service-Benutzer Name
+set "SERVICE_USER=ti-monitoring-service"
+set "SERVICE_PASSWORD=TiMonitoring2024!"
+
+echo ========================================
+echo Erstelle Service-Benutzer
+echo ========================================
+
+REM Prüfe ob Service-Benutzer bereits existiert
+net user "%SERVICE_USER%" >nul 2>&1
+if !errorlevel! equ 0 (
+    echo Service-Benutzer %SERVICE_USER% existiert bereits.
+) else (
+    echo Erstelle Service-Benutzer %SERVICE_USER%...
+    net user "%SERVICE_USER%" "%SERVICE_PASSWORD%" /add /passwordchg:no /passwordreq:yes /expires:never /fullname:"TI-Monitoring Service Account" /comment:"Dedizierter Benutzer für TI-Monitoring Services"
+    if !errorlevel! equ 0 (
+        echo Service-Benutzer erfolgreich erstellt.
+    ) else (
+        echo WARNUNG: Service-Benutzer konnte nicht erstellt werden.
+        echo Services werden als LocalService ausgeführt.
+        set "USE_SERVICE_USER=false"
+    )
+)
+
+REM Konfiguriere Service-Benutzer Berechtigungen
+if defined USE_SERVICE_USER (
+    echo Konfiguriere Service-Benutzer Berechtigungen...
+    
+    REM Füge Service-Benutzer zu "Log on as a service" hinzu
+    echo Granting "Log on as a service" right to %SERVICE_USER%...
+    net localgroup "Log on as a service" "%SERVICE_USER%" /add >nul 2>&1
+    
+    REM Setze Berechtigungen für das Installationsverzeichnis
+    echo Setze Berechtigungen für Installationsverzeichnis...
+    icacls "%BASE_PATH%" /grant "%SERVICE_USER%":(OI)(CI)F /T >nul 2>&1
+    
+    echo Service-Benutzer konfiguriert.
+) else (
+    echo Verwende LocalService für Services.
+)
+echo.
+
 REM Aktuelles Verzeichnis als Basis-Pfad
 set "BASE_PATH=%~dp0"
 set "NSSM_EXE=%BASE_PATH%tools\nssm.exe"
@@ -95,9 +137,14 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStdout "%BASE_PATH%logs\cron.log"
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStderr "%BASE_PATH%logs\cron-error.log"
     
-    REM WICHTIG: Service im User-Kontext laufen lassen (nicht als Systemkonto)
-    echo Konfiguriere Service für User-Kontext...
-    "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+    REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
+    if defined USE_SERVICE_USER (
+        echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+    ) else (
+        echo Konfiguriere Service für LocalService...
+        "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+    )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
     if not exist "%BASE_PATH%logs" mkdir "%BASE_PATH%logs"
@@ -141,9 +188,14 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStdout "%BASE_PATH%logs\ui.log"
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStderr "%BASE_PATH%logs\ui-error.log"
     
-    REM WICHTIG: Service im User-Kontext laufen lassen (nicht als Systemkonto)
-    echo Konfiguriere Service für User-Kontext...
-    "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+    REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
+    if defined USE_SERVICE_USER (
+        echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
+        "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
+    ) else (
+        echo Konfiguriere Service für LocalService...
+        "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+    )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
     if not exist "%BASE_PATH%logs" mkdir "%BASE_PATH%logs"
