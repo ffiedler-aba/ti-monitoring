@@ -458,8 +458,21 @@ def serve_layout():
         html.Div(className='stats-overview', children=[
             html.Div(className='stat-card', children=[
                 html.H4('🚨 Top instabile CIs (Incidents)'),
-                html.Ul(children=[
-                    html.Li(f"{entry['ci']}: {entry['incidents']} Incidents") for entry in overall_stats.get('top_unstable_cis_by_incidents', [])
+                html.Table(className='stat-table', children=[
+                    html.Thead(html.Tr(children=[
+                        html.Th('CI'),
+                        html.Th('Incidents'),
+                        html.Th('Verfügbarkeit (%)', title='Zeitgewichtete Verfügbarkeit des CI im Zeitraum')
+                    ])),
+                    html.Tbody(children=[
+                        html.Tr(children=[
+                            html.Td(entry['ci']),
+                            html.Td(entry['incidents']),
+                            html.Td(
+                                f"{(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)):.1f}%"
+                            )
+                        ]) for entry in overall_stats.get('top_unstable_cis_by_incidents', [])
+                    ])
                 ])
             ]),
             html.Div(className='stat-card', children=[
