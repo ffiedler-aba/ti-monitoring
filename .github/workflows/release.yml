@@ -193,7 +193,7 @@ jobs:
                 $criticalPackages = @('dash', 'plotly', 'requests', 'apprise', 'pandas', 'numpy')
                 foreach ($pkg in $criticalPackages) {
                     try {
-                        $result = & $pip show $pkg 2>&1
+                        $result = & $pip -m pip show $pkg 2>&1
                         if ($LASTEXITCODE -eq 0) {
                             Write-Host "✓ $pkg installiert"
                         } else {
