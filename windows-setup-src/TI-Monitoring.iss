@@ -1,14 +1,14 @@
 [Setup]
 AppName=TI Monitoring
 AppVersion=1.0.0
-DefaultDirName={pf}\ti-monitoring
+DefaultDirName={commonpf}\ti-monitoring
 DefaultGroupName=TI Monitoring
 PrivilegesRequired=admin
 OutputDir=.
 OutputBaseFilename=TI-Monitoring-Setup
 Compression=lzma
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 
 [Languages]
@@ -40,7 +40,7 @@ Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Com
 
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File '{app}\\scripts\\uninstall-services.ps1'"; RunOnceId: "svc_cleanup"; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(Get-NetFirewallRule -DisplayName 'TI Monitoring UI' -ErrorAction SilentlyContinue){{ Remove-NetFirewallRule -DisplayName 'TI Monitoring UI' }}"; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(Get-NetFirewallRule -DisplayName 'TI Monitoring UI' -ErrorAction SilentlyContinue){{ Remove-NetFirewallRule -DisplayName 'TI Monitoring UI' }}"; RunOnceId: "fw_cleanup"; Flags: runhidden
 
 [Code]
 function InitializeSetup(): Boolean;
