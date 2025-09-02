@@ -313,7 +313,7 @@ def create_overall_statistics_display(stats):
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtverfügbarkeit (aktuelle Daten): ', title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'),
                         html.Span(
-                            f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.1f}%",
+                            f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.2f}%",
                             title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'
                         )
                     ]),
@@ -388,7 +388,7 @@ def create_overall_statistics_display(stats):
                 html.Div(className='stat-grid', children=[
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtverfügbarkeit (Zeitbasis): '),
-                        html.Span(f'{stats["overall_availability_percentage_total"]:.1f}%')
+                        html.Span(f'{stats["overall_availability_percentage_total"]:.2f}%')
                     ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtaufzeichnungszeit: '),
@@ -492,8 +492,8 @@ def serve_layout():
                         {"name": "CI", "id": "ci"},
                         {"name": "Name", "id": "name"},
                         {"name": "Incidents", "id": "incidents", "type": "numeric"},
-                        {"name": "Downtime (Minuten)", "id": "downtime_minutes", "type": "numeric"},
-                        {"name": "Verfügbarkeit (%)", "id": "availability_percentage", "type": "numeric"},
+                        {"name": "Downtime (Minuten)", "id": "downtime_minutes", "type": "numeric", "format": {"specifier": ".0f"}},
+                        {"name": "Verfügbarkeit (%)", "id": "availability_percentage", "type": "numeric", "format": {"specifier": ".2f"}},
                     ],
                     sort_action='native',
                     sort_mode='multi',
@@ -524,8 +524,8 @@ def serve_layout():
                             or ''
                         ),
                         'incidents': int(entry['incidents']),
-                        'downtime_minutes': float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('downtime_minutes', 0.0)),
-                        'availability_percentage': float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)),
+                        'downtime_minutes': round(float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('downtime_minutes', 0.0))),
+                        'availability_percentage': round(float(overall_stats.get('per_ci_metrics', {}).get(entry['ci'], {}).get('availability_percentage', 0.0)), 2),
                     }
                     for entry in sorted(
                         overall_stats.get('top_unstable_cis_by_incidents', []),
