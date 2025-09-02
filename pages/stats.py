@@ -284,25 +284,32 @@ def create_overall_statistics_display(stats):
                         html.Span(f'{stats["currently_unavailable"]:,}')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Gesamtverfügbarkeit (aktuelle Daten): '),
-                        html.Span(f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.1f}%")
+                        html.Strong('Gesamtverfügbarkeit (aktuelle Daten): ', title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'),
+                        html.Span(
+                            f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.1f}%",
+                            title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'
+                        )
                     ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtdauer Aufzeichnung: '),
                         html.Span(format_duration(stats["total_recording_minutes"] / 60) if stats.get("total_recording_minutes", 0) > 0 else 'Unbekannt')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Kumulative Uptime (über alle CIs): '),
-                        html.Span(format_duration((stats.get('overall_uptime_minutes') or 0) / 60))
+                        html.Strong('Kumulative Uptime (über alle CIs): ', title='Summe der Betriebszeiten aller CIs im Zeitraum'),
+                        html.Span(
+                            format_duration((stats.get('overall_uptime_minutes') or 0) / 60),
+                            title='Summe der Betriebszeiten aller CIs im Zeitraum'
+                        )
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Ø Uptime pro CI im Zeitraum: '),
+                        html.Strong('Ø Uptime pro CI im Zeitraum: ', title='Durchschnittliche Betriebszeit je CI im Zeitraum'),
                         html.Span(
                             format_duration(
                                 (
                                     ((stats.get('overall_uptime_minutes') or 0) / max(1, int(stats.get('total_cis', 0))))
                                 ) / 60
-                            )
+                            ),
+                            title='Durchschnittliche Betriebszeit je CI im Zeitraum'
                         )
                     ]),
                     html.Div(className='stat-item', children=[
@@ -310,16 +317,16 @@ def create_overall_statistics_display(stats):
                         html.Span(format_duration((stats.get('overall_downtime_minutes') or 0) / 60))
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Incidents (gesamt): '),
-                        html.Span(f"{int(stats.get('total_incidents', 0))}")
+                        html.Strong('Incidents (gesamt): ', title='Anzahl Ausfälle (Übergänge von verfügbar zu nicht verfügbar)'),
+                        html.Span(f"{int(stats.get('total_incidents', 0))}", title='Anzahl Ausfälle (Übergänge von verfügbar zu nicht verfügbar)')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('MTTR (Ø, Minuten): '),
-                        html.Span(f"{(stats.get('mttr_minutes_mean') or 0):.1f}")
+                        html.Strong('MTTR (Ø, Minuten): ', title='Mean Time To Repair – durchschnittliche Dauer eines Ausfalls bis zur Wiederherstellung'),
+                        html.Span(f"{(stats.get('mttr_minutes_mean') or 0):.1f}", title='Mean Time To Repair – durchschnittliche Dauer eines Ausfalls bis zur Wiederherstellung')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('MTBF (Ø, Minuten): '),
-                        html.Span(f"{(stats.get('mtbf_minutes_mean') or 0):.1f}")
+                        html.Strong('MTBF (Ø, Minuten): ', title='Mean Time Between Failures – mittlere Zeit zwischen zwei Ausfällen'),
+                        html.Span(f"{(stats.get('mtbf_minutes_mean') or 0):.1f}", title='Mean Time Between Failures – mittlere Zeit zwischen zwei Ausfällen')
                     ])
                 ])
             ]),
