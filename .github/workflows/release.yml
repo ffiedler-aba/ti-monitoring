@@ -121,6 +121,22 @@ jobs:
         $pip = Join-Path $venvPath 'Scripts\python.exe'
         if (-not (Test-Path -LiteralPath $pip)) { throw "Venv wurde nicht korrekt erstellt: $venvPath" }
         
+        # venv für portable Verwendung reparieren
+        Write-Host "Repariere venv für portable Verwendung..."
+        $pyvenvCfg = Join-Path $venvPath 'pyvenv.cfg'
+        if (Test-Path -LiteralPath $pyvenvCfg) {
+            # Erstelle neue pyvenv.cfg mit relativen Pfaden
+            $newPyvenvCfg = @"
+home = .
+include-system-site-packages = false
+version = 3.12.10
+executable = .\Scripts\python.exe
+command = .\Scripts\python.exe -m venv .
+"@
+            $newPyvenvCfg | Out-File -FilePath $pyvenvCfg -Encoding UTF8
+            Write-Host "pyvenv.cfg repariert"
+        }
+        
         $req = Join-Path $StageDir 'requirements.txt'
         if (Test-Path -LiteralPath $req -PathType Leaf) {
             Write-Host "Installiere Requirements in venv"
