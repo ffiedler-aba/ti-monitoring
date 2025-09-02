@@ -25,7 +25,6 @@ Source: "PortableGit\\*"; DestDir: "{app}\\tools\\PortableGit"; Flags: recursesu
 ; 1) winget Vorprüfung und Installationen (silent)
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command if(-not (Get-Command winget -ErrorAction SilentlyContinue)) {{ Write-Error 'winget nicht gefunden. Bitte App-Installer installieren.'; exit 1 }}"; StatusMsg: "Prüfe winget..."; Flags: runhidden
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id Python.Python.3.12 --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere Python..."; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id Git.Git --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere Git..."; Flags: runhidden
 Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command winget install -e --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements"; StatusMsg: "Installiere NSSM..."; Flags: runhidden
 
 ; 2) Repo & venv werden vollständig im folgenden Skript erledigt
