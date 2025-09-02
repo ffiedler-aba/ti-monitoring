@@ -9,70 +9,23 @@ echo TI-Monitoring Service Installation
 echo ========================================
 echo.
 
-REM Service-Benutzer Name
-set "SERVICE_USER=timonitoringservice"
-set "SERVICE_PASSWORD=TiMonit2024!"
+REM Service-Konfiguration
+set "USE_LOCAL_SERVICE=true"
+set "SERVICE_USER=LocalService"
 
 echo ========================================
-echo Erstelle Service-Benutzer
+echo Konfiguriere Service-Berechtigungen
 echo ========================================
 
-REM Prüfe ob Service-Benutzer bereits existiert
-net user "%SERVICE_USER%" >nul 2>&1
-if !errorlevel! equ 0 (
-    echo Service-Benutzer %SERVICE_USER% existiert bereits.
-    echo Prüfe ob Service-Benutzer korrekt konfiguriert ist...
-    net user "%SERVICE_USER%" | findstr /C:"Account active" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo Service-Benutzer ist aktiv und kann verwendet werden.
-        set "USE_SERVICE_USER=true"
-    ) else (
-        echo Service-Benutzer ist nicht aktiv. Verwende LocalService.
-        set "USE_SERVICE_USER=false"
-    )
-) else (
-    echo Erstelle Service-Benutzer %SERVICE_USER%...
-    echo Verwende einfache net user Syntax...
-    net user %SERVICE_USER% "%SERVICE_PASSWORD%" /add
-    if !errorlevel! equ 0 (
-        echo Service-Benutzer erfolgreich erstellt.
-        echo Konfiguriere Service-Benutzer Eigenschaften...
-        net user %SERVICE_USER% /passwordchg:no /passwordreq:yes /expires:never
-        net user %SERVICE_USER% /fullname:"TI-Monitoring Service Account"
-        net user %SERVICE_USER% /comment:"Dedizierter Benutzer für TI-Monitoring Services"
-        echo Prüfe ob Service-Benutzer korrekt erstellt wurde...
-        net user "%SERVICE_USER%" >nul 2>&1
-        if !errorlevel! equ 0 (
-            echo Service-Benutzer ist verfügbar und kann verwendet werden.
-            set "USE_SERVICE_USER=true"
-        ) else (
-            echo Service-Benutzer ist nicht verfügbar. Verwende LocalService.
-            set "USE_SERVICE_USER=false"
-        )
-    ) else (
-        echo WARNUNG: Service-Benutzer konnte nicht erstellt werden.
-        echo Möglicherweise fehlen Administrator-Rechte.
-        echo Services werden als LocalService ausgeführt.
-        set "USE_SERVICE_USER=false"
-    )
-)
+echo Verwende LocalService für Services (ohne Passwort erforderlich).
+echo Konfiguriere Berechtigungen für LocalService...
 
-REM Konfiguriere Service-Benutzer Berechtigungen
-if defined USE_SERVICE_USER (
-    echo Konfiguriere Service-Benutzer Berechtigungen...
-    
-    REM Füge Service-Benutzer zu "Log on as a service" hinzu
-    echo Granting "Log on as a service" right to %SERVICE_USER%...
-    net localgroup "Log on as a service" "%SERVICE_USER%" /add >nul 2>&1
-    
-    REM Setze Berechtigungen für das Installationsverzeichnis
-    echo Setze Berechtigungen für Installationsverzeichnis...
-    icacls "%BASE_PATH%" /grant "%SERVICE_USER%":^(OI^)^(CI^)F /T >nul 2>&1
-    
-    echo Service-Benutzer konfiguriert.
-) else (
-    echo Verwende LocalService für Services.
-)
+REM Setze Berechtigungen für das Installationsverzeichnis für LocalService
+echo Setze Berechtigungen für Installationsverzeichnis...
+icacls "%BASE_PATH%" /grant "NT AUTHORITY\LOCAL SERVICE":^(OI^)^(CI^)F /T >nul 2>&1
+icacls "%BASE_PATH%" /grant "NT AUTHORITY\SYSTEM":^(OI^)^(CI^)F /T >nul 2>&1
+
+echo Berechtigungen für LocalService konfiguriert.
 echo.
 
 REM Prüfe ob NSSM verfügbar ist
@@ -185,22 +138,13 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStdout "%BASE_PATH%logs\cron.log"
     "%NSSM_EXE%" set "%CRON_SERVICE%" AppStderr "%BASE_PATH%logs\cron-error.log"
     
-    REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
-    if defined USE_SERVICE_USER (
-        echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
-        echo Benutzername: %SERVICE_USER%
-        echo Passwort: %SERVICE_PASSWORD%
-        "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
-        if !errorlevel! equ 0 (
-            echo Service-Benutzer erfolgreich konfiguriert.
-        ) else (
-            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
-            echo Verwende LocalService als Fallback.
-            "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
-        )
+    REM WICHTIG: Service mit LocalService laufen lassen (ohne Passwort)
+    echo Konfiguriere Service für LocalService...
+    "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+    if !errorlevel! equ 0 (
+        echo LocalService erfolgreich konfiguriert.
     ) else (
-        echo Konfiguriere Service für LocalService...
-        "%NSSM_EXE%" set "%CRON_SERVICE%" ObjectName "LocalService"
+        echo WARNUNG: LocalService Konfiguration fehlgeschlagen.
     )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
@@ -252,22 +196,13 @@ if !errorlevel! equ 0 (
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStdout "%BASE_PATH%logs\ui.log"
     "%NSSM_EXE%" set "%UI_SERVICE%" AppStderr "%BASE_PATH%logs\ui-error.log"
     
-    REM WICHTIG: Service mit dediziertem Service-Benutzer laufen lassen
-    if defined USE_SERVICE_USER (
-        echo Konfiguriere Service für Service-Benutzer %SERVICE_USER%...
-        echo Benutzername: %SERVICE_USER%
-        echo Passwort: %SERVICE_PASSWORD%
-        "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "%SERVICE_USER%" "%SERVICE_PASSWORD%"
-        if !errorlevel! equ 0 (
-            echo Service-Benutzer erfolgreich konfiguriert.
-        ) else (
-            echo WARNUNG: Service-Benutzer Konfiguration fehlgeschlagen.
-            echo Verwende LocalService als Fallback.
-            "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
-        )
+    REM WICHTIG: Service mit LocalService laufen lassen (ohne Passwort)
+    echo Konfiguriere Service für LocalService...
+    "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+    if !errorlevel! equ 0 (
+        echo LocalService erfolgreich konfiguriert.
     ) else (
-        echo Konfiguriere Service für LocalService...
-        "%NSSM_EXE%" set "%UI_SERVICE%" ObjectName "LocalService"
+        echo WARNUNG: LocalService Konfiguration fehlgeschlagen.
     )
     
     REM Erstelle logs Verzeichnis falls nicht vorhanden
@@ -318,16 +253,14 @@ echo.
 echo Logs finden Sie in: %BASE_PATH%logs\
 echo.
 
-if defined USE_SERVICE_USER (
-    echo.
-    echo ========================================
-    echo Service-Benutzer Information
-    echo ========================================
-    echo Service-Benutzer: %SERVICE_USER%
-    echo Services laufen im Kontext dieses Benutzers.
-    echo Der Benutzer hat Vollzugriff auf das Installationsverzeichnis.
-    echo.
-)
+echo.
+echo ========================================
+echo Service-Konfiguration Information
+echo ========================================
+echo Service-Kontext: LocalService
+echo Services laufen ohne Passwort im LocalService-Kontext.
+echo LocalService hat Vollzugriff auf das Installationsverzeichnis.
+echo.
 
 echo.
 echo ========================================
