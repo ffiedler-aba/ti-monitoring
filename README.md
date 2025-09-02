@@ -25,6 +25,27 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 - Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
 - Ausführliche Statistiken in den Plots der einzelnen Configuration Items und als Gesamtstatistik unter /stats
 
+### Windows Setup (Inno Setup)
+
+Ein Installer-Projekt befindet sich in `windows-setup-src`.
+
+Build (auf Windows, Adminrechte empfohlen):
+
+1) Inno Setup installieren und folgenden Befehl ausführen:
+
+```
+"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" windows-setup-src\\TI-Monitoring.iss
+```
+
+Der Installer erledigt zur Laufzeit:
+- Installation per winget: Python, Git, NSSM
+- Clone des Repos `https://github.com/elpatron68/ti-monitoring.git`
+- Erstellen von `.venv` und Installation der Requirements
+- Einrichten von zwei NSSM-Diensten (TIMon-UI, TIMon-Cron)
+- Öffnen der Windows-Firewall für Port 8050
+
+Uninstall entfernt die Dienste und die Firewallregel wieder.
+
 ### Entwicklungsstand
 
 Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
