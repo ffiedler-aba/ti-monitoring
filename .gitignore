@@ -1,7 +1,7 @@
 .DS_Store
 test.py
 __pycache__
-data.hdf5
+*.hdf5
 statistics.json
 .venv/
 .qoder/
