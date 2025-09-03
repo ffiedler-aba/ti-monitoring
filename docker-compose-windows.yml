@@ -58,7 +58,7 @@ services:
     restart: unless-stopped
     depends_on:
       - ti-monitoring-web
-      - db
+    # Hinweis: keine depends_on auf db, damit Compose ohne Profil gültig bleibt
     healthcheck:
       test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
       interval: 60s

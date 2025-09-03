@@ -43,5 +43,4 @@ services:
       - DB_PASSWORD=${POSTGRES_PASSWORD}
     command: ["python", "-u", "cron.py"]
     restart: unless-stopped
-    depends_on:
-      - db
+    # Hinweis: keine depends_on auf db, damit Compose ohne Profil gültig bleibt
