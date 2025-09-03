@@ -10,8 +10,8 @@ services:
     volumes:
       - ti-monitoring-data:/app/data
       - ti-monitoring-logs:/app/logs
-      - ./config.yaml:/app/config.yaml:ro
-      - ./notifications.json:/app/notifications.json:ro
+      - ./config.yaml:/app/config.yaml
+      - ./notifications.json:/app/notifications.json
     environment:
       - PYTHONPATH=/app
       - TZ=Europe/Berlin
@@ -31,8 +31,8 @@ services:
     volumes:
       - ti-monitoring-data:/app/data
       - ti-monitoring-logs:/app/logs
-      - ./config.yaml:/app/config.yaml:ro
-      - ./notifications.json:/app/notifications.json:ro
+      - ./config.yaml:/app/config.yaml
+      - ./notifications.json:/app/notifications.json
     environment:
       - PYTHONPATH=/app
       - TZ=Europe/Berlin
