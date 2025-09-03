@@ -380,10 +380,7 @@ def create_overall_statistics_display(stats):
                         html.Strong('MTTR (Ø, Minuten): ', title='Mean Time To Repair – durchschnittliche Dauer eines Ausfalls bis zur Wiederherstellung'),
                         html.Span(f"{(stats.get('mttr_minutes_mean') or 0):.1f}", title='Mean Time To Repair – durchschnittliche Dauer eines Ausfalls bis zur Wiederherstellung')
                     ]),
-                    html.Div(className='stat-item', children=[
-                        html.Strong('MTBF (Ø, Minuten): ', title='Mean Time Between Failures – mittlere Zeit zwischen zwei Ausfällen'),
-                        html.Span(f"{(stats.get('mtbf_minutes_mean') or 0):.1f}", title='Mean Time Between Failures – mittlere Zeit zwischen zwei Ausfällen')
-                    ])
+
                 ])
             ]),
             

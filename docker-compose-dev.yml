@@ -22,7 +22,6 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./notifications.json:/app/notifications.json
       - ./.env:/app/.env
-      - ./data/ci_list.json:/app/data/ci_list.json
       - appdata:/app/data
     environment:
       - PYTHONPATH=/app
@@ -40,7 +39,6 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./notifications.json:/app/notifications.json
-      - ./data/ci_list.json:/app/data/ci_list.json
       - appdata:/app/data
     environment:
       - PYTHONPATH=/app

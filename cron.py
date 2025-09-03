@@ -208,10 +208,7 @@ def compute_incident_and_availability_metrics():
                     WHEN ca.incidents > 0 THEN ca.downtime_minutes / ca.incidents
                     ELSE 0
                 END as mttr_minutes,
-                CASE 
-                    WHEN ca.incidents > 1 THEN ca.uptime_minutes / (ca.incidents - 1)
-                    ELSE 0
-                END as mtbf_minutes,
+                NULL as mtbf_minutes,  -- MTBF now calculated per CI in plots
                 CASE 
                     WHEN (ca.uptime_minutes + ca.downtime_minutes) > 0 THEN
                         (ca.uptime_minutes / (ca.uptime_minutes + ca.downtime_minutes)) * 100
@@ -232,7 +229,6 @@ def compute_incident_and_availability_metrics():
             
             # Process results
             total_mttr_values = []
-            total_mtbf_values = []
             
             for _, row in result.iterrows():
                 ci = row['ci']
@@ -260,11 +256,9 @@ def compute_incident_and_availability_metrics():
                 metrics['overall_downtime_minutes'] += downtime_minutes
                 metrics['total_incidents'] += incidents
                 
-                # Collect MTTR/MTBF values for overall calculation
+                # Collect MTTR values for overall calculation
                 if mttr_minutes > 0:
                     total_mttr_values.append(mttr_minutes)
-                if mtbf_minutes > 0:
-                    total_mtbf_values.append(mtbf_minutes)
             
             # Calculate overall availability percentage
             total_overall_minutes = metrics['overall_uptime_minutes'] + metrics['overall_downtime_minutes']
@@ -279,16 +273,13 @@ def compute_incident_and_availability_metrics():
             else:
                 metrics['mttr_minutes_mean'] = 0.0
                 
-            if total_mtbf_values:
-                metrics['mtbf_minutes_mean'] = sum(total_mtbf_values) / len(total_mtbf_values)
-            else:
-                metrics['mtbf_minutes_mean'] = 0.0
+            # MTBF removed from global stats - now calculated per CI in plots
+            metrics['mtbf_minutes_mean'] = 0.0
                 
-            log(f"MTTR values: {len(total_mttr_values)}, MTBF values: {len(total_mtbf_values)}")
+            log(f"MTTR values: {len(total_mttr_values)}")
             if total_mttr_values:
                 log(f"MTTR mean: {metrics['mttr_minutes_mean']:.2f} minutes")
-            if total_mtbf_values:
-                log(f"MTBF mean: {metrics['mtbf_minutes_mean']:.2f} minutes")
+            log("MTBF: Now calculated per CI in plots (removed from global stats)")
             
             # Create top unstable CIs list
             top_unstable = sorted(

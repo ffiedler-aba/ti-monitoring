@@ -104,6 +104,44 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
     longest_downtime_hours = longest_downtime_consecutive * 5 / 60
     longest_uptime_hours = longest_uptime_consecutive * 5 / 60
     
+    # Calculate MTTR and MTBF for selected time range
+    def calculate_mttr_mtbf(data):
+        """Calculate MTTR and MTBF from time series data"""
+        incidents = 0
+        total_downtime_minutes = 0
+        total_uptime_minutes = 0
+        
+        # Find incidents (transitions from 1 to 0)
+        for i in range(1, len(data)):
+            if data.iloc[i-1] == 1 and data.iloc[i] == 0:
+                incidents += 1
+        
+        if incidents == 0:
+            return 0, 0, 0  # No incidents, no MTTR/MTBF
+        
+        # Calculate total downtime and uptime
+        downtime_periods = 0
+        uptime_periods = 0
+        
+        for i in range(len(data)):
+            if data.iloc[i] == 0:
+                downtime_periods += 1
+            else:
+                uptime_periods += 1
+        
+        total_downtime_minutes = downtime_periods * 5  # 5-minute intervals
+        total_uptime_minutes = uptime_periods * 5
+        
+        # MTTR = Total downtime / Number of incidents
+        mttr_minutes = total_downtime_minutes / incidents if incidents > 0 else 0
+        
+        # MTBF = Total uptime / Number of incidents (for incidents > 1)
+        mtbf_minutes = total_uptime_minutes / incidents if incidents > 1 else 0
+        
+        return mttr_minutes, mtbf_minutes, incidents
+    
+    mttr_minutes, mtbf_minutes, incidents = calculate_mttr_mtbf(selected_data['values'])
+    
     return {
         # Selected time range statistics
         'selected_hours': selected_hours,
@@ -136,7 +174,12 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
         'longest_downtime_consecutive': longest_downtime_consecutive,
         'longest_uptime_consecutive': longest_uptime_consecutive,
         'longest_downtime_hours': longest_downtime_hours,
-        'longest_uptime_hours': longest_uptime_hours
+        'longest_uptime_hours': longest_uptime_hours,
+        
+        # MTTR and MTBF
+        'mttr_minutes': mttr_minutes,
+        'mtbf_minutes': mtbf_minutes,
+        'incidents': incidents
     }
 
 dash.register_page(__name__)
@@ -363,6 +406,18 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
                 html.Div(className='stat-item', children=[
                     html.Strong('Längste Uptime: '),
                     html.Span(f'{stats["longest_uptime_consecutive"]} Messungen ({format_duration(stats["longest_uptime_hours"])})')
+                ]),
+                html.Div(className='stat-item', children=[
+                    html.Strong('Incidents: '),
+                    html.Span(f'{stats["incidents"]} Ausfälle')
+                ]),
+                html.Div(className='stat-item', children=[
+                    html.Strong('MTTR: '),
+                    html.Span(f'{format_duration(stats["mttr_minutes"] / 60)}' if stats["incidents"] > 0 else 'N/A (keine Ausfälle)')
+                ]),
+                html.Div(className='stat-item', children=[
+                    html.Strong('MTBF: '),
+                    html.Span(f'{format_duration(stats["mtbf_minutes"] / 60)}' if stats["incidents"] > 1 else 'N/A (unzureichende Daten)')
                 ])
             ])
         ])
