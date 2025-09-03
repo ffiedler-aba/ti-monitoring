@@ -375,6 +375,10 @@ def create_overall_statistics_display(stats):
                         html.Span(stats["latest_timestamp"].strftime('%d.%m.%Y %H:%M:%S Uhr') if stats["latest_timestamp"] else 'Unbekannt')
                     ]),
                     html.Div(className='stat-item', children=[
+                        html.Strong('Nächste Aktualisierung: '),
+                        html.Span((stats["latest_timestamp"] + pd.Timedelta(hours=1)).strftime('%d.%m.%Y %H:%M:%S Uhr') if stats["latest_timestamp"] else 'Unbekannt')
+                    ]),
+                    html.Div(className='stat-item', children=[
                         html.Strong('Datenalter: '),
                         html.Span(stats["data_age_formatted"])
                     ]),
