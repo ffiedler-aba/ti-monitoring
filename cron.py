@@ -9,7 +9,7 @@ import json
 import pandas as pd
 import numpy as np
 import pytz
-import h5py
+# h5py removed - using TimescaleDB only
 
 # Enhanced logging setup with file logging and daily rotation
 import logging
@@ -50,292 +50,148 @@ def setup_logger():
                 else:
                     return dt.strftime('%Y-%m-%d %H:%M:%S %Z')
         
-        formatter = TimezoneFormatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S %Z')
+        formatter = TimezoneFormatter('%(asctime)s - %(levelname)s - %(message)s')
         
         # File handler with daily rotation
         log_file = os.path.join(data_dir, 'cron.log')
         file_handler = TimedRotatingFileHandler(
-            log_file,
-            when='midnight',
-            interval=1,
-            backupCount=7,  # Keep 7 days of logs
+            log_file, 
+            when='midnight', 
+            interval=1, 
+            backupCount=30,  # Keep 30 days of logs
             encoding='utf-8'
         )
-        file_handler.setLevel(logging.INFO)
         file_handler.setFormatter(formatter)
         _logger.addHandler(file_handler)
         
-        # Console handler for immediate feedback
+        # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
         console_handler.setFormatter(formatter)
         _logger.addHandler(console_handler)
-        
-        # Prevent propagation to root logger
-        _logger.propagate = False
         
         return _logger
         
     except Exception as e:
-        # Fallback to simple print if logging setup fails
-        print(f"ERROR setting up logger: {e}")
+        print(f"Error setting up logger: {e}")
         return None
 
-def log(message):
-    """Enhanced logging function with file logging and daily rotation"""
-    try:
-        # Ensure message is a string
-        if not isinstance(message, str):
-            message = str(message)
-        
-        # Setup logger if not already done
-        if _logger is None:
-            setup_logger()
-        
-        # Log to file and console
-        if _logger is not None:
-            _logger.info(message)
+def log(message, level='INFO'):
+    """Log a message with timestamp"""
+    logger = setup_logger()
+    if logger:
+        if level.upper() == 'ERROR':
+            logger.error(message)
+        elif level.upper() == 'WARNING':
+            logger.warning(message)
         else:
-            # Fallback to console only
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-            print(f"[{timestamp}] {message}")
-            sys.stdout.flush()
-            
-    except Exception as e:
-        # Fallback logging if the main logging fails
-        try:
-            timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-            print(f"[{timestamp}] [LOGGING_ERROR] {e} - Original message: {message}")
-            sys.stdout.flush()
-        except:
-            # If even fallback fails, we can't do much more
-            pass
-
-def load_config():
-    """Load configuration from YAML file with comprehensive error handling"""
-    try:
-        log("Starting configuration loading...")
-        config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
-        log(f"Config path: {config_path}")
-        log(f"Current working directory: {os.getcwd()}")
-        log(f"Config file exists: {os.path.exists(config_path)}")
-        
-        if not os.path.exists(config_path):
-            log(f"ERROR: Config file not found: {config_path}")
-            return {}
-        
-        # Check file size to avoid loading huge files
-        file_size = os.path.getsize(config_path)
-        if file_size > 10 * 1024 * 1024:  # 10MB limit
-            log(f"ERROR: Config file too large: {file_size} bytes")
-            return {}
-        
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-        
-        if not config:
-            log("WARNING: Configuration file is empty or invalid")
-            return {}
-            
-        log(f"Configuration loaded successfully. Keys: {list(config.keys())}")
-        return config
-        
-    except FileNotFoundError as e:
-        log(f"ERROR: Config file not found: {e}")
-        return {}
-    except yaml.YAMLError as e:
-        log(f"ERROR: Invalid YAML syntax: {e}")
-        return {}
-    except PermissionError as e:
-        log(f"ERROR: Permission denied reading config file: {e}")
-        return {}
-    except Exception as e:
-        log(f"ERROR: Failed to load config: {e}")
-        return {}
+            logger.info(message)
+    else:
+        # Fallback to print if logger setup failed
+        timestamp = datetime.now(tz=pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S %Z')
+        print(f"{timestamp} - {level} - {message}")
 
 def load_core_config():
-    """Load core configuration from YAML file with comprehensive error handling"""
+    """Load core configuration from config.yaml"""
     try:
-        log("Loading core configuration...")
-        config = load_config()
-        if not config:
-            log("WARNING: Empty configuration loaded")
-            return {}
-        
-        core_config = config.get('core', {})
-        if not core_config:
-            log("WARNING: No 'core' section found in configuration")
-            return {}
-            
-        log(f"Core config loaded. Keys: {list(core_config.keys())}")
-        return core_config
-        
+        config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        return config.get('core', {})
     except Exception as e:
         log(f"ERROR loading core configuration: {e}")
         return {}
 
 def update_ci_list_file(config_file_name, ci_list_file_path):
-    """Update the CI list file with current configuration items"""
+    """Update the CI list file with current configuration items from TimescaleDB"""
     try:
         log(f"Updating CI list file: {ci_list_file_path}")
         
         # Validate inputs
-        if not config_file_name:
-            log("ERROR: config_file_name is empty or None")
-            return False
-            
         if not ci_list_file_path:
             log("ERROR: ci_list_file_path is empty or None")
             return False
         
-        # Check if config file exists
-        if not os.path.exists(config_file_name):
-            log(f"ERROR: Config file does not exist: {config_file_name}")
-            return False
-        
-        # Get all CIs from the data file with error handling
+        # Get all CIs from TimescaleDB with error handling
         try:
-            cis_df = get_data_of_all_cis(config_file_name)
+            cis_df = get_data_of_all_cis('')  # file_name parameter not used anymore
         except Exception as e:
-            log(f"ERROR getting CI data: {e}")
+            log(f"ERROR getting CI data from TimescaleDB: {e}")
             return False
         
         if cis_df.empty:
-            log("No CIs found in data file")
+            log("No CIs found in TimescaleDB")
             return False
         
         # Convert to list of dictionaries with relevant information
         try:
             ci_list = []
             for _, row in cis_df.iterrows():
-                try:
-                    ci_info = {
-                        'ci': str(row.get('ci', '')),
-                        'name': str(row.get('name', '')),
-                        'organization': str(row.get('organization', '')),
-                        'product': str(row.get('product', '')),
-                        'tid': str(row.get('tid', '')),
-                        'bu': str(row.get('bu', '')),
-                        'pdt': str(row.get('pdt', ''))
-                    }
-                    ci_list.append(ci_info)
-                except Exception as e:
-                    log(f"Warning: Error processing CI row: {e}")
-                    continue
-        except Exception as e:
-            log(f"ERROR processing CI data: {e}")
-            return False
-        
-        if not ci_list:
-            log("ERROR: No valid CIs found after processing")
-            return False
-        
-        # Ensure directory exists
-        try:
-            os.makedirs(os.path.dirname(ci_list_file_path), exist_ok=True)
-        except Exception as e:
-            log(f"ERROR creating CI list directory: {e}")
-            return False
-        
-        # Write to JSON file with comprehensive error handling
-        try:
-            # Create backup of existing file if it exists
-            if os.path.exists(ci_list_file_path):
-                backup_path = ci_list_file_path + '.backup'
-                try:
-                    import shutil
-                    shutil.copy2(ci_list_file_path, backup_path)
-                    log(f"Created backup: {backup_path}")
-                except Exception as e:
-                    log(f"Warning: Could not create backup: {e}")
+                ci_info = {
+                    'ci': str(row.get('ci', '')),
+                    'name': str(row.get('name', '')),
+                    'organization': str(row.get('organization', '')),
+                    'product': str(row.get('product', ''))
+                }
+                ci_list.append(ci_info)
             
-            # Write new CI list file
+            # Write to JSON file
             with open(ci_list_file_path, 'w', encoding='utf-8') as f:
-                json.dump(ci_list, f, ensure_ascii=False, indent=2)
+                json.dump(ci_list, f, indent=2, ensure_ascii=False)
             
-            # Verify the file was written correctly
-            if os.path.exists(ci_list_file_path) and os.path.getsize(ci_list_file_path) > 0:
-                log(f"CI list file updated successfully with {len(ci_list)} CIs")
-                return True
-            else:
-                log("ERROR: CI list file was not written correctly")
-                return False
-                
+            log(f"Successfully updated CI list file with {len(ci_list)} CIs")
+            return True
+            
         except Exception as e:
             log(f"ERROR writing CI list file: {e}")
-            # Try to restore backup if it exists
-            backup_path = ci_list_file_path + '.backup'
-            if os.path.exists(backup_path):
-                try:
-                    import shutil
-                    shutil.copy2(backup_path, ci_list_file_path)
-                    log(f"Restored backup file: {backup_path}")
-                except Exception as e:
-                    log(f"ERROR restoring backup: {e}")
             return False
             
     except Exception as e:
-        log(f"FATAL ERROR in update_ci_list_file: {e}")
-        import traceback
-        log(f"Traceback: {traceback.format_exc()}")
+        log(f"ERROR in update_ci_list_file: {e}")
         return False
 
-
-
-
-
-
-
-def calculate_recording_duration(config_file_name):
-    """Calculate the total recording duration from availability data"""
+def calculate_recording_duration():
+    """Calculate the total recording duration from TimescaleDB availability data"""
     try:
-        if not os.path.exists(config_file_name):
-            log(f"Data file not found: {config_file_name}")
-            return 0, None, None
-        
-        with h5py.File(config_file_name, 'r', swmr=True) as f:
-            if 'availability' not in f:
-                log("No availability group found in data file")
+        with get_db_conn() as conn:
+            # Get earliest and latest timestamps from TimescaleDB
+            query = """
+            SELECT 
+                MIN(ts) as earliest_ts,
+                MAX(ts) as latest_ts,
+                COUNT(*) as total_measurements
+            FROM measurements
+            """
+            result = pd.read_sql_query(query, conn)
+            
+            if result.empty or result['earliest_ts'].iloc[0] is None:
+                log("No data found in TimescaleDB")
                 return 0, None, None
             
-            availability_group = f['availability']
-            total_ci_count = 0
-            total_ts_count = 0
-            min_epoch = None
+            earliest_ts = result['earliest_ts'].iloc[0]
+            latest_ts = result['latest_ts'].iloc[0]
+            total_measurements = result['total_measurements'].iloc[0]
             
-            # Stream-only min over all CI timestamp keys (avoid per-item tz conversion & list)
-            for ci_name in availability_group.keys():
-                ci_group = availability_group[ci_name]
-                total_ci_count += 1
-                for timestamp_str in ci_group.keys():
-                    try:
-                        epoch_val = float(timestamp_str)
-                    except Exception:
-                        # Skip invalid keys
-                        continue
-                    total_ts_count += 1
-                    if (min_epoch is None) or (epoch_val < min_epoch):
-                        min_epoch = epoch_val
+            # Calculate duration
+            duration_seconds = (latest_ts - earliest_ts).total_seconds()
+            duration_minutes = duration_seconds / 60
             
-            log(f"Collected {total_ts_count} timestamps from {total_ci_count} CIs")
+            # Convert to Europe/Berlin timezone
+            earliest_dt = earliest_ts.tz_convert('Europe/Berlin')
+            latest_dt = latest_ts.tz_convert('Europe/Berlin')
             
-            if (min_epoch is not None):
-                earliest_timestamp = pd.to_datetime(min_epoch, unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
-                current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
-                total_recording_minutes = (current_time.timestamp() - min_epoch) / 60
-                log(f"Approx. recording time (earliest to now): {earliest_timestamp} to {current_time} = {total_recording_minutes:.1f} minutes ({total_recording_minutes/60/24:.1f} days)")
-                return total_recording_minutes, earliest_timestamp, current_time
-            else:
-                log("No timestamps found in availability data")
-                return 0, None, None
-                
+            log(f"Collected {total_measurements} measurements from TimescaleDB")
+            log(f"Recording duration: {duration_minutes:.1f} minutes ({duration_minutes/60/24:.1f} days)")
+            log(f"Earliest: {earliest_dt}, Latest: {latest_dt}")
+            
+            return duration_minutes, earliest_dt, latest_dt
+            
     except Exception as e:
-        log(f"Error calculating recording duration: {e}")
+        log(f"Error calculating recording duration from TimescaleDB: {e}")
         return 0, None, None
 
-def compute_incident_and_availability_metrics(config_file_name):
+def compute_incident_and_availability_metrics():
     """
-    Compute per-CI and aggregated availability metrics using availability time series in HDF5.
+    Compute per-CI and aggregated availability metrics using TimescaleDB data.
     - Treat each timestamp's value (0/1) as status until the next timestamp (right-open interval).
     - For the last timestamp, extend interval to 'now'.
     - Incidents are 1->0 transitions; repair is 0->1.
@@ -353,775 +209,406 @@ def compute_incident_and_availability_metrics(config_file_name):
         'per_ci_metrics': {}
     }
     try:
-        if not os.path.exists(config_file_name):
-            return metrics
-        now_epoch = time.time()
-        with h5py.File(config_file_name, 'r', swmr=True) as f:
-            if 'availability' not in f:
+        with get_db_conn() as conn:
+            # Get all CIs with their availability data
+            query = """
+            WITH ci_metrics AS (
+                SELECT 
+                    ci,
+                    ts,
+                    status,
+                    LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status,
+                    LEAD(ts) OVER (PARTITION BY ci ORDER BY ts) as next_ts
+                FROM measurements
+                ORDER BY ci, ts
+            ),
+            ci_availability AS (
+                SELECT 
+                    ci,
+                    SUM(CASE 
+                        WHEN next_ts IS NOT NULL THEN 
+                            EXTRACT(EPOCH FROM (next_ts - ts)) / 60.0
+                        ELSE 
+                            EXTRACT(EPOCH FROM (NOW() - ts)) / 60.0
+                    END * status) as uptime_minutes,
+                    SUM(CASE 
+                        WHEN next_ts IS NOT NULL THEN 
+                            EXTRACT(EPOCH FROM (next_ts - ts)) / 60.0
+                        ELSE 
+                            EXTRACT(EPOCH FROM (NOW() - ts)) / 60.0
+                    END * (1 - status)) as downtime_minutes,
+                    SUM(CASE 
+                        WHEN prev_status = 1 AND status = 0 THEN 1 
+                        ELSE 0 
+                    END) as incidents
+                FROM ci_metrics
+                GROUP BY ci
+            )
+            SELECT 
+                ca.ci,
+                ca.uptime_minutes,
+                ca.downtime_minutes,
+                ca.incidents,
+                CASE 
+                    WHEN (ca.uptime_minutes + ca.downtime_minutes) > 0 THEN
+                        (ca.uptime_minutes / (ca.uptime_minutes + ca.downtime_minutes)) * 100
+                    ELSE 0
+                END as availability_percentage,
+                cm.name,
+                cm.organization
+            FROM ci_availability ca
+            LEFT JOIN ci_metadata cm ON ca.ci = cm.ci
+            ORDER BY ca.ci
+            """
+            
+            result = pd.read_sql_query(query, conn)
+            
+            if result.empty:
+                log("No availability data found in TimescaleDB")
                 return metrics
-            availability_group = f['availability']
-            # Enrich CI metadata (name, organization) from general CI data
-            ci_metadata = {}
-            try:
-                cis_df = get_data_of_all_cis(config_file_name)
-                if not cis_df.empty and all(c in cis_df.columns for c in ['ci','name','organization']):
-                    for _, row in cis_df[['ci','name','organization']].iterrows():
-                        ci_metadata[str(row['ci'])] = {
-                            'name': str(row['name']) if not pd.isna(row['name']) else '',
-                            'organization': str(row['organization']) if not pd.isna(row['organization']) else ''
-                        }
-            except Exception as e:
-                log(f"Warning: could not enrich CI metadata: {e}")
-            per_ci_results = {}
-            total_downtime_list = []
-            total_mttr_values = []
-            total_mtbf_values = []
-            total_incidents = 0
-            overall_uptime = 0.0
-            overall_downtime = 0.0
-            total_datapoints = 0
-            for ci_name in availability_group.keys():
-                ci_group = availability_group[ci_name]
-                # Collect and sort all timestamps as floats
-                ts_list = []
-                for k in ci_group.keys():
-                    try:
-                        ts_list.append(float(k))
-                    except Exception:
-                        continue
-                if not ts_list:
-                    continue
-                ts_list.sort()
-                total_datapoints += len(ts_list)
-                # Build status sequence aligned to ts_list
-                statuses = []
-                for ts in ts_list:
-                    try:
-                        ds = ci_group[str(ts)]
-                        val = int(ds[()]) if isinstance(ds, h5py.Dataset) else int(ds)
-                        statuses.append(1 if val != 0 else 0)
-                    except Exception:
-                        statuses.append(0)
-                # Compute intervals
-                downtime_minutes = 0.0
-                uptime_minutes = 0.0
-                incidents = 0
-                mttr_list = []
-                mtbf_list = []
-                current_state = statuses[0]
-                last_change_epoch = ts_list[0]
-                last_epoch = ts_list[0]
-                # Track last up-period start for MTBF (time between incidents)
-                last_repair_epoch = None
-                for idx in range(len(ts_list) - 1):
-                    start = ts_list[idx]
-                    end = ts_list[idx + 1]
-                    dur_min = (end - start) / 60.0
-                    if statuses[idx] == 1:
-                        uptime_minutes += dur_min
-                    else:
-                        downtime_minutes += dur_min
-                    # Transition detection at idx+1 (state applies from ts_list[idx])
-                    if statuses[idx + 1] != statuses[idx]:
-                        # state changes at 'end'
-                        prev_state = statuses[idx]
-                        new_state = statuses[idx + 1]
-                        if prev_state == 1 and new_state == 0:
-                            incidents += 1
-                            last_change_epoch = end
-                            # end of an up period -> start of downtime; close MTBF if there was a prior repair
-                            if last_repair_epoch is not None:
-                                mtbf_list.append((end - last_repair_epoch) / 60.0)
-                        elif prev_state == 0 and new_state == 1:
-                            # repair completed: downtime from last_change to end
-                            if last_change_epoch is not None:
-                                mttr_list.append((end - last_change_epoch) / 60.0)
-                            last_repair_epoch = end
-                        current_state = new_state
-                    last_epoch = end
-                # Extend last interval to now
-                if last_epoch < now_epoch:
-                    tail_min = (now_epoch - last_epoch) / 60.0
-                    if statuses[-1] == 1:
-                        uptime_minutes += tail_min
-                    else:
-                        downtime_minutes += tail_min
-                # If last state is down, we have an open incident; do not close MTTR until repair occurs
-                availability_pct = (uptime_minutes / (uptime_minutes + downtime_minutes) * 100.0) if (uptime_minutes + downtime_minutes) > 0 else 0.0
-                meta = ci_metadata.get(ci_name, {})
-                ci_result = {
-                    'incidents': int(incidents),
-                    'uptime_minutes': float(uptime_minutes),
-                    'downtime_minutes': float(downtime_minutes),
-                    'availability_percentage': float(availability_pct),
-                    'mttr_minutes_mean': float(np.mean(mttr_list)) if mttr_list else 0.0,
-                    'mtbf_minutes_mean': float(np.mean(mtbf_list)) if mtbf_list else 0.0,
-                    'longest_outage_minutes': float(max(mttr_list)) if mttr_list else ( (now_epoch - last_change_epoch) / 60.0 if statuses[-1] == 0 else 0.0 ),
-                    'name': meta.get('name', ''),
-                    'organization': meta.get('organization', '')
+            
+            # Process results
+            for _, row in result.iterrows():
+                ci = row['ci']
+                uptime_minutes = float(row['uptime_minutes']) if row['uptime_minutes'] else 0.0
+                downtime_minutes = float(row['downtime_minutes']) if row['downtime_minutes'] else 0.0
+                incidents = int(row['incidents']) if row['incidents'] else 0
+                availability_pct = float(row['availability_percentage']) if row['availability_percentage'] else 0.0
+                
+                # Store per-CI metrics
+                metrics['per_ci_metrics'][ci] = {
+                    'uptime_minutes': uptime_minutes,
+                    'downtime_minutes': downtime_minutes,
+                    'availability_percentage': availability_pct,
+                    'incidents': incidents,
+                    'name': row.get('name', ''),
+                    'organization': row.get('organization', '')
                 }
-                per_ci_results[ci_name] = ci_result
-                total_incidents += incidents
-                overall_uptime += uptime_minutes
-                overall_downtime += downtime_minutes
-                total_downtime_list.append((ci_name, downtime_minutes))
-                if mttr_list:
-                    total_mttr_values.extend(mttr_list)
-                if mtbf_list:
-                    total_mtbf_values.extend(mtbf_list)
-            overall_pct = (overall_uptime / (overall_uptime + overall_downtime) * 100.0) if (overall_uptime + overall_downtime) > 0 else 0.0
-            # Rankings
-            top_unstable = sorted(((ci, per_ci_results[ci]['incidents']) for ci in per_ci_results), key=lambda x: x[1], reverse=True)[:10]
-            top_downtime = sorted(total_downtime_list, key=lambda x: x[1], reverse=True)[:10]
-            metrics.update({
-                'overall_uptime_minutes': overall_uptime,
-                'overall_downtime_minutes': overall_downtime,
-                'overall_availability_percentage_rollup': overall_pct,
-                'total_incidents': total_incidents,
-                'mttr_minutes_mean': float(np.mean(total_mttr_values)) if total_mttr_values else 0.0,
-                'mtbf_minutes_mean': float(np.mean(total_mtbf_values)) if total_mtbf_values else 0.0,
-                'top_unstable_cis_by_incidents': [{'ci': ci, 'incidents': inc} for ci, inc in top_unstable],
-                'top_downtime_cis': [{'ci': ci, 'downtime_minutes': mins} for ci, mins in top_downtime],
-                'per_ci_metrics': per_ci_results,
-                'total_datapoints': int(total_datapoints)
-            })
+                
+                # Add to overall totals
+                metrics['overall_uptime_minutes'] += uptime_minutes
+                metrics['overall_downtime_minutes'] += downtime_minutes
+                metrics['total_incidents'] += incidents
+            
+            # Calculate overall availability percentage
+            total_overall_minutes = metrics['overall_uptime_minutes'] + metrics['overall_downtime_minutes']
+            if total_overall_minutes > 0:
+                metrics['overall_availability_percentage_rollup'] = (
+                    metrics['overall_uptime_minutes'] / total_overall_minutes * 100
+                )
+            
+            # Create top unstable CIs list
+            top_unstable = sorted(
+                metrics['per_ci_metrics'].items(),
+                key=lambda x: x[1]['incidents'],
+                reverse=True
+            )[:10]
+            
+            metrics['top_unstable_cis_by_incidents'] = [
+                {
+                    'ci': ci,
+                    'incidents': data['incidents'],
+                    'availability_percentage': data['availability_percentage'],
+                    'name': data['name'],
+                    'organization': data['organization']
+                }
+                for ci, data in top_unstable
+            ]
+            
+            # Create top downtime CIs list
+            top_downtime = sorted(
+                metrics['per_ci_metrics'].items(),
+                key=lambda x: x[1]['downtime_minutes'],
+                reverse=True
+            )[:10]
+            
+            metrics['top_downtime_cis'] = [
+                {
+                    'ci': ci,
+                    'downtime_minutes': data['downtime_minutes'],
+                    'availability_percentage': data['availability_percentage'],
+                    'name': data['name'],
+                    'organization': data['organization']
+                }
+                for ci, data in top_downtime
+            ]
+            
+            log(f"Computed metrics for {len(metrics['per_ci_metrics'])} CIs from TimescaleDB")
+            return metrics
+            
     except Exception as e:
-        log(f"Error computing availability metrics: {e}")
-    return metrics
+        log(f"Error computing incident and availability metrics from TimescaleDB: {e}")
+        return metrics
 
-def format_duration(hours):
-    """Format duration in a human-readable way"""
-    if hours < 1:
-        minutes = int(hours * 60)
-        return f"{minutes} Minuten"
-    elif hours < 24:
+def format_duration_minutes(minutes):
+    """Format duration in minutes to human readable string"""
+    if minutes < 60:
+        return f"{minutes:.1f} Minuten"
+    elif minutes < 1440:  # 24 hours
+        hours = minutes / 60
         return f"{hours:.1f} Stunden"
     else:
-        days = hours / 24
+        days = minutes / 1440
         return f"{days:.1f} Tage"
 
-def calculate_overall_statistics(config_file_name, cis):
+def calculate_overall_statistics(cis):
     """
     Calculate overall statistics for all Configuration Items including:
-    - Total counts and current availability
+    - Total number of CIs
+    - Currently available/unavailable CIs
     - Overall availability percentage
-    - Recording time range
-    - Product distribution
-    - Organization distribution
+    - Recording duration
+    - Database size
+    - Incident metrics
     """
-    if cis.empty:
-        return {}
-    
-    # Basic counts
-    total_cis = len(cis)
-    currently_available = cis['current_availability'].sum()
-    currently_unavailable = total_cis - currently_available
-    overall_availability_percentage = (currently_available / total_cis) * 100 if total_cis > 0 else 0
-    
-    # Product distribution
-    product_counts = cis['product'].value_counts()
-    total_products = len(product_counts)
-    
-    # Organization distribution
-    organization_counts = cis['organization'].value_counts()
-    total_organizations = len(organization_counts)
-    
-    # Current status distribution
-    status_counts = cis['current_availability'].value_counts()
-    available_count = status_counts.get(1, 0)
-    unavailable_count = status_counts.get(0, 0)
-    
-    # Recent changes (availability_difference != 0)
-    recent_changes = cis[cis['availability_difference'] != 0]
-    changes_count = len(recent_changes)
-    
-    # Get recording duration from availability data
-    total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration(config_file_name)
-
-    # Get database file size
-    database_size_mb = 0
     try:
-        if os.path.exists(config_file_name):
-            database_size_bytes = os.path.getsize(config_file_name)
-            database_size_mb = database_size_bytes / (1024 * 1024)
+        log("Calculating overall statistics...")
+        
+        # Basic CI counts
+        total_cis = len(cis)
+        currently_available = len(cis[cis['current_availability'] == 1]) if 'current_availability' in cis.columns else 0
+        currently_unavailable = total_cis - currently_available
+        
+        # Get recording duration from TimescaleDB
+        total_recording_minutes, earliest_timestamp, latest_timestamp = calculate_recording_duration()
+        
+        # Get database size from TimescaleDB
+        database_size_mb = 0
+        try:
+            with get_db_conn() as conn:
+                query = "SELECT pg_size_pretty(pg_database_size(current_database())) as size"
+                result = pd.read_sql_query(query, conn)
+                if not result.empty:
+                    size_str = result['size'].iloc[0]
+                    # Parse size string (e.g., "123 MB" -> 123)
+                    if 'MB' in size_str:
+                        database_size_mb = float(size_str.replace('MB', '').strip())
+                    elif 'GB' in size_str:
+                        database_size_mb = float(size_str.replace('GB', '').strip()) * 1024
+        except Exception as e:
+            log(f"Error getting database size: {e}")
+        
+        # Compute incident and availability metrics from TimescaleDB
+        availability_metrics = compute_incident_and_availability_metrics()
+        
+        # Get current time in Europe/Berlin
+        current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+        
+        # Calculate data age
+        data_age_hours = 0
+        data_age_formatted = "Aktuell"
+        if latest_timestamp is not None:
+            time_diff = current_time - latest_timestamp
+            data_age_hours = time_diff.total_seconds() / 3600
+            if data_age_hours < 1:
+                data_age_formatted = "Aktuell"
+            elif data_age_hours < 24:
+                data_age_formatted = f"{data_age_hours:.1f} Stunden"
+            else:
+                data_age_formatted = f"{data_age_hours/24:.1f} Tage"
+        
+        return {
+            'total_cis': total_cis,
+            'currently_available': currently_available,
+            'currently_unavailable': currently_unavailable,
+            'overall_availability_percentage': availability_metrics.get('overall_availability_percentage_rollup', 0.0),
+            'total_recording_minutes': total_recording_minutes,
+            'earliest_timestamp': earliest_timestamp,
+            'latest_timestamp': latest_timestamp,
+            'data_age_hours': data_age_hours,
+            'data_age_formatted': data_age_formatted,
+            'database_size_mb': database_size_mb,
+            'total_incidents': availability_metrics.get('total_incidents', 0),
+            'mttr_minutes_mean': availability_metrics.get('mttr_minutes_mean', 0.0),
+            'mtbf_minutes_mean': availability_metrics.get('mtbf_minutes_mean', 0.0),
+            'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
+            'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
+            'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
+            'calculated_at': time.time()
+        }
+        
     except Exception as e:
-        log(f"Error getting database file size: {e}")
+        log(f"Error calculating overall statistics: {e}")
+        return {}
 
-    # Compute incident and availability metrics from HDF5 availability data
-    availability_metrics = compute_incident_and_availability_metrics(config_file_name)
-    
-    # Get current time in Europe/Berlin
-    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
-    if latest_timestamp:
-        data_age_hours = (current_time - latest_timestamp).total_seconds() / 3600
-        data_age_formatted = format_duration(data_age_hours)
-    else:
-        data_age_formatted = "Unbekannt"
-    
-    return {
-        'total_cis': int(total_cis),
-        'currently_available': int(currently_available),
-        'currently_unavailable': int(currently_unavailable),
-        'overall_availability_percentage': float(overall_availability_percentage),
-        'overall_availability_percentage_total': float(overall_availability_percentage),  # Same as current availability for now
-        'total_products': int(total_products),
-        'total_organizations': int(total_organizations),
-        'available_count': int(available_count),
-        'unavailable_count': int(unavailable_count),
-        'changes_count': int(changes_count),
-        'latest_timestamp': latest_timestamp.isoformat() if latest_timestamp else None,
-        'earliest_timestamp': earliest_timestamp.isoformat() if earliest_timestamp else None,
-        'data_age_formatted': data_age_formatted,
-        'product_counts': product_counts.to_dict(),
-        'organization_counts': organization_counts.to_dict(),
-        'total_recording_minutes': float(total_recording_minutes),
-        'calculated_at': time.time(),
-        # New metrics (availability/incidents)
-        'overall_uptime_minutes': float(availability_metrics.get('overall_uptime_minutes', 0.0)),
-        'overall_downtime_minutes': float(availability_metrics.get('overall_downtime_minutes', 0.0)),
-        'overall_availability_percentage_rollup': float(availability_metrics.get('overall_availability_percentage_rollup', 0.0)),
-        'total_incidents': int(availability_metrics.get('total_incidents', 0)),
-        'mttr_minutes_mean': float(availability_metrics.get('mttr_minutes_mean', 0.0)),
-        'mtbf_minutes_mean': float(availability_metrics.get('mtbf_minutes_mean', 0.0)),
-        'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
-        'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
-        'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
-        'database_size_mb': float(database_size_mb),
-        'total_datapoints': int(availability_metrics.get('total_datapoints', 0))
-    }
-
-def update_statistics_file(config_file_name):
-    """Update the statistics JSON file with current data"""
+def update_statistics_file():
+    """Update the statistics JSON file with current data from TimescaleDB"""
     try:
-        log("Starting statistics file update...")
+        log("Updating statistics file...")
         
-        # Check if TimescaleDB is enabled
-        core_config = load_config(config_file_name)
-        tsdb_cfg = core_config.get('core', {}).get('timescaledb', {}) if isinstance(core_config, dict) else {}
-        use_timescaledb = tsdb_cfg.get('enabled', False)
+        # Get current CI data from TimescaleDB
+        log("Retrieving CI data from TimescaleDB...")
+        cis = get_data_of_all_cis('')  # file_name parameter not used anymore
+        if cis.empty:
+            log("ERROR: No CI data available for statistics calculation")
+            return False
         
-        if use_timescaledb:
-            log("Using TimescaleDB for statistics calculation...")
-            # Use TimescaleDB-based statistics
-            stats = mylibrary.get_timescaledb_statistics_data()
-            if not stats:
-                log("ERROR: Failed to calculate TimescaleDB statistics")
-                return False
-        else:
-            log(f"Using HDF5 data file: {config_file_name}")
-            # Get current CI data from HDF5
-            log("Retrieving CI data from data file...")
-            cis = get_data_of_all_cis(config_file_name)
-            if cis.empty:
-                log("ERROR: No CI data available for statistics calculation")
-                return False
-            
-            log(f"Retrieved {len(cis)} CIs from data file")
-            log(f"CI columns: {list(cis.columns)}")
-            
-            # Calculate statistics from HDF5
-            log("Calculating overall statistics...")
-            stats = calculate_overall_statistics(config_file_name, cis)
-            if not stats:
-                log("ERROR: Failed to calculate statistics")
-                return False
+        log(f"Retrieved {len(cis)} CIs from TimescaleDB")
+        log(f"CI columns: {list(cis.columns)}")
         
-        log(f"Statistics calculated successfully. Keys: {list(stats.keys())}")
-        log(f"Latest timestamp: {stats.get('latest_timestamp', 'None')}")
-        log(f"Data age: {stats.get('data_age_formatted', 'Unknown')}")
-        log(f"Total incidents: {stats.get('total_incidents', 0)}")
-        log(f"Overall availability: {stats.get('overall_availability_percentage_rollup', 0):.2f}%")
+        # Calculate statistics from TimescaleDB
+        log("Calculating overall statistics...")
+        stats = calculate_overall_statistics(cis)
+        if not stats:
+            log("ERROR: Failed to calculate statistics")
+            return False
         
         # Save to JSON file
         statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
-        log(f"Saving statistics to: {statistics_file_path}")
-        
-        # Create backup of existing file if it exists
-        if os.path.exists(statistics_file_path):
-            backup_path = statistics_file_path + '.backup'
-            try:
-                import shutil
-                shutil.copy2(statistics_file_path, backup_path)
-                log(f"Created backup: {backup_path}")
-            except Exception as e:
-                log(f"Warning: Could not create backup: {e}")
-        
-        with open(statistics_file_path, 'w', encoding='utf-8') as f:
-            json.dump(stats, f, indent=2, ensure_ascii=False)
-        
-        # Verify file was written correctly
-        if os.path.exists(statistics_file_path) and os.path.getsize(statistics_file_path) > 0:
-            file_size = os.path.getsize(statistics_file_path)
-            log(f"Statistics file saved successfully. Size: {file_size} bytes")
-        else:
-            log("ERROR: Statistics file was not written correctly")
+        try:
+            with open(statistics_file_path, 'w', encoding='utf-8') as f:
+                json.dump(stats, f, indent=2, ensure_ascii=False, default=str)
+            log(f"Statistics saved to {statistics_file_path}")
+            return True
+        except Exception as e:
+            log(f"ERROR saving statistics file: {e}")
             return False
-        
-        log(f"Statistics update completed: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
-        return True
-        
+            
     except Exception as e:
-        log(f"ERROR updating statistics file: {e}")
-        import traceback
-        log(f"Traceback: {traceback.format_exc()}")
+        log(f"ERROR in update_statistics_file: {e}")
         return False
 
 def main():
-    # Initialize logger first
-    setup_logger()
-    
-    log("=== CRON JOB STARTING ===")
-    log("Starting main function...")
-    log("Logging initialized - logs will be written to data/cron.log with daily rotation")
-    
-    # Load core configurations with error handling
+    """Main cron job function - TimescaleDB only version"""
     try:
+        log("Starting TI-Monitoring cron job (TimescaleDB only)")
+        
+        # Load configuration
         core_config = load_core_config()
-    except Exception as e:
-        log(f"FATAL ERROR loading core configuration: {e}")
-        return
-    
-    # Get configurations from YAML with validation
-    try:
-        config_file_name = core_config.get('file_name')
-        config_url = core_config.get('url')
-        config_home_url = core_config.get('home_url')
-        config_notifications_file = core_config.get('notifications_config_file')
-        retention_months = int(core_config.get('retention_months', 6))
-        
-        # Get cron intervals with defaults and validation
-        cron_intervals = core_config.get('cron_intervals', {})
-        ci_list_update_interval = cron_intervals.get('ci_list_update_interval', 288)      # Default: every 24 hours
-        
-        # Validate interval values
-        if not isinstance(ci_list_update_interval, int) or ci_list_update_interval < 1:
-            log(f"WARNING: Invalid ci_list_update_interval: {ci_list_update_interval}, using default: 288")
-            ci_list_update_interval = 288
-            
-    except Exception as e:
-        log(f"ERROR processing configuration: {e}")
-        return
-    
-    log(f"Configuration values:")
-    log(f"  file_name: {config_file_name}")
-    log(f"  url: {config_url}")
-    log(f"  home_url: {config_home_url}")
-    log(f"  notifications_file: {config_notifications_file}")
-    log(f"  ci_list_update_interval: {ci_list_update_interval} iterations ({ci_list_update_interval * 5} minutes)")
-    log(f"  retention_months: {retention_months} months")
-    
-    if not config_file_name or not config_url:
-        log("ERROR: Required configuration missing in config.yaml")
-        log(f"  file_name: {config_file_name}")
-        log(f"  url: {config_url}")
-        return
-    
-    log(f"Configuration validation passed")
-    log(f"Using file: {config_file_name}")
-    log(f"Using URL: {config_url}")
-    
-    # Main loop - run every 5 minutes with comprehensive error handling
-    iteration_count = 0
-    consecutive_errors = 0
-    max_consecutive_errors = 10  # Stop after 10 consecutive errors
-    
-    log("Entering main loop...")
-    last_stats_update_time = 0  # epoch seconds; controls hourly stats updates
-    while True:
-        try:
-            iteration_count += 1
-            log(f"=== ITERATION {iteration_count} ===")
-            log(f"Running cron job at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # Reset error counter on successful iteration
-            consecutive_errors = 0
-            
-            # Initialize data file with error handling
-            try:
-                log("Calling initialize_data_file...")
-                initialize_data_file(config_file_name)
-                log("initialize_data_file completed")
-            except Exception as e:
-                log(f"ERROR in initialize_data_file: {e}")
-                # Continue with next step even if initialization fails
-            
-            # Update file with error handling
-            try:
-                log("Calling update_file...")
-                update_file(config_file_name, config_url)
-                log("update_file completed")
-            except Exception as e:
-                log(f"ERROR in update_file: {e}")
-                # Continue with other tasks even if update_file fails
-
-            # Optional TimescaleDB ingestion (feature-flagged)
-            try:
-                tsdb_cfg = core_config.get('timescaledb', {}) if isinstance(core_config, dict) else {}
-                if tsdb_cfg.get('enabled', False):
-                    # einmalig Retention setzen (bevor ingest läuft)
-                    try:
-                        keep_days = int(tsdb_cfg.get('keep_days', 185))
-                        setup_timescaledb_retention(keep_days=keep_days)
-                    except Exception as e:
-                        log(f"TimescaleDB retention setup failed (non-fatal): {e}")
-                    inserted = ingest_hdf5_to_timescaledb(config_file_name, max_rows=20000)
-                    log(f"TimescaleDB ingest: inserted ~{inserted} rows this iteration")
-            except Exception as e:
-                log(f"TimescaleDB ingest failed (non-fatal): {e}")
-            
-            # Update CI list file at configured interval with error handling
-            if iteration_count % ci_list_update_interval == 0:
-                try:
-                    log(f"CI list update (every {ci_list_update_interval} iterations = {ci_list_update_interval * 5} minutes)...")
-                    ci_list_file_path = os.path.join(os.path.dirname(__file__), 'data', 'ci_list.json')
-                    update_ci_list_file(config_file_name, ci_list_file_path)
-                    log("CI list update completed")
-                except Exception as e:
-                    log(f"ERROR in CI list update: {e}")
-            
-            # Update statistics file hourly (time-based) with error handling
-            now_epoch = time.time()
-            if now_epoch - last_stats_update_time >= 3600:
-                try:
-                    log("Updating statistics file (hourly)...")
-                    update_statistics_file(config_file_name)
-                    last_stats_update_time = now_epoch
-                    log("Statistics update completed")
-                except Exception as e:
-                    log(f"ERROR in statistics update: {e}")
-            
-
-            
-            # Check if notifications are enabled with comprehensive error handling
-            try:
-                log("Checking notifications...")
-                if config_notifications_file and os.path.exists(config_notifications_file):
-                    log(f"Notifications file exists: {config_notifications_file}")
-                    try:
-                        with open(config_notifications_file, 'r') as f:
-                            notifications_config = yaml.safe_load(f)
-                        log(f"Notifications config loaded: {len(notifications_config) if notifications_config else 0} profiles")
-                        # notifications_config is a list, so we check if it's not empty instead of looking for 'enabled'
-                        if notifications_config and len(notifications_config) > 0:
-                            log("Sending notifications...")
-                            send_apprise_notifications(config_file_name, config_notifications_file, config_home_url)
-                            log("Notifications sent successfully")
-                        else:
-                            log("No notification profiles found")
-                    except Exception as e:
-                        log(f"ERROR with notifications: {e}")
-                else:
-                    log(f"Notifications file not found or not specified: {config_notifications_file}")
-            except Exception as e:
-                log(f"ERROR checking notifications: {e}")
-            
-            log(f"Cron job completed at {time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            # Force garbage collection every 10 iterations to prevent memory buildup
-            if iteration_count % 10 == 0:
-                try:
-                    log("Performing garbage collection...")
-                    gc.collect()
-                    log("Garbage collection completed")
-                except Exception as e:
-                    log(f"ERROR in garbage collection: {e}")
-            
-            # Enforce retention policy every 288 iterations (24 hours)
-            if iteration_count % 288 == 0:
-                try:
-                    log("Running retention policy...")
-                    deleted = enforce_retention_policy(config_file_name, months=retention_months)
-                    log(f"Retention policy completed. Deleted datapoints: {deleted}")
-                except Exception as e:
-                    log(f"ERROR in retention policy: {e}")
-
-            # Clean up old log files every 288 iterations (24 hours)
-            if iteration_count % 288 == 0:
-                try:
-                    log("Cleaning up old log files...")
-                    cleanup_old_logs()
-                    log("Log cleanup completed")
-                except Exception as e:
-                    log(f"ERROR in log cleanup: {e}")
-            
-            log("Sleeping for 5 minutes...")
-            
-            # Sleep for 5 minutes (300 seconds) with error handling
-            try:
-                time.sleep(300)
-            except Exception as e:
-                log(f"ERROR during sleep: {e}")
-                # Continue anyway
-            
-        except KeyboardInterrupt:
-            log("Cron job interrupted, exiting...")
-            break
-        except Exception as e:
-            consecutive_errors += 1
-            log(f"ERROR in cron job (error #{consecutive_errors}): {e}")
-            log(f"Exception type: {type(e).__name__}")
-            import traceback
-            log(f"Traceback: {traceback.format_exc()}")
-            
-            # Check if we've had too many consecutive errors
-            if consecutive_errors >= max_consecutive_errors:
-                log(f"FATAL: Too many consecutive errors ({consecutive_errors}), stopping cron job")
-                break
-            
-            # Sleep for 5 minutes before retry with error handling
-            try:
-                log("Sleeping for 5 minutes before retry...")
-                time.sleep(300)
-            except Exception as sleep_error:
-                log(f"ERROR during error recovery sleep: {sleep_error}")
-                # If we can't even sleep, we should probably exit
-                log("Cannot recover from error, exiting...")
-                break
-
-if __name__ == '__main__':
-    try:
-        # Initialize logger first
-        setup_logger()
-        log("Script started - __name__ == '__main__'")
-        main()
-    except KeyboardInterrupt:
-        log("Script interrupted by user")
-        sys.exit(0)
-    except Exception as e:
-        try:
-            log(f"FATAL ERROR in main: {e}")
-            import traceback
-            log(f"Traceback: {traceback.format_exc()}")
-        except:
-            # If even logging fails, just print to stderr
-            print(f"FATAL ERROR: {e}", file=sys.stderr)
-        sys.exit(1)
-else:
-    try:
-        # Initialize logger for imports too
-        setup_logger()
-        log(f"Script imported - __name__ == '{__name__}'")
-    except:
-        # If logging fails during import, just continue
-        pass
-
-def cleanup_old_logs():
-    """Clean up old log files (older than 7 days)"""
-    try:
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        if not os.path.exists(data_dir):
+        if not core_config:
+            log("ERROR: Could not load core configuration")
             return
         
-        current_time = time.time()
-        cutoff_time = current_time - (7 * 24 * 60 * 60)  # 7 days ago
+        # Get configurations from YAML with validation
+        config_url = core_config.get('url')
+        config_home_url = core_config.get('home_url')
+        retention_months = core_config.get('retention_months', 6)
+        ci_list_update_interval = core_config.get('ci_list_update_interval', 12)  # Update every 12 iterations (1 hour)
         
-        for filename in os.listdir(data_dir):
-            if filename.startswith('cron.log.') and filename.endswith(('.log', '.gz')):
-                file_path = os.path.join(data_dir, filename)
+        log(f"Configuration values:")
+        log(f"  url: {config_url}")
+        log(f"  home_url: {config_home_url}")
+        log(f"  retention_months: {retention_months} months")
+        
+        if not config_url:
+            log("ERROR: Required configuration missing in config.yaml")
+            log(f"  url: {config_url}")
+            return
+        
+        log(f"Configuration validation passed")
+        log(f"Using URL: {config_url}")
+        
+        # Initialize counters
+        iteration_count = 0
+        last_ci_list_update_time = 0
+        last_stats_update_time = 0
+        last_notification_time = 0
+        last_retention_time = 0
+        
+        # Main loop
+        while True:
+            try:
+                iteration_count += 1
+                now_epoch = time.time()
+                log(f"=== Iteration {iteration_count} ===")
+                
+                # Update data from API to TimescaleDB
                 try:
-                    file_mtime = os.path.getmtime(file_path)
-                    if file_mtime < cutoff_time:
-                        os.remove(file_path)
-                        log(f"Cleaned up old log file: {filename}")
+                    log("Calling update_file...")
+                    update_file('', config_url)  # file_name parameter not used anymore
+                    log("update_file completed")
                 except Exception as e:
-                    log(f"Error cleaning up log file {filename}: {e}")
+                    log(f"ERROR in update_file: {e}")
+                
+                # Update CI list periodically
+                if (iteration_count % ci_list_update_interval == 0 or 
+                    now_epoch - last_ci_list_update_time > 3600):  # Every hour
+                    try:
+                        log(f"CI list update (every {ci_list_update_interval} iterations = {ci_list_update_interval * 5} minutes)...")
+                        ci_list_file_path = os.path.join(os.path.dirname(__file__), 'data', 'ci_list.json')
+                        update_ci_list_file('', ci_list_file_path)  # file_name parameter not used anymore
+                        log("CI list update completed")
+                        last_ci_list_update_time = now_epoch
+                    except Exception as e:
+                        log(f"ERROR in CI list update: {e}")
+                
+                # Update statistics file hourly
+                if now_epoch - last_stats_update_time > 3600:  # Every hour
+                    try:
+                        log("Updating statistics file (hourly)...")
+                        update_statistics_file()
+                        last_stats_update_time = now_epoch
+                        log("Statistics update completed")
+                    except Exception as e:
+                        log(f"ERROR in statistics update: {e}")
+                
+                # Send notifications every 5 minutes
+                if now_epoch - last_notification_time > 300:  # Every 5 minutes
+                    try:
+                        config_notifications_file = os.path.join(os.path.dirname(__file__), 'notifications.json')
+                        if os.path.exists(config_notifications_file):
+                            with open(config_notifications_file, 'r', encoding='utf-8') as f:
+                                notifications_config = json.load(f)
+                            
+                            if notifications_config and len(notifications_config) > 0:
+                                log("Sending notifications...")
+                                send_apprise_notifications('', config_notifications_file, config_home_url)  # file_name parameter not used anymore
+                                log("Notifications sent successfully")
+                            else:
+                                log("No notifications configured")
+                        else:
+                            log("No notifications file found")
+                        last_notification_time = now_epoch
+                    except Exception as e:
+                        log(f"ERROR in notifications: {e}")
+                
+                # Run retention policy daily
+                if now_epoch - last_retention_time > 86400:  # Every 24 hours
+                    try:
+                        log("Running retention policy...")
+                        # TimescaleDB retention is handled by drop_chunks policy
+                        log("Retention policy completed (handled by TimescaleDB drop_chunks)")
+                        last_retention_time = now_epoch
+                    except Exception as e:
+                        log(f"ERROR in retention policy: {e}")
+                
+                # Clean up old logs
+                try:
+                    cleanup_old_logs()
+                except Exception as e:
+                    log(f"ERROR in cleanup_old_logs: {e}")
+                
+                # Wait 5 minutes before next iteration
+                log("Waiting 5 minutes before next iteration...")
+                time.sleep(300)
+                
+            except KeyboardInterrupt:
+                log("Received keyboard interrupt, shutting down...")
+                break
+            except Exception as e:
+                log(f"ERROR in main loop iteration: {e}")
+                time.sleep(60)  # Wait 1 minute before retrying
+                
+    except Exception as e:
+        log(f"FATAL ERROR in main: {e}")
+        sys.exit(1)
+
+def cleanup_old_logs():
+    """Clean up old log files"""
+    try:
+        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        log_files = [f for f in os.listdir(data_dir) if f.startswith('cron.log')]
+        
+        for log_file in log_files:
+            if log_file != 'cron.log':  # Keep current log
+                file_path = os.path.join(data_dir, log_file)
+                file_age = time.time() - os.path.getmtime(file_path)
+                if file_age > 30 * 24 * 3600:  # 30 days
+                    os.remove(file_path)
+                    log(f"Removed old log file: {log_file}")
                     
     except Exception as e:
         log(f"Error in cleanup_old_logs: {e}")
 
-def enforce_retention_policy(config_file_name: str, months: int = 6) -> int:
-    """Retain only the last 'months' of availability data per CI.
-    Returns the number of deleted datapoints.
-    """
-    try:
-        log(f"Retention: keeping last {months} months of data...")
-        if not os.path.exists(config_file_name):
-            log(f"Retention skipped: file not found: {config_file_name}")
-            return 0
-
-        now_epoch = time.time()
-        # Approximate months to days; 1 month ≈ 30.5 days
-        cutoff_epoch = now_epoch - (months * 30.5 * 24 * 3600)
-
-        deleted = 0
-        with h5py.File(config_file_name, 'a', swmr=False) as f:
-            if 'availability' not in f:
-                log("Retention: availability group not found; nothing to do")
-                return 0
-            availability = f['availability']
-            for ci in list(availability.keys()):
-                ci_group = availability[ci]
-                keys = list(ci_group.keys())
-                to_delete = []
-                for k in keys:
-                    try:
-                        ts = float(k)
-                        if ts < cutoff_epoch:
-                            to_delete.append(k)
-                    except Exception:
-                        # Invalid key → remove
-                        to_delete.append(k)
-                for k in to_delete:
-                    try:
-                        del ci_group[k]
-                        deleted += 1
-                    except Exception as e:
-                        log(f"Retention: failed to delete {ci}/{k}: {e}")
-        log(f"Retention: deleted {deleted} datapoints older than cutoff")
-        return deleted
-    except Exception as e:
-        log(f"Retention ERROR: {e}")
-        return 0
-
-def compute_incident_and_availability_metrics(config_file_name):
-    """
-    Compute per-CI and aggregated availability metrics using availability time series in HDF5.
-    - Treat each timestamp's value (0/1) as status until the next timestamp (right-open interval).
-    - For the last timestamp, extend interval to 'now'.
-    - Incidents are 1->0 transitions; repair is 0->1.
-    Returns dict with rollups and per_ci details.
-    """
-    metrics = {
-        'overall_uptime_minutes': 0.0,
-        'overall_downtime_minutes': 0.0,
-        'overall_availability_percentage_rollup': 0.0,
-        'total_incidents': 0,
-        'mttr_minutes_mean': 0.0,
-        'mtbf_minutes_mean': 0.0,
-        'top_unstable_cis_by_incidents': [],
-        'top_downtime_cis': [],
-        'per_ci_metrics': {}
-    }
-    try:
-        if not os.path.exists(config_file_name):
-            return metrics
-        now_epoch = time.time()
-        with h5py.File(config_file_name, 'r', swmr=True) as f:
-            if 'availability' not in f:
-                return metrics
-            availability_group = f['availability']
-            # Enrich CI metadata (name, organization) from general CI data
-            ci_metadata = {}
-            try:
-                cis_df = get_data_of_all_cis(config_file_name)
-                if not cis_df.empty and all(c in cis_df.columns for c in ['ci','name','organization']):
-                    for _, row in cis_df[['ci','name','organization']].iterrows():
-                        ci_metadata[str(row['ci'])] = {
-                            'name': str(row['name']) if not pd.isna(row['name']) else '',
-                            'organization': str(row['organization']) if not pd.isna(row['organization']) else ''
-                        }
-            except Exception as e:
-                log(f"Warning: could not enrich CI metadata: {e}")
-            per_ci_results = {}
-            total_downtime_list = []
-            total_mttr_values = []
-            total_mtbf_values = []
-            total_incidents = 0
-            overall_uptime = 0.0
-            overall_downtime = 0.0
-            for ci_name in availability_group.keys():
-                ci_group = availability_group[ci_name]
-                # Collect and sort all timestamps as floats
-                ts_list = []
-                for k in ci_group.keys():
-                    try:
-                        ts_list.append(float(k))
-                    except Exception:
-                        continue
-                if not ts_list:
-                    continue
-                ts_list.sort()
-                # Build status sequence aligned to ts_list
-                statuses = []
-                for ts in ts_list:
-                    try:
-                        ds = ci_group[str(ts)]
-                        val = int(ds[()]) if isinstance(ds, h5py.Dataset) else int(ds)
-                        statuses.append(1 if val != 0 else 0)
-                    except Exception:
-                        statuses.append(0)
-                # Compute intervals
-                downtime_minutes = 0.0
-                uptime_minutes = 0.0
-                incidents = 0
-                mttr_list = []
-                mtbf_list = []
-                current_state = statuses[0]
-                last_change_epoch = ts_list[0]
-                last_epoch = ts_list[0]
-                # Track last up-period start for MTBF (time between incidents)
-                last_repair_epoch = None
-                for idx in range(len(ts_list) - 1):
-                    start = ts_list[idx]
-                    end = ts_list[idx + 1]
-                    dur_min = (end - start) / 60.0
-                    if statuses[idx] == 1:
-                        uptime_minutes += dur_min
-                    else:
-                        downtime_minutes += dur_min
-                    # Transition detection at idx+1 (state applies from ts_list[idx])
-                    if statuses[idx + 1] != statuses[idx]:
-                        # state changes at 'end'
-                        prev_state = statuses[idx]
-                        new_state = statuses[idx + 1]
-                        if prev_state == 1 and new_state == 0:
-                            incidents += 1
-                            last_change_epoch = end
-                            # end of an up period -> start of downtime; close MTBF if there was a prior repair
-                            if last_repair_epoch is not None:
-                                mtbf_list.append((end - last_repair_epoch) / 60.0)
-                        elif prev_state == 0 and new_state == 1:
-                            # repair completed: downtime from last_change to end
-                            if last_change_epoch is not None:
-                                mttr_list.append((end - last_change_epoch) / 60.0)
-                            last_repair_epoch = end
-                        current_state = new_state
-                    last_epoch = end
-                # Extend last interval to now
-                if last_epoch < now_epoch:
-                    tail_min = (now_epoch - last_epoch) / 60.0
-                    if statuses[-1] == 1:
-                        uptime_minutes += tail_min
-                    else:
-                        downtime_minutes += tail_min
-                # If last state is down, we have an open incident; do not close MTTR until repair occurs
-                availability_pct = (uptime_minutes / (uptime_minutes + downtime_minutes) * 100.0) if (uptime_minutes + downtime_minutes) > 0 else 0.0
-                meta = ci_metadata.get(ci_name, {})
-                ci_result = {
-                    'incidents': int(incidents),
-                    'uptime_minutes': float(uptime_minutes),
-                    'downtime_minutes': float(downtime_minutes),
-                    'availability_percentage': float(availability_pct),
-                    'mttr_minutes_mean': float(np.mean(mttr_list)) if mttr_list else 0.0,
-                    'mtbf_minutes_mean': float(np.mean(mtbf_list)) if mtbf_list else 0.0,
-                    'longest_outage_minutes': float(max(mttr_list)) if mttr_list else ( (now_epoch - last_change_epoch) / 60.0 if statuses[-1] == 0 else 0.0 ),
-                    'name': meta.get('name', ''),
-                    'organization': meta.get('organization', '')
-                }
-                per_ci_results[ci_name] = ci_result
-                total_incidents += incidents
-                overall_uptime += uptime_minutes
-                overall_downtime += downtime_minutes
-                total_downtime_list.append((ci_name, downtime_minutes))
-                if mttr_list:
-                    total_mttr_values.extend(mttr_list)
-                if mtbf_list:
-                    total_mtbf_values.extend(mtbf_list)
-            overall_pct = (overall_uptime / (overall_uptime + overall_downtime) * 100.0) if (overall_uptime + overall_downtime) > 0 else 0.0
-            # Rankings
-            top_unstable = sorted(((ci, per_ci_results[ci]['incidents']) for ci in per_ci_results), key=lambda x: x[1], reverse=True)[:10]
-            top_downtime = sorted(total_downtime_list, key=lambda x: x[1], reverse=True)[:10]
-            metrics.update({
-                'overall_uptime_minutes': overall_uptime,
-                'overall_downtime_minutes': overall_downtime,
-                'overall_availability_percentage_rollup': overall_pct,
-                'total_incidents': total_incidents,
-                'mttr_minutes_mean': float(np.mean(total_mttr_values)) if total_mttr_values else 0.0,
-                'mtbf_minutes_mean': float(np.mean(total_mtbf_values)) if total_mtbf_values else 0.0,
-                'top_unstable_cis_by_incidents': [{'ci': ci, 'incidents': inc} for ci, inc in top_unstable],
-                'top_downtime_cis': [{'ci': ci, 'downtime_minutes': mins} for ci, mins in top_downtime],
-                'per_ci_metrics': per_ci_results
-            })
-    except Exception as e:
-        log(f"Error computing availability metrics: {e}")
-    return metrics
+if __name__ == "__main__":
+    main()

@@ -335,19 +335,7 @@ import os
 from dotenv import load_dotenv
 import hmac
 
-# Global cache for HDF5 data with size limit
-_hdf5_cache = OrderedDict()
-_cache_lock = threading.Lock()
-_cache_timestamp = None
-_cache_ttl = 300  # 5 minutes cache TTL
-_cache_max_size = 50  # Maximum number of entries in cache
-
-def clear_hdf5_cache():
-    """Clear the HDF5 cache to force fresh data reading"""
-    global _hdf5_cache, _cache_timestamp
-    with _cache_lock:
-        _hdf5_cache.clear()
-        _cache_timestamp = None
+# Note: HDF5 cache removed - now using TimescaleDB only
 
 def initialize_data_file(file_name):
     """
@@ -467,126 +455,83 @@ def update_file(file_name, url):
 
 def get_availability_data_of_ci(file_name, ci):
     """
-    Gets availability data for a specific configuration item from hdf5 file or TimescaleDB
+    Gets availability data for a specific configuration item from TimescaleDB
 
     Args:
-        file_name (str): Path to hdf5 file (used for fallback)
+        file_name (str): Path to hdf5 file (kept for compatibility, not used)
         ci (str): ID of the desired confirguration item
 
     Returns:
         DataFrame: Time series of the availability of the desired configuration item
     """
-    # Check if TimescaleDB is enabled
-    config = load_config()
-    use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
-    
-    if use_timescaledb:
-        try:
-            # Try to get data from TimescaleDB first
-            with get_db_conn() as conn:
-                query = """
-                SELECT 
-                    ts as times,
-                    status as values
-                FROM measurements 
-                WHERE ci = %s 
-                ORDER BY ts
-                """
-                df = pd.read_sql_query(query, conn, params=[ci])
-                if not df.empty:
-                    # Convert times to Europe/Berlin timezone
-                    df['times'] = pd.to_datetime(df['times']).dt.tz_convert('Europe/Berlin')
-                    return df
-        except Exception as e:
-            print(f"Error reading availability data for CI {ci} from TimescaleDB: {e}")
-            # Fall back to HDF5
-    
-    # Fallback to HDF5
     try:
-        # Use SWMR mode to allow multiple readers
-        with h5.File(file_name, 'r', swmr=True) as f:
-            group = f["availability/" + ci]
-            ci_data = {}
-            times = []
-            values = []
-            for name, dataset in group.items():
-                if isinstance(dataset, h5.Dataset):
-                    time = pd.to_datetime(float(name), unit='s').tz_localize('UTC').tz_convert('Europe/Berlin')
-                    times.append(time)
-                    values.append(int(dataset[()]))
-            ci_data["times"] = np.array(times)
-            ci_data["values"] = np.array(values)
-            return pd.DataFrame(ci_data)
+        # Get data from TimescaleDB
+        with get_db_conn() as conn:
+            query = """
+            SELECT 
+                ts as times,
+                status as values
+            FROM measurements 
+            WHERE ci = %s 
+            ORDER BY ts
+            """
+            df = pd.read_sql_query(query, conn, params=[ci])
+            if not df.empty:
+                # Convert times to Europe/Berlin timezone
+                df['times'] = pd.to_datetime(df['times']).dt.tz_convert('Europe/Berlin')
+                return df
+            else:
+                return pd.DataFrame()
     except Exception as e:
-        print(f"Error reading availability data for CI {ci} from HDF5 file {file_name}: {e}")
+        print(f"Error reading availability data for CI {ci} from TimescaleDB: {e}")
         return pd.DataFrame()
 
 def get_data_of_all_cis(file_name):
     """
-    Gets general data for all configuration items from hdf5 file such as organization
-    and product as well as current availability and availability difference
+    Gets general data for all configuration items from TimescaleDB
 
     Args:
-        file_name (str): Path to hdf5 file
+        file_name (str): Path to hdf5 file (kept for compatibility, not used)
 
     Returns:
         DataFrame: Basic information about all configuration items
     """
-    global _hdf5_cache, _cache_timestamp
-    
-    # Check cache first
-    current_time = time.time()
-    with _cache_lock:
-        if (file_name in _hdf5_cache and 
-            _cache_timestamp and 
-            current_time - _cache_timestamp < _cache_ttl):
-            return _hdf5_cache[file_name].copy()
-    
-    # If not in cache or expired, read from file
-    all_ci_data = []
     try:
-        # Use SWMR mode to allow multiple readers
-        with h5.File(file_name, 'r', swmr=True) as f:
-            group = f["configuration_items"]
-            cis = list(group.keys())  # Convert to list to avoid iterator issues
-            for ci in cis:
-                group = f["configuration_items/"+ci]
-                ci_data = {}
-                ci_data["ci"] = ci
-                for name in group:
-                    dataset = group[name]
-                    value = dataset[()]
-                    # Handle scalar bytes (decode)
-                    if isinstance(value, bytes):
-                        value = value.decode('utf-8')
-                    ci_data[name] = value
-                all_ci_data.append(ci_data)
-        
-        # Update cache with size limit
-        result_df = pd.DataFrame(all_ci_data)
-        with _cache_lock:
-            # Remove oldest entries if cache is at max size
-            while len(_hdf5_cache) >= _cache_max_size:
-                _hdf5_cache.popitem(last=False)  # Remove oldest entry
-                
-            _hdf5_cache[file_name] = result_df.copy()
-            _cache_timestamp = current_time
-            
-            # Move to end to mark as most recently used
-            _hdf5_cache.move_to_end(file_name)
-        
-        return result_df
-        
+        # Get data from TimescaleDB
+        with get_db_conn() as conn:
+            query = """
+            SELECT 
+                cm.ci,
+                cm.name,
+                cm.organization,
+                cm.product,
+                cm.bu,
+                cm.tid,
+                cm.pdt,
+                cm.comment,
+                ls.status as current_availability,
+                ls.ts as time,
+                CASE 
+                    WHEN ls.status = 1 AND ls.prev_status = 0 THEN 1 
+                    WHEN ls.status = 0 AND ls.prev_status = 1 THEN -1
+                    ELSE 0 
+                END as availability_difference
+            FROM ci_metadata cm
+            LEFT JOIN (
+                SELECT DISTINCT ON (ci) 
+                    ci, 
+                    ts, 
+                    status,
+                    LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+                FROM measurements 
+                ORDER BY ci, ts DESC
+            ) ls ON cm.ci = ls.ci
+            ORDER BY cm.ci
+            """
+            df = pd.read_sql_query(query, conn)
+            return df
     except Exception as e:
-        print(f"Error reading HDF5 file {file_name}: {e}")
-        # Return cached data if available, even if expired
-        with _cache_lock:
-            if file_name in _hdf5_cache:
-                print(f"Returning cached data due to error")
-                # Move to end to mark as most recently used
-                _hdf5_cache.move_to_end(file_name)
-                return _hdf5_cache[file_name].copy()
-        # If no cache available, return empty DataFrame
+        print(f"Error reading all CIs from TimescaleDB: {e}")
         return pd.DataFrame()
 
 def get_data_of_ci(file_name, ci):
@@ -642,26 +587,7 @@ def get_data_of_ci(file_name, ci):
                     return df
         except Exception as e:
             print(f"Error reading CI {ci} from TimescaleDB: {e}")
-            # Fall back to HDF5
-    
-    # Fallback to HDF5
-    try:
-        # Use SWMR mode to allow multiple readers
-        with h5.File(file_name, 'r', swmr=True) as f:
-            group = f["configuration_items/"+ci]
-            ci_data = {}
-            ci_data["ci"] = ci
-            for name in group:
-                dataset = group[name]
-                value = dataset[()]
-                # Handle scalar bytes (decode)
-                if isinstance(value, bytes):
-                    value = value.decode('utf-8')
-                ci_data[name] = value
-        return pd.DataFrame([ci_data])
-    except Exception as e:
-        print(f"Error reading CI {ci} from HDF5 file {file_name}: {e}")
-        return pd.DataFrame()
+            return pd.DataFrame()
 
 def pretty_timestamp(timestamp_str):
     """

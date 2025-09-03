@@ -446,15 +446,11 @@ def load_available_cis(auth_data):
                 print(f"Loaded {len(ci_list)} CIs from JSON file")
                 return ci_list
             except Exception as e:
-                print(f"Error loading from JSON file: {e}, falling back to HDF5")
+                print(f"Error loading from JSON file: {e}, falling back to TimescaleDB")
         
-        # Fallback: Load from HDF5 file if JSON doesn't exist or fails
-        core_config = load_core_config()
-        config_file = core_config.get('file_name') or 'data/data.hdf5'
-        
-        # Get all CIs from the data file
+        # Fallback: Load from TimescaleDB if JSON doesn't exist or fails
         from mylibrary import get_data_of_all_cis
-        cis_df = get_data_of_all_cis(config_file)
+        cis_df = get_data_of_all_cis('')  # file_name parameter not used anymore
         
         if not cis_df.empty:
             # Convert to list of dictionaries with ci and name
