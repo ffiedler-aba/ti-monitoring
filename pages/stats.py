@@ -326,9 +326,9 @@ def create_overall_statistics_display(stats):
                         html.Span(f'{stats["currently_unavailable"]:,}')
                     ]),
                     html.Div(className='stat-item', children=[
-                        html.Strong('Gesamtverfügbarkeit (aktuelle Daten): ', title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'),
+                        html.Strong('Gesamtverfügbarkeit (Zeitbasis): ', title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'),
                         html.Span(
-                            f"{(stats.get('overall_availability_percentage_rollup') if stats.get('overall_availability_percentage_rollup') is not None else stats.get('overall_availability_percentage', 0)):.2f}%",
+                            f"{(stats.get('overall_availability_percentage_rollup') or 0):.2f}%",
                             title='Zeitgewichtete Verfügbarkeit über alle CIs im überwachten Zeitraum'
                         )
                     ]),
