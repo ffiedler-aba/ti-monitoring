@@ -109,6 +109,12 @@ def get_cached_statistics(config_file_name, cis):
                 if 'overall_availability_percentage_total' not in file_stats:
                     file_stats['overall_availability_percentage_total'] = file_stats.get('overall_availability_percentage', 0)
                 
+                # Recalculate data age dynamically based on current time
+                if file_stats.get('latest_timestamp'):
+                    current_time = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                    data_age_hours = (current_time - file_stats['latest_timestamp']).total_seconds() / 3600
+                    file_stats['data_age_formatted'] = format_duration(data_age_hours)
+                
                 return file_stats
     except Exception as e:
         print(f"Error loading statistics from file: {e}")
