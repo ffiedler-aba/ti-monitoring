@@ -16,6 +16,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from datetime import datetime
 import os
+from datetime import timezone
 
 # Global logger instance
 _logger = None
@@ -739,6 +740,12 @@ def main():
             except Exception as e:
                 log(f"ERROR in update_file: {e}")
                 # Continue with other tasks even if update_file fails
+
+            # Experimental: write last batch to TimescaleDB (optional initial wiring)
+            try:
+                init_timescaledb_schema()
+            except Exception as e:
+                log(f"TimescaleDB init failed (non-fatal): {e}")
             
             # Update CI list file at configured interval with error handling
             if iteration_count % ci_list_update_interval == 0:

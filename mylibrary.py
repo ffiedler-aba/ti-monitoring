@@ -1,3 +1,39 @@
+import os
+import psycopg2
+from psycopg2.extras import execute_values
+
+def get_db_conn():
+    host = os.getenv('DB_HOST', 'localhost')
+    port = int(os.getenv('DB_PORT', '5432'))
+    db   = os.getenv('DB_NAME', 'timonitor')
+    user = os.getenv('DB_USER', 'timonitor')
+    pwd  = os.getenv('DB_PASSWORD', 'timonitor')
+    return psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pwd)
+
+def init_timescaledb_schema():
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            CREATE EXTENSION IF NOT EXISTS timescaledb;
+            CREATE TABLE IF NOT EXISTS measurements (
+              ci TEXT NOT NULL,
+              ts TIMESTAMPTZ NOT NULL,
+              status SMALLINT NOT NULL,
+              PRIMARY KEY (ci, ts)
+            );
+            SELECT create_hypertable('measurements','ts', if_not_exists => TRUE);
+        """)
+        # Optional: continuous aggregates, retention policies can be added later
+
+def write_measurements(rows):
+    """rows: iterable of (ci, ts(datetime|str|epoch), status:int)"""
+    if not rows:
+        return 0
+    with get_db_conn() as conn, conn.cursor() as cur:
+        execute_values(cur,
+            "INSERT INTO measurements (ci, ts, status) VALUES %s ON CONFLICT DO NOTHING",
+            rows
+        )
+        return cur.rowcount
 # Import packages
 import numpy as np
 import pandas as pd
