@@ -85,8 +85,15 @@ core:
   # URL for API (Standard gematik API)
   url: "https://ti-lage.prod.ccs.gematik.solutions/lageapi/v1/tilage/bu/PU"
   
-  # Path to hdf5 file for saving the availability data 
-  file_name: "data/data.hdf5"
+  # TimescaleDB configuration (primary data storage)
+  timescaledb:
+    enabled: true
+    host: "db"
+    port: 5432
+    dbname: "timonitor"
+    user: "timonitor"
+    password: "timonitor"
+    keep_days: 185
   
   # Home URL for dash app (Ihre Domain)
   home_url: "https://ti-monitoring.example.com"
@@ -277,13 +284,11 @@ cat data/cron.log.2025-01-26
 
 **Hinweis**: Die Produktionsumgebung verwendet bereits die optimierte Konfiguration mit ungepufferter Logging-Ausgabe und direktem Port-Zugriff für Debugging-Zwecke.
 
-### TimescaleDB optional nutzen
+### TimescaleDB als Standard-Datenbank
 
 - Compose-Profil `tsdb` aktiviert den TimescaleDB-Container (`db`).
-- App-Seitig steuert `core.timescaledb.enabled` in `config.yaml`, ob Ingestion/Retention aktiv ist.
-- Szenarien:
-  - Ohne TSDB: Profil nicht setzen UND/ODER `enabled: false` -> reine HDF5-Nutzung
-  - Mit TSDB: `--profile tsdb` und `enabled: true` -> HDF5 + TimescaleDB (Ingestion, Retention)
+- TimescaleDB ist die primäre Datenspeicherung für optimale Performance.
+- Konfiguration über `core.timescaledb.enabled: true` in `config.yaml`.
 
 #### PostgreSQL-Konfiguration via .env
 
@@ -419,9 +424,17 @@ server {
 
 ### 1. Datenbank überprüfen
 
-Nach dem ersten Lauf des Cron-Jobs sollte die Datei `data/data.hdf5` erstellt worden sein:
+Nach dem ersten Lauf des Cron-Jobs sollte die TimescaleDB-Datenbank initialisiert worden sein:
 ```bash
-ls -la data/
+# Datenbank-Verbindung testen
+docker exec ti-monitoring-ti-monitoring-web-1 python3 -c "
+import psycopg2
+conn = psycopg2.connect(host='db', database='timonitor', user='timonitor', password='timonitor')
+cur = conn.cursor()
+cur.execute('SELECT COUNT(*) FROM measurements')
+print(f'Messungen in TimescaleDB: {cur.fetchone()[0]}')
+conn.close()
+"
 ```
 
 ### 2. Web-Interface testen
@@ -517,7 +530,7 @@ Nach erfolgreicher Installation:
 
 1. **Benachrichtigungen konfigurieren**: Passen Sie `notifications.json` an
 2. **Monitoring einrichten**: Überwachen Sie die Logs und Performance
-3. **Backup-Strategie**: Planen Sie regelmäßige Backups der `data.hdf5`
+3. **Backup-Strategie**: Planen Sie regelmäßige Backups der TimescaleDB-Datenbank
 4. **Log-Monitoring**: Überwachen Sie die Cron-Logs für Fehler und Performance
 5. **Updates**: Halten Sie das System aktuell
 

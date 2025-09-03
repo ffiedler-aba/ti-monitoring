@@ -1,6 +1,8 @@
-# Migration von HDF5 zu TimescaleDB-only Setup
+# Migration von HDF5 zu TimescaleDB-only Setup ✅ ABGESCHLOSSEN
 
-Dieses Dokument beschreibt die Migration von der HDF5-basierten Datenspeicherung zu einem reinen TimescaleDB-Setup.
+**Status**: Diese Migration wurde erfolgreich abgeschlossen. TimescaleDB ist jetzt die Standard-Datenspeicherung.
+
+Dieses Dokument beschreibt die abgeschlossene Migration von der HDF5-basierten Datenspeicherung zu einem reinen TimescaleDB-Setup.
 
 ## 🎯 Ziel
 
@@ -16,30 +18,26 @@ Die Anwendung soll vollständig auf TimescaleDB umgestellt werden, um:
 - TimescaleDB ist in `config.yaml` aktiviert (`timescaledb.enabled: true`)
 - HDF5-Datei existiert und enthält Daten (`data/data.hdf5`)
 
-## 🚀 Automatische Migration
+## ✅ Migration abgeschlossen
 
-### Schritt 1: Migration ausführen
+Die Migration wurde erfolgreich durchgeführt. Alle HDF5-Fallbacks wurden entfernt und TimescaleDB ist jetzt die einzige Datenspeicherung.
 
-```bash
-# Dry-run (zeigt was gemacht würde, ohne Änderungen)
-python scripts/migrate_hdf5_to_timescaledb.py --dry-run
+### Was wurde geändert:
 
-# Echte Migration
-python scripts/migrate_hdf5_to_timescaledb.py
-```
+1. **Code-Änderungen**:
+   - `mylibrary.py`: Alle HDF5-Funktionen entfernt, nur noch TimescaleDB
+   - `cron.py`: Komplett für TimescaleDB umgeschrieben
+   - `pages/stats.py`: HDF5-Fallbacks entfernt
+   - `pages/notification_settings.py`: HDF5-Zugriff entfernt
 
-### Schritt 2: Container neu starten
+2. **Konfiguration**:
+   - `config.yaml`: TimescaleDB als Standard konfiguriert
+   - Alle Docker-Compose-Dateien: `.env`-Mount hinzugefügt
 
-```bash
-docker compose restart
-```
-
-### Schritt 3: Verifikation
-
-1. Öffnen Sie die Web-Oberfläche
-2. Überprüfen Sie die Statistiken-Seite
-3. Testen Sie die Plot-Funktionalität
-4. Prüfen Sie die Logs auf Fehler
+3. **Dokumentation**:
+   - README.md: HDF5-Referenzen durch TimescaleDB ersetzt
+   - INSTALL.md: Installation für TimescaleDB aktualisiert
+   - Windows-Dokumentation: HDF5-Referenzen entfernt
 
 ## 🔧 Manuelle Migration
 
@@ -185,21 +183,22 @@ print('Config loaded successfully')
 | Skalierbarkeit | Begrenzt | Sehr gut |
 | Wartung | Komplex | Einfach |
 
-## 🎉 Nach der Migration
+## 🎉 Migration erfolgreich abgeschlossen
 
-### HDF5-Datei entfernen (optional)
+### HDF5-Dateien entfernt
 
-```bash
-# Nach erfolgreicher Verifikation
-rm data/data.hdf5
-```
+Alle HDF5-Dateien und -Referenzen wurden aus dem System entfernt:
+- `data/data.hdf5` - Nicht mehr verwendet
+- HDF5-Fallbacks im Code - Entfernt
+- HDF5-Abhängigkeiten - Entfernt
 
-### Docker-Volumes optimieren
+### Aktuelle Architektur
 
-```bash
-# Alte HDF5-Daten aus Volume entfernen
-docker run --rm -v ti-monitoring_appdata:/data alpine rm -f /data/data.hdf5
-```
+Das System verwendet jetzt ausschließlich:
+- **TimescaleDB** als primäre Datenspeicherung
+- **PostgreSQL** als Basis-Datenbank
+- **Hypertables** für optimierte Zeitreihen-Performance
+- **Automatische Retention** über TimescaleDB-Policies
 
 ### Monitoring einrichten
 

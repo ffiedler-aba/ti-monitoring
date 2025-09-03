@@ -54,8 +54,15 @@ core:
   # URL for API
   url: "https://ti-lage.prod.ccs.gematik.solutions/lageapi/v1/tilage/bu/PU"
   
-  # Path to hdf5 file for saving the availability data 
-  file_name: "data/data.hdf5"
+  # TimescaleDB configuration (primary data storage)
+  timescaledb:
+    enabled: true
+    host: "localhost"
+    port: 5432
+    dbname: "timonitor"
+    user: "timonitor"
+    password: "timonitor"
+    keep_days: 185
   
   # Home URL for dash app
   home_url: "http://localhost:8050"
@@ -203,8 +210,8 @@ ti-monitoring/
 │       └── python.exe
 ├── tools/                   # Hilfsprogramme
 │   └── nssm.exe            # Non-Sucking Service Manager
-├── data/                    # Datenbank und Konfiguration
-│   ├── monitoring.db
+├── data/                    # Daten und Konfiguration
+│   ├── statistics.json
 │   └── ci_list.json
 └── logs/                    # Log-Dateien
     ├── cron.log
@@ -269,6 +276,8 @@ ti-monitoring/
 2. **Daten sichern**:
    ```cmd
    xcopy data\*.* backup\ /E /I
+   # TimescaleDB-Backup (falls lokal installiert)
+   pg_dump -h localhost -U timonitor timonitor > backup\timonitor_backup.sql
    ```
 
 3. **Neue Version entpacken** und Konfiguration übertragen
@@ -292,6 +301,7 @@ ti-monitoring/
 
 3. **Backup-Strategie**:
    - Regelmäßige Sicherung der `data/` Verzeichnisse
+   - TimescaleDB-Backup (falls lokal installiert)
    - Konfigurationsdateien versionieren
 
 ## 📞 Support

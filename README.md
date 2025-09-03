@@ -63,7 +63,7 @@ Dieses Projekt wurde teilweise mithilfe von "KI" (Vibe Coding) weiter entwickelt
 Die Funktionen lassen sich wie folgt zusammenfassen:
 
 * __Abruf und Archivierung__<br>
-Die Kernfunktionalität besteht in der regelmäßigen Abfrage des Verfügbarkeitsstatus sämtlicher zentraler TI-Komponenten über eine öffentliche Schnittstelle der gematik GmbH. Die Ergebnisse werden strukturiert in einer hdf5-Datei gespeichert. So können auch für längere Beobachtungszeiträume statistische Auswertungen durchgeführt werden, um beispielsweise die Einhaltung von SLAs zu beurteilen.
+Die Kernfunktionalität besteht in der regelmäßigen Abfrage des Verfügbarkeitsstatus sämtlicher zentraler TI-Komponenten über eine öffentliche Schnittstelle der gematik GmbH. Die Ergebnisse werden strukturiert in einer TimescaleDB-Datenbank gespeichert. So können auch für längere Beobachtungszeiträume statistische Auswertungen durchgeführt werden, um beispielsweise die Einhaltung von SLAs zu beurteilen.
 * __Benachrichtigungen__<br>
 Bei Änderungen der Verfügbarkeit können Benachrichtigungen versendet werden. Das System unterstützt nun über 90 verschiedene Benachrichtigungsdienste durch die Integration von Apprise, darunter:
   - E-Mail (über mailto:// URLs)
@@ -102,7 +102,7 @@ docker compose -f docker-compose-dev.yml up -d
 
 Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigkeiten. Die requirements.txt Datei enthält alle notwendigen Abhängigkeiten, darunter:
 
-- numpy, pandas, h5py für Datenverarbeitung
+- numpy, pandas, psycopg2 für Datenverarbeitung
 - requests für HTTP-Anfragen
 - pytz, tzlocal für Zeitzone-Handling
 - dash, plotly für die Webanwendung
@@ -151,35 +151,18 @@ nohup python cron.py > cron.log 2>&1 &
 ### Docker-Installation
 
 Bei der Docker-Installation läuft das Skript automatisch als `ti-monitoring-cron` Container und muss nicht manuell konfiguriert werden.
-Die Daten werden aufbereitet und in der Datei `data.hdf5` gespeichert. Existiert diese noch nicht, wird sie beim ersten Ausführen des Skriptes `cron.py` automatisch erzeugt.
+Die Daten werden aufbereitet und in der TimescaleDB-Datenbank gespeichert. Die Datenbank wird beim ersten Ausführen des Skriptes `cron.py` automatisch initialisiert.
 
-Innerhalb der Datei wird folgende Gruppenstruktur aufgebaut:
-
-```
-.
-+-- availability
-|   +-- CI-0000001
-|   +-- CI-0000002
-|   +-- ...
-+-- configuration_items
-    +-- CI-0000001
-    +-- CI-0000002
-    +-- ...
-```
-
-Die Gruppen `availability` und `configuration_items` enthalten jeweils für jedes Konfigurationsobjekt (z.B. `CI-0000001`) eine gleichnamige Untergruppe.
-
-Die Untergruppe des Konfigurationsobjektes in der Gruppe `availability` enthält Datensätze mit der Verfügbarkeit als Integer (0: nicht verfügbar, 1: verfügbar). Der Name des Datensatzes entspricht der Unix-Zeit des Datenpunktes. Bei Aktualisierungen wird ein neuer Datensatz hinzugefügt.
-
-Die Untergruppe des Konfigurationsobjektes in der Gruppe `configuration_items` enthält mehrere Datensätze mit allegemeinen Eigenschaften wie `name`, `product` und `organization`. Außerdem die aktuelle Verfügbarkeit `current_availability` sowie die Veränderung der Verfügbarkeit `availability_difference` in Bezug auf den vorherigen Wert (-1: nicht mehr verfügbar, 0: keine Veränderung, 1: wieder verfügbar). Bei Aktualisierungen werden die vorhandenen Datensätze überschrieben.
-
-Je nach Systemleistung kann es sinnvoll sein, die Datei `data.hdf5` von Zeit zu Zeit zu archivieren. Zusätzlich unterstützt die Anwendung eine konfigurierbare Datenaufbewahrung (Retention):
+**Datenbankstruktur:**
+- **Tabelle `measurements`**: Speichert alle Verfügbarkeitsmessungen mit Zeitstempel, CI-ID und Status
+- **Tabelle `configuration_items`**: Speichert Metadaten der CIs (Name, Produkt, Organisation)
+- **Hypertables**: TimescaleDB-optimierte Zeitreihen-Tabellen für bessere Performance
 
 **Datenaufbewahrung (Retention)**
-- Konfigurierbar über `core.retention_months` in `config.yaml` (Standard: 6)
-- Es werden nur Datenpunkte der letzten N Monate in `availability` beibehalten
-- Die Bereinigung läuft automatisch einmal täglich im Cron-Loop
-- Hinweis: Die HDF5-Dateigröße schrumpft nach Löschungen nicht automatisch. Für physische Verkleinerung optional regelmäßig `h5repack` ausführen oder die Datei neu schreiben
+- Konfigurierbar über `core.timescaledb.keep_days` in `config.yaml` (Standard: 185 Tage)
+- TimescaleDB führt automatisch `drop_chunks` aus, um alte Daten zu entfernen
+- Die Bereinigung läuft automatisch über TimescaleDB's Retention-Policy
+- Optimierte Speicherung durch TimescaleDB-Komprimierung
 
 ## Benachrichtigungen
 
@@ -252,9 +235,9 @@ docker compose up -d
 - **Datenpersistenz**: Alle wichtigen Dateien werden als Volumes gemountet
 - **Entwicklungsmodus**: `docker-compose-dev.yml` für lokale Entwicklung
 
-## TimescaleDB-Integration (experimentell)
+## TimescaleDB-Integration (Standard)
 
-Diese Version bietet eine optionale TimescaleDB-Integration zur Speicherung der Zeitreihen. Aktivierung durch Konfiguration und Compose-Service.
+Diese Version verwendet TimescaleDB als primäre Datenspeicherung für optimale Performance und Skalierbarkeit.
 
 ### Aktivierung
 
@@ -273,21 +256,27 @@ core:
     dbname: timonitor
     user: timonitor
     password: timonitor
+    keep_days: 185
 ```
 
-3) Cron-Ingestion
-   - Wenn `enabled: true`, importiert `cron.py` pro Iteration bis zu ~20k Messpunkte aus `data/data.hdf5` idempotent nach TimescaleDB.
+3) Automatische Datenaufnahme
+   - `cron.py` speichert alle Messpunkte direkt in TimescaleDB
+   - Optimierte Zeitreihen-Speicherung durch Hypertables
+   - Automatische Datenkomprimierung und Retention
 
-### Backfill
+### Migration von HDF5
 
-Um historische Daten einmalig zu migrieren:
+Falls Sie von einer älteren HDF5-basierten Installation migrieren:
 
 ```bash
-source .venv/bin/activate
-python scripts/backfill_timescaledb.py data/data.hdf5
+# Migration ausführen
+python scripts/migrate_hdf5_to_timescaledb.py
+
+# Container neu starten
+docker compose restart
 ```
 
-Hinweis: Das Skript ist idempotent (ON CONFLICT DO NOTHING).
+Siehe [MIGRATION_HDF5_TO_TIMESCALEDB.md](docs/MIGRATION_HDF5_TO_TIMESCALEDB.md) für detaillierte Anweisungen.
 
 ## Web-App
 
@@ -315,7 +304,7 @@ Ab Version 1.3.0 können Benutzer den Darstellungszeitraum für jeden Plot indiv
 
 Der gewählte Zeitraum wird in der URL gespeichert, sodass er bei der nächsten Nutzung beibehalten wird.
 
-Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `config.yaml` reduziert werden. Zudem kann es ratsam sein, die Datei `data.hdf5` regelmäßig zu archivieren bzw. zu leeren.
+Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `config.yaml` reduziert werden. Die TimescaleDB-Datenbank wird automatisch durch Retention-Policies verwaltet und benötigt keine manuelle Archivierung.
 
 Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Dateien irrelevant und können entfernt werden:
 
