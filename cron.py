@@ -588,28 +588,64 @@ def calculate_overall_statistics(config_file_name, cis):
 def update_statistics_file(config_file_name):
     """Update the statistics JSON file with current data"""
     try:
+        log("Starting statistics file update...")
+        log(f"Using data file: {config_file_name}")
+        
         # Get current CI data
+        log("Retrieving CI data from data file...")
         cis = get_data_of_all_cis(config_file_name)
         if cis.empty:
-            log("No CI data available for statistics calculation")
+            log("ERROR: No CI data available for statistics calculation")
             return False
         
+        log(f"Retrieved {len(cis)} CIs from data file")
+        log(f"CI columns: {list(cis.columns)}")
+        
         # Calculate statistics
+        log("Calculating overall statistics...")
         stats = calculate_overall_statistics(config_file_name, cis)
         if not stats:
-            log("Failed to calculate statistics")
+            log("ERROR: Failed to calculate statistics")
             return False
+        
+        log(f"Statistics calculated successfully. Keys: {list(stats.keys())}")
+        log(f"Latest timestamp: {stats.get('latest_timestamp', 'None')}")
+        log(f"Data age: {stats.get('data_age_formatted', 'Unknown')}")
+        log(f"Total incidents: {stats.get('total_incidents', 0)}")
+        log(f"Overall availability: {stats.get('overall_availability_percentage_rollup', 0):.2f}%")
         
         # Save to JSON file
         statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
+        log(f"Saving statistics to: {statistics_file_path}")
+        
+        # Create backup of existing file if it exists
+        if os.path.exists(statistics_file_path):
+            backup_path = statistics_file_path + '.backup'
+            try:
+                import shutil
+                shutil.copy2(statistics_file_path, backup_path)
+                log(f"Created backup: {backup_path}")
+            except Exception as e:
+                log(f"Warning: Could not create backup: {e}")
+        
         with open(statistics_file_path, 'w', encoding='utf-8') as f:
             json.dump(stats, f, indent=2, ensure_ascii=False)
         
-        log(f"Updated statistics file: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
+        # Verify file was written correctly
+        if os.path.exists(statistics_file_path) and os.path.getsize(statistics_file_path) > 0:
+            file_size = os.path.getsize(statistics_file_path)
+            log(f"Statistics file saved successfully. Size: {file_size} bytes")
+        else:
+            log("ERROR: Statistics file was not written correctly")
+            return False
+        
+        log(f"Statistics update completed: {len(cis)} CIs, {stats['total_recording_minutes']:.1f} minutes recording duration")
         return True
         
     except Exception as e:
-        log(f"Error updating statistics file: {e}")
+        log(f"ERROR updating statistics file: {e}")
+        import traceback
+        log(f"Traceback: {traceback.format_exc()}")
         return False
 
 def main():
