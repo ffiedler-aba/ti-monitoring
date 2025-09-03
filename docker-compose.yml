@@ -7,7 +7,6 @@ volumes:
 services:
   db:
     image: timescale/timescaledb:latest-pg16
-    profiles: ["tsdb"]
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -45,7 +44,8 @@ services:
       - DB_PASSWORD=${POSTGRES_PASSWORD}
     command: ["python", "-u", "cron.py"]
     restart: unless-stopped
-    # Hinweis: keine depends_on auf db, damit Compose ohne Profil gültig bleibt
+    depends_on:
+      - db
 
   nginx:
     image: nginx:alpine
