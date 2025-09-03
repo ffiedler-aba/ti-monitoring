@@ -1,5 +1,5 @@
 ---
-description:
-globs:
+description: Zugriff auf as Produktivsystem
+globs: root@100.114.189.118/root/ti-monitoring
 alwaysApply: true
 ---

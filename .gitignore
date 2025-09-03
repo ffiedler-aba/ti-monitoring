@@ -20,6 +20,7 @@ data/cron.log
 data/cron.log.*
 data/*.log
 data/*.gz
+data/pg/
 
 portable-build/
 windows-setup-src/
