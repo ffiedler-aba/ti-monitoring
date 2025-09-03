@@ -174,7 +174,12 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
             html.Button('Zurück', className = 'button')
         ]),
         
-        # Time range selector
+        # Plot section (moved up to avoid overlay issues)
+        html.Div(id='plot-container', children=[
+            dcc.Graph(id='availability-plot')
+        ]),
+        
+        # Time range selector (moved below plot)
         html.Div(className='box', children=[
             html.H3('Zeitraum auswählen'),
             html.Div(className='time-selector', children=[
@@ -193,17 +198,18 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
                     ],
                     value=selected_hours,
                     clearable=False,
-                    style={'width': '200px', 'display': 'inline-block', 'margin-left': '10px'}
+                    style={
+                        'width': '200px', 
+                        'display': 'inline-block', 
+                        'margin-left': '10px',
+                        'position': 'relative',
+                        'z-index': '9999'
+                    }
                 ),
                 html.Button('Aktualisieren', id='update-button', className='button', style={'margin-left': '10px'})
             ]),
             html.P('Der Standardwert von ' + str(config_stats_delta_hours) + ' Stunden kann über die config.yaml angepasst werden.', 
                    style={'font-size': '0.9rem', 'color': 'var(--gray-600)', 'margin-top': 'var(--spacing-sm)'})
-        ]),
-        
-        # Plot section
-        html.Div(id='plot-container', children=[
-            dcc.Graph(id='availability-plot')
         ]),
         
         # Comprehensive Statistics section (now below the plot)

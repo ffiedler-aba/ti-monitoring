@@ -423,6 +423,37 @@ a:any-link:hover {
 
 .time-selector .dash-dropdown {
   min-width: 200px;
+  position: relative;
+  z-index: 1000;
+}
+
+/* Ensure dropdown options appear above plotly graphs */
+.dash-dropdown .Select-menu-outer {
+  z-index: 1001 !important;
+  position: absolute !important;
+}
+
+.dash-dropdown .Select-menu {
+  z-index: 1001 !important;
+  position: relative !important;
+}
+
+/* Force dropdown container above plotly */
+.time-selector {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Specific fix for plotly graph container */
+#plot-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure dropdown is above everything */
+.Select-control {
+  z-index: 1002 !important;
+  position: relative !important;
 }
 
 .time-selector .button {

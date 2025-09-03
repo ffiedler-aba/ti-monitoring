@@ -467,15 +467,41 @@ def update_file(file_name, url):
 
 def get_availability_data_of_ci(file_name, ci):
     """
-    Gets availability data for a specific configuration item from hdf5 file
+    Gets availability data for a specific configuration item from hdf5 file or TimescaleDB
 
     Args:
-        file_name (str): Path to hdf5 file
+        file_name (str): Path to hdf5 file (used for fallback)
         ci (str): ID of the desired confirguration item
 
     Returns:
         DataFrame: Time series of the availability of the desired configuration item
     """
+    # Check if TimescaleDB is enabled
+    config = load_config()
+    use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
+    
+    if use_timescaledb:
+        try:
+            # Try to get data from TimescaleDB first
+            with get_db_conn() as conn:
+                query = """
+                SELECT 
+                    ts as times,
+                    status as values
+                FROM measurements 
+                WHERE ci = %s 
+                ORDER BY ts
+                """
+                df = pd.read_sql_query(query, conn, params=[ci])
+                if not df.empty:
+                    # Convert times to Europe/Berlin timezone
+                    df['times'] = pd.to_datetime(df['times']).dt.tz_convert('Europe/Berlin')
+                    return df
+        except Exception as e:
+            print(f"Error reading availability data for CI {ci} from TimescaleDB: {e}")
+            # Fall back to HDF5
+    
+    # Fallback to HDF5
     try:
         # Use SWMR mode to allow multiple readers
         with h5.File(file_name, 'r', swmr=True) as f:
@@ -565,15 +591,60 @@ def get_data_of_all_cis(file_name):
 
 def get_data_of_ci(file_name, ci):
     """
-    Gets general data for a specific configuration item from hdf5 file
+    Gets general data for a specific configuration item from hdf5 file or TimescaleDB
 
     Args:
-        file_name (str): Path to hdf5 file
+        file_name (str): Path to hdf5 file (used for fallback)
         ci (str): ID of the desired confirguration item
 
     Returns:
         DataFrame: General data of the desired configuration item
     """
+    # Check if TimescaleDB is enabled
+    config = load_config()
+    use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
+    
+    if use_timescaledb:
+        try:
+            # Try to get data from TimescaleDB first
+            with get_db_conn() as conn:
+                query = """
+                SELECT 
+                    cm.ci,
+                    cm.name,
+                    cm.organization,
+                    cm.product,
+                    cm.bu,
+                    cm.tid,
+                    cm.pdt,
+                    cm.comment,
+                    ls.status as current_availability,
+                    ls.ts as time,
+                    CASE 
+                        WHEN ls.status = 1 AND ls.prev_status = 0 THEN 1 
+                        ELSE 0 
+                    END as availability_difference
+                FROM ci_metadata cm
+                LEFT JOIN (
+                    SELECT DISTINCT ON (ci) 
+                        ci, 
+                        ts, 
+                        status,
+                        LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+                    FROM measurements 
+                    WHERE ci = %s
+                    ORDER BY ci, ts DESC
+                ) ls ON cm.ci = ls.ci
+                WHERE cm.ci = %s
+                """
+                df = pd.read_sql_query(query, conn, params=[ci, ci])
+                if not df.empty:
+                    return df
+        except Exception as e:
+            print(f"Error reading CI {ci} from TimescaleDB: {e}")
+            # Fall back to HDF5
+    
+    # Fallback to HDF5
     try:
         # Use SWMR mode to allow multiple readers
         with h5.File(file_name, 'r', swmr=True) as f:
