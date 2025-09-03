@@ -510,7 +510,7 @@ def serve_layout():
         gc.collect()
     
     layout = html.Div([
-        html.P('Hier finden Sie eine umfassende Gesamtstatistik aller Configuration Items. Neue Daten werden stündlich von cron.py berechnet und gecacht. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
+        html.P('Hier finden Sie eine umfassende Gesamtstatistik aller Configuration Items. Neue Daten werden stündlich neu berechnet. Laden Sie die Seite ggfs. neu, um die Ansicht zu aktualisieren.'),
         
         # Cache information
         html.Div(className='cache-info', children=[
