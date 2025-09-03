@@ -200,6 +200,8 @@ def get_timescaledb_ci_data() -> pd.DataFrame:
 
 def get_timescaledb_statistics_data() -> dict:
     """Lädt erweiterte Statistiken aus TimescaleDB."""
+    import gc
+    
     with get_db_conn() as conn:
         # Gesamtstatistiken mit korrekter Zeitberechnung
         stats_query = """
@@ -329,12 +331,21 @@ def get_timescaledb_statistics_data() -> dict:
                 'ci', 'datapoints', 'uptime_minutes', 'downtime_minutes', 
                 'first_seen', 'last_seen', 'incidents', 'availability_percentage'
             ])
+            
+            # Clean up large result set immediately
+            del results
+            gc.collect()
         
         # Berechne Gesamtverfügbarkeit
         overall_uptime = float(stats_result['overall_uptime_minutes']) if stats_result['overall_uptime_minutes'] is not None else 0
         overall_downtime = float(stats_result['overall_downtime_minutes']) if stats_result['overall_downtime_minutes'] is not None else 0
         total_time = overall_uptime + overall_downtime
         overall_availability = (overall_uptime / total_time * 100) if total_time > 0 else 100.0
+        
+        # Convert DataFrame to dict and clean up
+        top_unstable_cis = ci_metrics.to_dict('records')
+        del ci_metrics
+        gc.collect()
         
         return {
             'total_cis': int(stats_result['total_cis']),
@@ -349,7 +360,7 @@ def get_timescaledb_statistics_data() -> dict:
             'overall_availability_percentage_rollup': float(overall_availability),
             'total_incidents': int(stats_result['total_incidents']),
             'mttr_minutes_mean': float(stats_result['mttr_minutes_mean']),
-            'top_unstable_cis': ci_metrics.to_dict('records'),
+            'top_unstable_cis': top_unstable_cis,
             'calculated_at': time.time()
         }
 # Import packages

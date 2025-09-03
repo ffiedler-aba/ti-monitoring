@@ -505,8 +505,12 @@ def serve_layout():
     except Exception as e:
         print(f"Warning loading statistics.json fallback: {e}")
     
-    # Force garbage collection periodically to prevent memory buildup
-    if int(time.time()) % 300 == 0:  # Every 5 minutes
+    # Force garbage collection after loading large datasets
+    gc.collect()
+    
+    # Additional cleanup for large DataFrames
+    if 'cis' in locals():
+        del cis
         gc.collect()
     
     layout = html.Div([

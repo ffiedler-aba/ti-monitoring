@@ -445,6 +445,11 @@ def update_statistics_file():
             log("ERROR: Failed to calculate statistics")
             return False
         
+        # Force garbage collection after heavy computation
+        import gc
+        gc.collect()
+        log("Memory cleanup completed after statistics calculation")
+        
         # Save to JSON file
         statistics_file_path = os.path.join(os.path.dirname(__file__), 'data', 'statistics.json')
         try:

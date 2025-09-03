@@ -180,9 +180,15 @@ def serve_layout():
     for group_name, group_data in grouped:
         accordion_elements.append(create_accordion_element(group_name, group_data))
     
-    # Force garbage collection periodically to prevent memory buildup
-    if int(time.time()) % 300 == 0:  # Every 5 minutes
-        gc.collect()
+    # Force garbage collection after processing large DataFrames
+    gc.collect()
+    
+    # Clean up large DataFrames immediately after use
+    if 'cis' in locals():
+        del cis
+    if 'grouped' in locals():
+        del grouped
+    gc.collect()
     
     layout = html.Div([
         html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
