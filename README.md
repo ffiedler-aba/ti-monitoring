@@ -174,7 +174,7 @@ Auf Wunsch können bei Änderungen der Verfügbarkeit Benachrichtigungen versend
 - Microsoft Teams
 - und viele weitere
 
-Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, sofern in der Datei `myconfig.py` die Variable `notifications` den Wert `True` besitzt.
+Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, sofern in der Datei `config.yaml` die Variable `notifications_enabled` den Wert `true` besitzt.
 
 ![Beispiel einer Telegram-Benachrichtigung](docs/img/screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
 

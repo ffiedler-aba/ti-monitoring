@@ -135,11 +135,8 @@ cron_intervals:
 Die Entwicklungsumgebung ist für lokale Tests und Entwicklung optimiert:
 
 ```bash
-# Container starten (ohne TimescaleDB)
+# Container starten (TimescaleDB ist immer aktiviert)
 docker compose -f docker-compose-dev.yml up -d
-
-# Container starten (mit TimescaleDB-Profil)
-docker compose --profile tsdb -f docker-compose-dev.yml up -d
 
 # Status überprüfen
 docker compose -f docker-compose-dev.yml ps
@@ -177,12 +174,8 @@ mkdir -p letsencrypt-config
 #### 2. Container starten
 
 ```bash
-# Container starten (ohne TimescaleDB)
+# Container starten (TimescaleDB ist immer aktiviert)
 docker compose up -d
-
-# Container starten (mit TimescaleDB-Profil)
-# Optional: .env mit POSTGRES_* setzen (siehe unten)
-docker compose --profile tsdb up -d
 
 # Status überprüfen
 docker compose ps
@@ -269,8 +262,8 @@ cat data/cron.log.2025-01-26
 
 ### TimescaleDB als Standard-Datenbank
 
-- Compose-Profil `tsdb` aktiviert den TimescaleDB-Container (`db`).
-- TimescaleDB ist die primäre Datenspeicherung für optimale Performance.
+- TimescaleDB ist immer aktiviert und wird standardmäßig gestartet.
+- TimescaleDB ist die primäre und einzige Datenspeicherung für optimale Performance.
 - Konfiguration über `core.timescaledb.enabled: true` in `config.yaml`.
 
 #### PostgreSQL-Konfiguration via .env
@@ -290,10 +283,10 @@ Diese Variablen werden in den Compose-Dateien genutzt, um:
 - den `db`-Service zu konfigurieren (User/DB/Pass, Port)
 - dem `ti-monitoring-cron` die `DB_*`-Umgebungsvariablen zu übergeben
 
-Beispiel-Start mit Profil und angepassten Variablen:
+Beispiel-Start mit angepassten Variablen:
 
 ```bash
-POSTGRES_PASSWORD=supersecret docker compose --profile tsdb up -d
+POSTGRES_PASSWORD=supersecret docker compose up -d
 ```
 
 ### Unterschiede zwischen Dev und Prod
