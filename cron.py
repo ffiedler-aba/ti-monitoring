@@ -594,24 +594,37 @@ def update_statistics_file(config_file_name):
     """Update the statistics JSON file with current data"""
     try:
         log("Starting statistics file update...")
-        log(f"Using data file: {config_file_name}")
         
-        # Get current CI data
-        log("Retrieving CI data from data file...")
-        cis = get_data_of_all_cis(config_file_name)
-        if cis.empty:
-            log("ERROR: No CI data available for statistics calculation")
-            return False
+        # Check if TimescaleDB is enabled
+        core_config = load_config(config_file_name)
+        tsdb_cfg = core_config.get('core', {}).get('timescaledb', {}) if isinstance(core_config, dict) else {}
+        use_timescaledb = tsdb_cfg.get('enabled', False)
         
-        log(f"Retrieved {len(cis)} CIs from data file")
-        log(f"CI columns: {list(cis.columns)}")
-        
-        # Calculate statistics
-        log("Calculating overall statistics...")
-        stats = calculate_overall_statistics(config_file_name, cis)
-        if not stats:
-            log("ERROR: Failed to calculate statistics")
-            return False
+        if use_timescaledb:
+            log("Using TimescaleDB for statistics calculation...")
+            # Use TimescaleDB-based statistics
+            stats = mylibrary.get_timescaledb_statistics_data()
+            if not stats:
+                log("ERROR: Failed to calculate TimescaleDB statistics")
+                return False
+        else:
+            log(f"Using HDF5 data file: {config_file_name}")
+            # Get current CI data from HDF5
+            log("Retrieving CI data from data file...")
+            cis = get_data_of_all_cis(config_file_name)
+            if cis.empty:
+                log("ERROR: No CI data available for statistics calculation")
+                return False
+            
+            log(f"Retrieved {len(cis)} CIs from data file")
+            log(f"CI columns: {list(cis.columns)}")
+            
+            # Calculate statistics from HDF5
+            log("Calculating overall statistics...")
+            stats = calculate_overall_statistics(config_file_name, cis)
+            if not stats:
+                log("ERROR: Failed to calculate statistics")
+                return False
         
         log(f"Statistics calculated successfully. Keys: {list(stats.keys())}")
         log(f"Latest timestamp: {stats.get('latest_timestamp', 'None')}")

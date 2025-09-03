@@ -2,15 +2,30 @@ import os
 import psycopg2
 from psycopg2.extras import execute_values
 import h5py
+import pandas as pd
+import yaml
 from datetime import datetime, timezone
 from typing import Optional
 
+def load_config():
+    """Load configuration from YAML file"""
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), 'config.yaml')
+        if not os.path.exists(config_path):
+            return {}
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        return {}
+
 def get_db_conn():
-    host = os.getenv('DB_HOST', 'localhost')
-    port = int(os.getenv('DB_PORT', '5432'))
-    db   = os.getenv('DB_NAME', 'timonitor')
-    user = os.getenv('DB_USER', 'timonitor')
-    pwd  = os.getenv('DB_PASSWORD', 'timonitor')
+    # Try POSTGRES_* environment variables first (Docker), then fallback to DB_* (legacy)
+    host = os.getenv('POSTGRES_HOST') or os.getenv('DB_HOST', 'localhost')
+    port = int(os.getenv('POSTGRES_PORT') or os.getenv('DB_PORT', '5432'))
+    db   = os.getenv('POSTGRES_DB') or os.getenv('DB_NAME', 'timonitor')
+    user = os.getenv('POSTGRES_USER') or os.getenv('DB_USER', 'timonitor')
+    pwd  = os.getenv('POSTGRES_PASSWORD') or os.getenv('DB_PASSWORD', 'timonitor')
     return psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pwd)
 
 def init_timescaledb_schema():
@@ -24,6 +39,18 @@ def init_timescaledb_schema():
               PRIMARY KEY (ci, ts)
             );
             SELECT create_hypertable('measurements','ts', if_not_exists => TRUE);
+            
+            CREATE TABLE IF NOT EXISTS ci_metadata (
+              ci TEXT PRIMARY KEY,
+              name TEXT,
+              organization TEXT,
+              product TEXT,
+              bu TEXT,
+              tid TEXT,
+              pdt TEXT,
+              comment TEXT,
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
         """)
         # Optional: continuous aggregates, retention policies can be added later
 
@@ -35,6 +62,27 @@ def write_measurements(rows):
         execute_values(cur,
             "INSERT INTO measurements (ci, ts, status) VALUES %s ON CONFLICT DO NOTHING",
             rows
+        )
+        return cur.rowcount
+
+def update_ci_metadata(ci_data):
+    """Aktualisiert CI-Metadaten in TimescaleDB."""
+    if not ci_data:
+        return 0
+    with get_db_conn() as conn, conn.cursor() as cur:
+        execute_values(cur,
+            """INSERT INTO ci_metadata (ci, name, organization, product, bu, tid, pdt, comment) 
+               VALUES %s 
+               ON CONFLICT (ci) DO UPDATE SET 
+                 name = EXCLUDED.name,
+                 organization = EXCLUDED.organization,
+                 product = EXCLUDED.product,
+                 bu = EXCLUDED.bu,
+                 tid = EXCLUDED.tid,
+                 pdt = EXCLUDED.pdt,
+                 comment = EXCLUDED.comment,
+                 updated_at = NOW()""",
+            ci_data
         )
         return cur.rowcount
 
@@ -92,6 +140,182 @@ def setup_timescaledb_retention(keep_days: int = 185) -> None:
         # add_retention_policy ist idempotent mit if_not_exists => TRUE
         sql = f"SELECT add_retention_policy('measurements', INTERVAL '{int(keep_days)} days', if_not_exists => TRUE);"
         cur.execute(sql)
+
+def get_timescaledb_ci_data() -> pd.DataFrame:
+    """Lädt CI-Daten aus TimescaleDB für Statistiken."""
+    with get_db_conn() as conn:
+        # Lade alle CIs mit ihren aktuellen Status und Metadaten
+        query = """
+        WITH latest_status AS (
+            SELECT DISTINCT ON (ci) 
+                ci, 
+                ts, 
+                status,
+                LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+            FROM measurements 
+            ORDER BY ci, ts DESC
+        ),
+        ci_metadata AS (
+            SELECT 
+                ci,
+                name,
+                organization,
+                product,
+                bu,
+                tid,
+                pdt,
+                comment
+            FROM ci_metadata
+        )
+        SELECT 
+            ls.ci,
+            ls.status as current_availability,
+            ls.ts as time,
+            COALESCE(cm.name, '') as name,
+            COALESCE(cm.organization, '') as organization,
+            COALESCE(cm.product, '') as product,
+            COALESCE(cm.bu, '') as bu,
+            COALESCE(cm.tid, '') as tid,
+            COALESCE(cm.pdt, '') as pdt,
+            COALESCE(cm.comment, '') as comment,
+            CASE 
+                WHEN ls.status = 1 AND ls.prev_status = 0 THEN 1 
+                ELSE 0 
+            END as availability_difference
+        FROM latest_status ls
+        LEFT JOIN ci_metadata cm ON ls.ci = cm.ci
+        ORDER BY ls.ci
+        """
+        return pd.read_sql_query(query, conn)
+
+def get_timescaledb_statistics_data() -> dict:
+    """Lädt erweiterte Statistiken aus TimescaleDB."""
+    with get_db_conn() as conn:
+        # Gesamtstatistiken mit korrekter Zeitberechnung
+        stats_query = """
+        WITH time_bounds AS (
+            SELECT 
+                MIN(ts) as earliest_ts,
+                MAX(ts) as latest_ts,
+                COUNT(*) as total_datapoints,
+                EXTRACT(EPOCH FROM (MAX(ts) - MIN(ts))) / 60.0 as total_recording_minutes
+            FROM measurements
+        ),
+        ci_time_stats AS (
+            SELECT 
+                ci,
+                COUNT(*) as datapoints,
+                MIN(ts) as first_seen,
+                MAX(ts) as last_seen,
+                -- Vereinfachte Berechnung: 5 Minuten pro Datensatz
+                SUM(CASE WHEN status = 1 THEN 5.0 ELSE 0 END) as uptime_minutes,
+                SUM(CASE WHEN status = 0 THEN 5.0 ELSE 0 END) as downtime_minutes
+            FROM measurements
+            GROUP BY ci
+        ),
+        incident_stats AS (
+            SELECT 
+                ci,
+                COUNT(*) as incidents
+            FROM (
+                SELECT 
+                    ci,
+                    status,
+                    LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+                FROM measurements
+            ) t
+            WHERE status = 0 AND prev_status = 1
+            GROUP BY ci
+        )
+        SELECT 
+            (SELECT COUNT(DISTINCT ci) FROM measurements) as total_cis,
+            (SELECT COUNT(DISTINCT ci) FROM measurements m1 
+             WHERE m1.ci IN (
+                 SELECT ci FROM measurements m2 
+                 WHERE m2.ts = (SELECT MAX(ts) FROM measurements m3 WHERE m3.ci = m2.ci)
+                 AND m2.status = 1
+             )) as currently_available,
+            (SELECT total_datapoints FROM time_bounds) as total_datapoints,
+            (SELECT total_recording_minutes FROM time_bounds) as total_recording_minutes,
+            (SELECT earliest_ts FROM time_bounds) as earliest_timestamp,
+            (SELECT latest_ts FROM time_bounds) as latest_timestamp,
+            (SELECT SUM(uptime_minutes) FROM ci_time_stats) as overall_uptime_minutes,
+            (SELECT SUM(downtime_minutes) FROM ci_time_stats) as overall_downtime_minutes,
+            (SELECT SUM(incidents) FROM incident_stats) as total_incidents
+        """
+        
+        stats_result = pd.read_sql_query(stats_query, conn).iloc[0]
+        
+        # CI-spezifische Metriken mit korrekter Zeitberechnung
+        ci_metrics_query = """
+        WITH         ci_time_stats AS (
+            SELECT 
+                ci,
+                COUNT(*) as datapoints,
+                MIN(ts) as first_seen,
+                MAX(ts) as last_seen,
+                -- Vereinfachte Berechnung: 5 Minuten pro Datensatz
+                SUM(CASE WHEN status = 1 THEN 5.0 ELSE 0 END) as uptime_minutes,
+                SUM(CASE WHEN status = 0 THEN 5.0 ELSE 0 END) as downtime_minutes
+            FROM measurements
+            GROUP BY ci
+        ),
+        incident_metrics AS (
+            SELECT 
+                ci,
+                COUNT(*) as incidents
+            FROM (
+                SELECT 
+                    ci,
+                    status,
+                    LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+                FROM measurements
+            ) t
+            WHERE status = 0 AND prev_status = 1
+            GROUP BY ci
+        )
+        SELECT 
+            cts.ci,
+            cts.datapoints,
+            cts.uptime_minutes,
+            cts.downtime_minutes,
+            cts.first_seen,
+            cts.last_seen,
+            COALESCE(im.incidents, 0) as incidents,
+            CASE 
+                WHEN (cts.uptime_minutes + cts.downtime_minutes) > 0 THEN 
+                    (cts.uptime_minutes / (cts.uptime_minutes + cts.downtime_minutes)) * 100
+                ELSE 100.0
+            END as availability_percentage
+        FROM ci_time_stats cts
+        LEFT JOIN incident_metrics im ON cts.ci = im.ci
+        ORDER BY COALESCE(im.incidents, 0) DESC, availability_percentage ASC
+        LIMIT 10
+        """
+        
+        ci_metrics = pd.read_sql_query(ci_metrics_query, conn)
+        
+        # Berechne Gesamtverfügbarkeit
+        overall_uptime = float(stats_result['overall_uptime_minutes']) if stats_result['overall_uptime_minutes'] is not None else 0
+        overall_downtime = float(stats_result['overall_downtime_minutes']) if stats_result['overall_downtime_minutes'] is not None else 0
+        total_time = overall_uptime + overall_downtime
+        overall_availability = (overall_uptime / total_time * 100) if total_time > 0 else 100.0
+        
+        return {
+            'total_cis': int(stats_result['total_cis']),
+            'currently_available': int(stats_result['currently_available']),
+            'currently_unavailable': int(stats_result['total_cis']) - int(stats_result['currently_available']),
+            'total_datapoints': int(stats_result['total_datapoints']),
+            'total_recording_minutes': float(stats_result['total_recording_minutes']),
+            'earliest_timestamp': stats_result['earliest_timestamp'],
+            'latest_timestamp': stats_result['latest_timestamp'],
+            'overall_uptime_minutes': float(overall_uptime),
+            'overall_downtime_minutes': float(overall_downtime),
+            'overall_availability_percentage_rollup': float(overall_availability),
+            'total_incidents': int(stats_result['total_incidents']),
+            'top_unstable_cis': ci_metrics.to_dict('records'),
+            'calculated_at': time.time()
+        }
 # Import packages
 import numpy as np
 import pandas as pd
@@ -158,6 +382,14 @@ def update_file(file_name, url):
         data = json.loads(response.text)
         df = pd.DataFrame(data)
         
+        # Check if TimescaleDB is enabled
+        config = load_config()
+        use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
+        
+        # Prepare data for TimescaleDB if enabled
+        measurements_data = []
+        ci_metadata_data = []
+        
         # Batch process data for better performance
         with h5.File(file_name, "a") as f:
             # Pre-define data types
@@ -177,6 +409,20 @@ def update_file(file_name, url):
                 # Create dataset efficiently
                 ds = group_av.require_dataset(str(timestamp), shape=(), dtype=int)
                 ds[()] = av
+                
+                # Prepare TimescaleDB data
+                if use_timescaledb:
+                    measurements_data.append((ci_id, utc_time, av))
+                    ci_metadata_data.append((
+                        ci_id,
+                        str(ci.get("name", "")),
+                        str(ci.get("organization", "")),
+                        str(ci.get("product", "")),
+                        str(ci.get("bu", "")),
+                        str(ci.get("tid", "")),
+                        str(ci.get("pdt", "")),
+                        str(ci.get("comment", ""))
+                    ))
                 
                 # Configuration items
                 group_ci = f.require_group("configuration_items/" + ci_id)
@@ -198,6 +444,16 @@ def update_file(file_name, url):
                 # Set availability data
                 group_ci.require_dataset("availability_difference", shape=(), dtype=int)[()] = av_diff
                 group_ci.require_dataset("current_availability", shape=(), dtype=int)[()] = av
+        
+        # Write to TimescaleDB if enabled
+        if use_timescaledb and measurements_data:
+            try:
+                init_timescaledb_schema()
+                write_measurements(measurements_data)
+                update_ci_metadata(ci_metadata_data)
+                print(f"Written {len(measurements_data)} measurements and {len(ci_metadata_data)} CI metadata to TimescaleDB")
+            except Exception as e:
+                print(f"TimescaleDB write failed (non-fatal): {e}")
         
         # Clear cache after updating file to ensure fresh data
         clear_hdf5_cache()
