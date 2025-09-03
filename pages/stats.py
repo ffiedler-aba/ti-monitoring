@@ -275,10 +275,10 @@ def calculate_overall_statistics(config_file_name, cis):
     # If no timestamp columns found or all timestamps are the same, try to get from data file metadata
     if total_recording_minutes == 0:
         try:
-                    # No fallback needed - TimescaleDB only
-        pass
-    except Exception as e:
-        print(f"Error in statistics calculation: {e}")
+            # No fallback needed - TimescaleDB only
+            pass
+        except Exception as e:
+            print(f"Error in statistics calculation: {e}")
     
     return {
         'total_cis': total_cis,

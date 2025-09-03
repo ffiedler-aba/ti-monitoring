@@ -20,12 +20,16 @@ def load_config():
         return {}
 
 def get_db_conn():
-    # Try POSTGRES_* environment variables first (Docker), then fallback to DB_* (legacy)
-    host = os.getenv('POSTGRES_HOST') or os.getenv('DB_HOST', 'localhost')
-    port = int(os.getenv('POSTGRES_PORT') or os.getenv('DB_PORT', '5432'))
-    db   = os.getenv('POSTGRES_DB') or os.getenv('DB_NAME', 'timonitor')
-    user = os.getenv('POSTGRES_USER') or os.getenv('DB_USER', 'timonitor')
-    pwd  = os.getenv('POSTGRES_PASSWORD') or os.getenv('DB_PASSWORD', 'timonitor')
+    # Load database configuration from config.yaml
+    config = load_config()
+    tsdb_config = config.get('core', {}).get('timescaledb', {})
+    
+    host = tsdb_config.get('host', 'db')
+    port = tsdb_config.get('port', 5432)
+    db = tsdb_config.get('dbname', 'timonitor')
+    user = tsdb_config.get('user', 'timonitor')
+    pwd = tsdb_config.get('password', 'timonitor')
+    
     return psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pwd)
 
 def init_timescaledb_schema():

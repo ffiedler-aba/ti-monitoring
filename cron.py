@@ -210,7 +210,7 @@ def compute_incident_and_availability_metrics():
     }
     try:
         with get_db_conn() as conn:
-            # Get all CIs with their availability data
+            # Get all CIs with their availability data (simplified MTTR/MTBF calculation)
             query = """
             WITH ci_metrics AS (
                 SELECT 
@@ -249,6 +249,15 @@ def compute_incident_and_availability_metrics():
                 ca.uptime_minutes,
                 ca.downtime_minutes,
                 ca.incidents,
+                -- Simple MTTR/MTBF calculation based on downtime and incidents
+                CASE 
+                    WHEN ca.incidents > 0 THEN ca.downtime_minutes / ca.incidents
+                    ELSE 0
+                END as mttr_minutes,
+                CASE 
+                    WHEN ca.incidents > 1 THEN ca.uptime_minutes / (ca.incidents - 1)
+                    ELSE 0
+                END as mtbf_minutes,
                 CASE 
                     WHEN (ca.uptime_minutes + ca.downtime_minutes) > 0 THEN
                         (ca.uptime_minutes / (ca.uptime_minutes + ca.downtime_minutes)) * 100
@@ -268,12 +277,17 @@ def compute_incident_and_availability_metrics():
                 return metrics
             
             # Process results
+            total_mttr_values = []
+            total_mtbf_values = []
+            
             for _, row in result.iterrows():
                 ci = row['ci']
                 uptime_minutes = float(row['uptime_minutes']) if row['uptime_minutes'] else 0.0
                 downtime_minutes = float(row['downtime_minutes']) if row['downtime_minutes'] else 0.0
                 incidents = int(row['incidents']) if row['incidents'] else 0
                 availability_pct = float(row['availability_percentage']) if row['availability_percentage'] else 0.0
+                mttr_minutes = float(row['mttr_minutes']) if row['mttr_minutes'] is not None else 0.0
+                mtbf_minutes = float(row['mtbf_minutes']) if row['mtbf_minutes'] is not None else 0.0
                 
                 # Store per-CI metrics
                 metrics['per_ci_metrics'][ci] = {
@@ -281,6 +295,8 @@ def compute_incident_and_availability_metrics():
                     'downtime_minutes': downtime_minutes,
                     'availability_percentage': availability_pct,
                     'incidents': incidents,
+                    'mttr_minutes': mttr_minutes,
+                    'mtbf_minutes': mtbf_minutes,
                     'name': row.get('name', ''),
                     'organization': row.get('organization', '')
                 }
@@ -289,6 +305,12 @@ def compute_incident_and_availability_metrics():
                 metrics['overall_uptime_minutes'] += uptime_minutes
                 metrics['overall_downtime_minutes'] += downtime_minutes
                 metrics['total_incidents'] += incidents
+                
+                # Collect MTTR/MTBF values for overall calculation
+                if mttr_minutes > 0:
+                    total_mttr_values.append(mttr_minutes)
+                if mtbf_minutes > 0:
+                    total_mtbf_values.append(mtbf_minutes)
             
             # Calculate overall availability percentage
             total_overall_minutes = metrics['overall_uptime_minutes'] + metrics['overall_downtime_minutes']
@@ -296,6 +318,23 @@ def compute_incident_and_availability_metrics():
                 metrics['overall_availability_percentage_rollup'] = (
                     metrics['overall_uptime_minutes'] / total_overall_minutes * 100
                 )
+            
+            # Calculate overall MTTR and MTBF
+            if total_mttr_values:
+                metrics['mttr_minutes_mean'] = sum(total_mttr_values) / len(total_mttr_values)
+            else:
+                metrics['mttr_minutes_mean'] = 0.0
+                
+            if total_mtbf_values:
+                metrics['mtbf_minutes_mean'] = sum(total_mtbf_values) / len(total_mtbf_values)
+            else:
+                metrics['mtbf_minutes_mean'] = 0.0
+                
+            log(f"MTTR values: {len(total_mttr_values)}, MTBF values: {len(total_mtbf_values)}")
+            if total_mttr_values:
+                log(f"MTTR mean: {metrics['mttr_minutes_mean']:.2f} minutes")
+            if total_mtbf_values:
+                log(f"MTBF mean: {metrics['mtbf_minutes_mean']:.2f} minutes")
             
             # Create top unstable CIs list
             top_unstable = sorted(
@@ -376,15 +415,13 @@ def calculate_overall_statistics(cis):
         database_size_mb = 0
         try:
             with get_db_conn() as conn:
-                query = "SELECT pg_size_pretty(pg_database_size(current_database())) as size"
+                # Get raw size in bytes and convert to MB
+                query = "SELECT pg_database_size(current_database()) as size_bytes"
                 result = pd.read_sql_query(query, conn)
                 if not result.empty:
-                    size_str = result['size'].iloc[0]
-                    # Parse size string (e.g., "123 MB" -> 123)
-                    if 'MB' in size_str:
-                        database_size_mb = float(size_str.replace('MB', '').strip())
-                    elif 'GB' in size_str:
-                        database_size_mb = float(size_str.replace('GB', '').strip()) * 1024
+                    size_bytes = result['size_bytes'].iloc[0]
+                    database_size_mb = size_bytes / (1024 * 1024)  # Convert bytes to MB
+                    log(f"Database size: {database_size_mb:.2f} MB")
         except Exception as e:
             log(f"Error getting database size: {e}")
         
@@ -396,8 +433,14 @@ def calculate_overall_statistics(cis):
         
         # Calculate data age
         data_age_hours = 0
-        data_age_formatted = "Aktuell"
+        data_age_formatted = "Unbekannt"
         if latest_timestamp is not None:
+            # Ensure both timestamps are timezone-aware
+            if latest_timestamp.tzinfo is None:
+                latest_timestamp = latest_timestamp.tz_localize('UTC')
+            if current_time.tzinfo is None:
+                current_time = current_time.tz_localize('UTC')
+            
             time_diff = current_time - latest_timestamp
             data_age_hours = time_diff.total_seconds() / 3600
             if data_age_hours < 1:
@@ -406,6 +449,7 @@ def calculate_overall_statistics(cis):
                 data_age_formatted = f"{data_age_hours:.1f} Stunden"
             else:
                 data_age_formatted = f"{data_age_hours/24:.1f} Tage"
+            log(f"Data age: {data_age_formatted} (latest: {latest_timestamp})")
         
         return {
             'total_cis': total_cis,
