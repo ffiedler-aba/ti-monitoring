@@ -21,6 +21,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./notifications.json:/app/notifications.json
+      - ./.env:/app/.env
       - ./data/ci_list.json:/app/data/ci_list.json
       - appdata:/app/data
     environment:
