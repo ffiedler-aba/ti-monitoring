@@ -1,7 +1,6 @@
 import dash
 from dash import html, dcc, Input, Output, State, callback
 from mylibrary import *
-from myconfig import *
 import yaml
 import os
 import time

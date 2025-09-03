@@ -3,7 +3,6 @@ from dash import html, dcc
 from dash import dash_table
 from dash import Input, Output, callback, no_update, State
 from mylibrary import *
-from myconfig import *
 import yaml
 import os
 import time
@@ -50,31 +49,48 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
-# Cache for CI metadata loaded from data/ci_list.json
+# Cache for CI metadata loaded from TimescaleDB
 _ci_meta_cache = None
-_ci_meta_cache_mtime = 0
+_ci_meta_cache_timestamp = 0
+_ci_meta_cache_ttl = 300  # 5 minutes cache TTL
 
 def load_ci_metadata_map():
-    """Load CI -> {name, organization} map from data/ci_list.json with basic caching."""
-    global _ci_meta_cache, _ci_meta_cache_mtime
+    """Load CI -> {name, organization, product} map from TimescaleDB with caching."""
+    global _ci_meta_cache, _ci_meta_cache_timestamp
+    
+    current_time = time.time()
+    if (_ci_meta_cache is not None and 
+        current_time - _ci_meta_cache_timestamp < _ci_meta_cache_ttl):
+        return _ci_meta_cache
+    
     try:
-        ci_list_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'ci_list.json')
-        if not os.path.exists(ci_list_path):
-            return {}
-        mtime = os.path.getmtime(ci_list_path)
-        if _ci_meta_cache is not None and _ci_meta_cache_mtime == mtime:
-            return _ci_meta_cache
-        with open(ci_list_path, 'r', encoding='utf-8') as f:
-            items = json.load(f) or []
-        mapping = {str(item.get('ci')): {
-            'name': item.get('name') or '',
-            'organization': item.get('organization') or '',
-            'product': item.get('product') or ''
-        } for item in items if isinstance(item, dict) and item.get('ci')}
+        # Get CI metadata directly from TimescaleDB
+        with get_db_conn() as conn:
+            query = """
+            SELECT ci, name, organization, product
+            FROM ci_metadata
+            ORDER BY ci
+            """
+            with conn.cursor() as cur:
+                cur.execute(query)
+                results = cur.fetchall()
+                
+        # Create mapping
+        mapping = {}
+        for row in results:
+            ci, name, organization, product = row
+            mapping[str(ci)] = {
+                'name': name or '',
+                'organization': organization or '',
+                'product': product or ''
+            }
+        
         _ci_meta_cache = mapping
-        _ci_meta_cache_mtime = mtime
+        _ci_meta_cache_timestamp = current_time
         return mapping
-    except Exception:
+        
+    except Exception as e:
+        print(f"Error loading CI metadata from TimescaleDB: {e}")
         return _ci_meta_cache or {}
 
 def get_cached_statistics(config_file_name, cis):

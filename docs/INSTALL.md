@@ -30,7 +30,9 @@ mkdir data
 
 ### 3. Konfigurationsdateien einrichten
 
-#### .env Datei konfigurieren
+TI-Monitoring verwendet ein vereinfachtes Zwei-Konfigurationssystem:
+
+#### .env Datei konfigurieren (Sensible Daten)
 
 ```bash
 cp .env.example .env
@@ -46,32 +48,7 @@ SSL_DOMAIN=ti-monitoring.example.com
 SSL_EMAIL=admin@example.com
 ```
 
-#### notifications.json konfigurieren
-
-```bash
-cp notifications.json.example notifications.json
-```
-
-Bearbeiten Sie die `notifications.json` Datei und passen Sie Ihre Benachrichtigungsprofile an:
-```json
-[
-  {
-    "name": "Team Complete",
-    "type": "whitelist",
-    "ci_list": [
-      "CI001",
-      "CI002",
-      "CI003"
-    ],
-    "apprise_urls": [
-      "mailto://user:pass@gmail.com",
-      "tgram://bottoken/ChatID"
-    ]
-  }
-]
-```
-
-#### config.yaml konfigurieren
+#### config.yaml konfigurieren (Hauptkonfiguration)
 
 ```bash
 cp config.yaml.example config.yaml
@@ -104,30 +81,36 @@ core:
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
   
-  # Cron job intervals (in iterations, where each iteration = 5 minutes)
-  cron_intervals:
-    # Statistics update interval (default: every 2 iterations = 10 minutes)
-    statistics_update_interval: 2
-    
-    # CI list update interval (default: every 288 iterations = 24 hours)
-    ci_list_update_interval: 288
+  # Enable/disable notifications globally
+  notifications_enabled: false
 ```
 
 **Hinweis:** Der Wert `stats_delta_hours` dient als Standardwert für die Plot-Darstellung. Benutzer können den Zeitraum für jeden Plot individuell über ein Dropdown-Menü anpassen (1 Stunde bis 1 Woche). Der gewählte Zeitraum wird in der URL gespeichert.
 
-#### Cron-Intervalle konfigurieren
+#### notifications.json konfigurieren (Optional)
 
-Die neuen `cron_intervals` Einstellungen ermöglichen es, die Häufigkeit der automatischen Updates zu konfigurieren:
+```bash
+cp notifications.json.example notifications.json
+```
 
-- **`statistics_update_interval`**: Bestimmt, wie oft die Statistiken für die `/stats` Seite berechnet werden
-  - **Standard**: `2` (alle 10 Minuten)
-  - **Berechnung**: `2 Iterationen × 5 Minuten = 10 Minuten`
-  - **Empfehlung**: Für häufige Updates verwenden Sie `1` (alle 5 Minuten), für weniger häufige Updates `4` (alle 20 Minuten)
-
-- **`ci_list_update_interval`**: Bestimmt, wie oft die Liste der Configuration Items aktualisiert wird
-  - **Standard**: `288` (alle 24 Stunden)
-  - **Berechnung**: `288 Iterationen × 5 Minuten = 1440 Minuten = 24 Stunden`
-  - **Empfehlung**: Normalerweise nicht ändern, da sich die CI-Liste selten ändert
+Bearbeiten Sie die `notifications.json` Datei und passen Sie Ihre Benachrichtigungsprofile an:
+```json
+[
+  {
+    "name": "Team Complete",
+    "type": "whitelist",
+    "ci_list": [
+      "CI001",
+      "CI002",
+      "CI003"
+    ],
+    "apprise_urls": [
+      "mailto://user:pass@gmail.com",
+      "tgram://bottoken/ChatID"
+    ]
+  }
+]
+```
 
 **Beispiele für Anpassungen:**
 ```yaml

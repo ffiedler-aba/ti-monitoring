@@ -41,6 +41,9 @@ core:
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
   
+  # Enable/disable notifications globally
+  notifications_enabled: false
+  
   # Data retention (months)
   # Keep only the last N months of availability datapoints. Default: 6
   retention_months: 6

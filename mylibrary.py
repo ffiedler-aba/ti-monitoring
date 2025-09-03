@@ -348,7 +348,7 @@ def get_timescaledb_statistics_data() -> dict:
 # Import packages
 import numpy as np
 import pandas as pd
-import h5py as h5
+
 import requests, json, time, pytz, os
 from datetime import datetime
 from tzlocal import get_localzone
@@ -360,33 +360,19 @@ import threading
 from collections import OrderedDict
 
 # Add dotenv import
-import os
 from dotenv import load_dotenv
 import hmac
 
 # Note: HDF5 cache removed - now using TimescaleDB only
 
-def initialize_data_file(file_name):
-    """
-    Creates hdf5 file if necessary and builds up basic group structure
-    
-    Args:
-        file_name (str): Path to hdf5 file
 
-    Returns:
-        None
-    """
-    if not(os.path.isfile(file_name)):
-        with h5.File(file_name, "w") as f:
-            f.create_group("availability")
-            f.create_group("configuration_items")
 
 def update_file(file_name, url):
     """
-    Gets current data from API and updates hdf5 file with optimized performance
+    Gets current data from API and updates TimescaleDB
 
     Args:
-        file_name (str): Path to hdf5 file
+        file_name (str): Path to hdf5 file (kept for compatibility, not used)
         url (str): URL of API
 
     Returns:
@@ -399,87 +385,48 @@ def update_file(file_name, url):
         data = json.loads(response.text)
         df = pd.DataFrame(data)
         
-        # Check if TimescaleDB is enabled
-        config = load_config()
-        use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
-        
-        # Prepare data for TimescaleDB if enabled
+        # Prepare data for TimescaleDB
         measurements_data = []
         ci_metadata_data = []
         
-        # Batch process data for better performance
-        with h5.File(file_name, "a") as f:
-            # Pre-define data types
-            str_256 = h5.string_dtype(encoding='utf-8', length=256)
+        # Process all configuration items
+        for idx in range(len(df)):
+            ci = df.iloc[idx]
+            ci_id = str(ci["ci"])
             
-            # Process all configuration items in batch
-            for idx in range(len(df)):
-                ci = df.iloc[idx]
-                ci_id = str(ci["ci"])
-                
-                # Availability data
-                group_av = f.require_group("availability/" + ci_id)
-                av = int(ci["availability"])
-                utc_time = datetime.strptime(ci["time"], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.UTC)
-                timestamp = utc_time.timestamp()
-                
-                # Create dataset efficiently
-                ds = group_av.require_dataset(str(timestamp), shape=(), dtype=int)
-                ds[()] = av
-                
-                # Prepare TimescaleDB data
-                if use_timescaledb:
-                    measurements_data.append((ci_id, utc_time, av))
-                    ci_metadata_data.append((
-                        ci_id,
-                        str(ci.get("name", "")),
-                        str(ci.get("organization", "")),
-                        str(ci.get("product", "")),
-                        str(ci.get("bu", "")),
-                        str(ci.get("tid", "")),
-                        str(ci.get("pdt", "")),
-                        str(ci.get("comment", ""))
-                    ))
-                
-                # Configuration items
-                group_ci = f.require_group("configuration_items/" + ci_id)
-                
-                # Batch create all properties
-                properties = ["tid", "bu", "organization", "pdt", "product", "name", "comment", "time"]
-                for property_name in properties:
-                    if property_name in ci:
-                        ds = group_ci.require_dataset(property_name, shape=(), dtype=str_256)
-                        ds[()] = str(ci[property_name])
-                
-                # Calculate availability difference
-                if "current_availability" in group_ci:
-                    prev_av = group_ci["current_availability"][()]
-                    av_diff = av - prev_av
-                else:
-                    av_diff = 0
-                
-                # Set availability data
-                group_ci.require_dataset("availability_difference", shape=(), dtype=int)[()] = av_diff
-                group_ci.require_dataset("current_availability", shape=(), dtype=int)[()] = av
+            # Availability data
+            av = int(ci["availability"])
+            utc_time = datetime.strptime(ci["time"], '%Y-%m-%dT%H:%M:%S.%fZ').replace(tzinfo=pytz.UTC)
+            
+            # Prepare TimescaleDB data
+            measurements_data.append((ci_id, utc_time, av))
+            ci_metadata_data.append((
+                ci_id,
+                str(ci.get("name", "")),
+                str(ci.get("organization", "")),
+                str(ci.get("product", "")),
+                str(ci.get("bu", "")),
+                str(ci.get("tid", "")),
+                str(ci.get("pdt", "")),
+                str(ci.get("comment", ""))
+            ))
         
-        # Write to TimescaleDB if enabled
-        if use_timescaledb and measurements_data:
+        # Write to TimescaleDB
+        if measurements_data:
             try:
                 init_timescaledb_schema()
                 write_measurements(measurements_data)
                 update_ci_metadata(ci_metadata_data)
                 print(f"Written {len(measurements_data)} measurements and {len(ci_metadata_data)} CI metadata to TimescaleDB")
             except Exception as e:
-                print(f"TimescaleDB write failed (non-fatal): {e}")
-        
-        # Clear cache after updating file to ensure fresh data
-        clear_hdf5_cache()
+                print(f"TimescaleDB write failed: {e}")
+                raise
         
     except requests.RequestException as e:
         print(f"Error fetching data from API: {e}")
         raise
     except Exception as e:
-        print(f"Error updating HDF5 file: {e}")
+        print(f"Error updating data: {e}")
         raise
 
 def get_availability_data_of_ci(file_name, ci):

@@ -114,12 +114,11 @@ Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigke
 
 Für detaillierte Konfigurationsanweisungen siehe [INSTALL.md](docs/INSTALL.md).
 
-Die Anwendung kann über mehrere Konfigurationsdateien konfiguriert werden:
+Die Anwendung kann über folgende Konfigurationsdateien konfiguriert werden:
 
-1. **config.yaml** - Hauptkonfigurationsdatei (empfohlen)
-2. **myconfig.py** - Python-basierte Konfiguration (Fallback)
-3. **.env** - Umgebungsvariablen für sensible Daten
-4. **notifications.json** - Benachrichtigungsprofile
+1. **config.yaml** - Hauptkonfigurationsdatei (API-URL, Datenbank, Intervals, etc.)
+2. **.env** - Umgebungsvariablen für sensible Daten (Passwörter, SSL-Konfiguration)
+3. **notifications.json** - Benachrichtigungsprofile
 
 Alle Konfigurationsdateien basieren auf den entsprechenden `.example` Dateien, die Sie kopieren und anpassen müssen.
 

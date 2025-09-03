@@ -101,53 +101,7 @@ def load_core_config():
         log(f"ERROR loading core configuration: {e}")
         return {}
 
-def update_ci_list_file(config_file_name, ci_list_file_path):
-    """Update the CI list file with current configuration items from TimescaleDB"""
-    try:
-        log(f"Updating CI list file: {ci_list_file_path}")
-        
-        # Validate inputs
-        if not ci_list_file_path:
-            log("ERROR: ci_list_file_path is empty or None")
-            return False
-        
-        # Get all CIs from TimescaleDB with error handling
-        try:
-            cis_df = get_data_of_all_cis('')  # file_name parameter not used anymore
-        except Exception as e:
-            log(f"ERROR getting CI data from TimescaleDB: {e}")
-            return False
-        
-        if cis_df.empty:
-            log("No CIs found in TimescaleDB")
-            return False
-        
-        # Convert to list of dictionaries with relevant information
-        try:
-            ci_list = []
-            for _, row in cis_df.iterrows():
-                ci_info = {
-                    'ci': str(row.get('ci', '')),
-                    'name': str(row.get('name', '')),
-                    'organization': str(row.get('organization', '')),
-                    'product': str(row.get('product', ''))
-                }
-                ci_list.append(ci_info)
-            
-            # Write to JSON file
-            with open(ci_list_file_path, 'w', encoding='utf-8') as f:
-                json.dump(ci_list, f, indent=2, ensure_ascii=False)
-            
-            log(f"Successfully updated CI list file with {len(ci_list)} CIs")
-            return True
-            
-        except Exception as e:
-            log(f"ERROR writing CI list file: {e}")
-            return False
-            
-    except Exception as e:
-        log(f"ERROR in update_ci_list_file: {e}")
-        return False
+
 
 def calculate_recording_duration():
     """Calculate the total recording duration from TimescaleDB availability data"""
@@ -512,10 +466,14 @@ def update_statistics_file():
         log(f"ERROR in update_statistics_file: {e}")
         return False
 
+
+
 def main():
     """Main cron job function - TimescaleDB only version"""
     try:
         log("Starting TI-Monitoring cron job (TimescaleDB only)")
+        
+
         
         # Load configuration
         core_config = load_core_config()
@@ -527,7 +485,7 @@ def main():
         config_url = core_config.get('url')
         config_home_url = core_config.get('home_url')
         retention_months = core_config.get('retention_months', 6)
-        ci_list_update_interval = core_config.get('ci_list_update_interval', 12)  # Update every 12 iterations (1 hour)
+
         
         log(f"Configuration values:")
         log(f"  url: {config_url}")
@@ -544,7 +502,6 @@ def main():
         
         # Initialize counters
         iteration_count = 0
-        last_ci_list_update_time = 0
         last_stats_update_time = 0
         last_notification_time = 0
         last_retention_time = 0
@@ -564,17 +521,7 @@ def main():
                 except Exception as e:
                     log(f"ERROR in update_file: {e}")
                 
-                # Update CI list periodically
-                if (iteration_count % ci_list_update_interval == 0 or 
-                    now_epoch - last_ci_list_update_time > 3600):  # Every hour
-                    try:
-                        log(f"CI list update (every {ci_list_update_interval} iterations = {ci_list_update_interval * 5} minutes)...")
-                        ci_list_file_path = os.path.join(os.path.dirname(__file__), 'data', 'ci_list.json')
-                        update_ci_list_file('', ci_list_file_path)  # file_name parameter not used anymore
-                        log("CI list update completed")
-                        last_ci_list_update_time = now_epoch
-                    except Exception as e:
-                        log(f"ERROR in CI list update: {e}")
+
                 
                 # Update statistics file hourly
                 if now_epoch - last_stats_update_time > 3600:  # Every hour

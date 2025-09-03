@@ -1,5 +1,4 @@
 from mylibrary import *
-from myconfig import *
 import yaml
 import os
 

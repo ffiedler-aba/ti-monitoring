@@ -2,7 +2,6 @@ import dash
 from dash import html, dcc, Input, Output, callback
 import plotly.express as px
 from mylibrary import *
-from myconfig import *
 import yaml
 import os
 import pandas as pd
@@ -148,8 +147,8 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     
     # TimescaleDB mode - no file_name needed
     config_file_name = None
-    config_home_url = core_config.get('home_url') or home_url
-    config_stats_delta_hours = core_config.get('stats_delta_hours') or stats_delta_hours
+    config_home_url = core_config.get('home_url', 'http://localhost:8050')
+    config_stats_delta_hours = core_config.get('stats_delta_hours', 12)
     
     # Use provided hours parameter or default from config
     selected_hours = int(hours) if hours is not None else config_stats_delta_hours

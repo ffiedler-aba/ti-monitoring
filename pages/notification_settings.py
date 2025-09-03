@@ -2,7 +2,6 @@ import dash
 from dash import html, dcc, Input, Output, State, callback, no_update, callback_context
 import json
 from mylibrary import *
-from myconfig import *
 import yaml
 import os
 import apprise
@@ -487,7 +486,7 @@ def render_ci_checkboxes(cis_data, editing_index, filter_text, auth_data):
         selected_cis = []
         if editing_index is not None:
             core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config_file = core_config.get('notifications_config_file', 'notifications.json')
             config = get_notification_config(config_file)
             if 0 <= editing_index < len(config):
                 selected_cis = config[editing_index].get('ci_list', [])
@@ -574,7 +573,7 @@ def reset_selected_cis(form_style, editing_index):
         # Form is opened for editing, load existing selection
         try:
             core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config_file = core_config.get('notifications_config_file', 'notifications.json')
             config = get_notification_config(config_file)
             if 0 <= editing_index < len(config):
                 return config[editing_index].get('ci_list', [])
@@ -697,7 +696,7 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index, filt
         existing_selected_cis = []
         if editing_index is not None:
             core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config_file = core_config.get('notifications_config_file', 'notifications.json')
             config = get_notification_config(config_file)
             if 0 <= editing_index < len(config):
                 existing_selected_cis = config[editing_index].get('ci_list', [])
@@ -784,7 +783,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
     
     # Load core configurations
     core_config = load_core_config()
-    config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+    config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
     
     try:
         config = get_notification_config(config_notifications_config_file)
@@ -888,7 +887,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
             
             # Load core configurations
             core_config = load_core_config()
-            config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
             
             config = get_notification_config(config_notifications_config_file)
             if 0 <= index < len(config):
@@ -958,7 +957,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
         try:
             # Load core configurations
             core_config = load_core_config()
-            config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+            config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
             
             # Load existing config
             config = get_notification_config(config_notifications_config_file)
@@ -1007,7 +1006,7 @@ def show_delete_confirm(delete_clicks):
         
         # Load core configurations
         core_config = load_core_config()
-        config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+        config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
         
         config = get_notification_config(config_notifications_config_file)
         if 0 <= index < len(config):
@@ -1033,7 +1032,7 @@ def delete_profile(submit_n_clicks, delete_index):
     try:
         # Load core configurations
         core_config = load_core_config()
-        config_notifications_config_file = core_config.get('notifications_config_file') or notifications_config_file
+        config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
         
         # Load config
         config = get_notification_config(config_notifications_config_file)
