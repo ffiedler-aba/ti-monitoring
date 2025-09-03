@@ -131,8 +131,13 @@ def get_cached_statistics(config_file_name, cis):
                     data_age_hours = (current_time - file_stats['latest_timestamp']).total_seconds() / 3600
                     file_stats['data_age_formatted'] = format_duration(data_age_hours)
                 
+                # Ensure top_unstable_cis_by_incidents exists (map from top_unstable_cis)
+                if 'top_unstable_cis_by_incidents' not in file_stats and 'top_unstable_cis' in file_stats:
+                    file_stats['top_unstable_cis_by_incidents'] = file_stats['top_unstable_cis']
+                
                 # Debug: Print key statistics to verify they are loaded correctly
                 print(f"DEBUG: Loaded statistics - uptime: {file_stats.get('overall_uptime_minutes', 'NOT_FOUND')}, downtime: {file_stats.get('overall_downtime_minutes', 'NOT_FOUND')}, mttr: {file_stats.get('mttr_minutes_mean', 'NOT_FOUND')}")
+                print(f"DEBUG: Loaded CI data - count: {len(file_stats.get('top_unstable_cis_by_incidents', []))}")
                 
                 return file_stats
     except Exception as e:
@@ -496,7 +501,7 @@ def serve_layout():
         if not overall_stats.get('top_unstable_cis_by_incidents') and os.path.exists(statistics_file_path):
             with open(statistics_file_path, 'r', encoding='utf-8') as f:
                 file_stats = json.load(f)
-            overall_stats['top_unstable_cis_by_incidents'] = file_stats.get('top_unstable_cis_by_incidents', [])
+            overall_stats['top_unstable_cis_by_incidents'] = file_stats.get('top_unstable_cis', [])
     except Exception as e:
         print(f"Warning loading statistics.json fallback: {e}")
     
