@@ -745,6 +745,12 @@ def main():
             try:
                 tsdb_cfg = core_config.get('timescaledb', {}) if isinstance(core_config, dict) else {}
                 if tsdb_cfg.get('enabled', False):
+                    # einmalig Retention setzen (bevor ingest läuft)
+                    try:
+                        keep_days = int(tsdb_cfg.get('keep_days', 185))
+                        setup_timescaledb_retention(keep_days=keep_days)
+                    except Exception as e:
+                        log(f"TimescaleDB retention setup failed (non-fatal): {e}")
                     inserted = ingest_hdf5_to_timescaledb(config_file_name, max_rows=20000)
                     log(f"TimescaleDB ingest: inserted ~{inserted} rows this iteration")
             except Exception as e:

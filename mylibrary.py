@@ -85,6 +85,13 @@ def ingest_hdf5_to_timescaledb(hdf5_path: str, max_rows: Optional[int] = None) -
                 inserted += cur.rowcount
                 batch.clear()
     return inserted
+
+def setup_timescaledb_retention(keep_days: int = 185) -> None:
+    """Setzt eine Retention-Policy (drop_chunks) auf measurements; idempotent."""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # add_retention_policy ist idempotent mit if_not_exists => TRUE
+        sql = f"SELECT add_retention_policy('measurements', INTERVAL '{int(keep_days)} days', if_not_exists => TRUE);"
+        cur.execute(sql)
 # Import packages
 import numpy as np
 import pandas as pd
