@@ -18,6 +18,147 @@ Die Anwendung soll vollständig auf TimescaleDB umgestellt werden, um:
 - TimescaleDB ist in `config.yaml` aktiviert (`timescaledb.enabled: true`)
 - HDF5-Datei existiert und enthält Daten (`data/data.hdf5`)
 
+## ⚠️ Häufige Probleme und Lösungen
+
+### Problem 1: Datenbankverbindung außerhalb des Docker-Netzwerks
+
+**Symptom:**
+```
+psycopg2.OperationalError: could not translate host name "db" to address: Temporary failure in name resolution
+```
+
+**Ursache:** Migration-Skripte werden lokal ausgeführt, aber versuchen sich mit dem Docker-Service-Namen `db` zu verbinden.
+
+**Lösung:**
+```bash
+# .env-Datei für lokale Ausführung anpassen
+echo "POSTGRES_HOST=localhost" >> .env
+echo "POSTGRES_PORT=5432" >> .env
+
+# Oder config.yaml temporär auf localhost ändern
+sed -i 's/host: db/host: localhost/g' config.yaml
+```
+
+### Problem 2: Migration-Skript im Container nicht gefunden
+
+**Symptom:**
+```
+python: can't open file '/app/scripts/migrate_hdf5_to_timescaledb.py': [Errno 2] No such file or directory
+```
+
+**Ursache:** Das `scripts/`-Verzeichnis ist nicht in den Web-Container gemountet.
+
+**Lösung:** Migration-Skripte lokal ausführen, nicht im Container.
+
+### Problem 3: Web-Anwendung lädt keine Daten
+
+**Symptom:** Hauptseite zeigt nur Header und Footer, keine CI-Daten.
+
+**Ursache:** `file_name` Variable wurde aus `config.yaml` entfernt, aber Code versucht noch darauf zuzugreifen.
+
+**Lösung:**
+```python
+# In pages/home.py und pages/stats.py
+config_file_name = None  # Statt config_file_name = core_config.get('file_name')
+cis = get_data_of_all_cis_from_timescaledb()  # Statt HDF5-Funktionen
+```
+
+### Problem 4: SQL-Query Spalten stimmen nicht mit DataFrame überein
+
+**Symptom:**
+```
+KeyError: 'current_availability' oder 'name'
+```
+
+**Ursache:** SQL-Query gibt andere Spalten zurück als im `pd.DataFrame`-Konstruktor erwartet.
+
+**Lösung:**
+```python
+# In mylibrary.py - Spalten explizit definieren
+columns = ['ci', 'timestamp', 'status', 'response_time', 'current_availability', 
+           'name', 'organization', 'product', 'bu', 'tid', 'pdt', 'comment']
+df = pd.DataFrame(results, columns=columns)
+```
+
+### Problem 5: NULL-Werte in SQL-Queries verursachen TypeError
+
+**Symptom:**
+```
+TypeError: can only concatenate str (not "NoneType") to str
+```
+
+**Ursache:** SQL-Query gibt `NULL`-Werte zurück, die in Python zu `None` werden.
+
+**Lösung:**
+```sql
+-- COALESCE verwenden für alle String-Spalten
+SELECT ci, timestamp, status, response_time, current_availability,
+       COALESCE(name, '') as name,
+       COALESCE(organization, '') as organization,
+       COALESCE(product, '') as product,
+       COALESCE(bu, '') as bu,
+       COALESCE(tid, '') as tid,
+       COALESCE(pdt, '') as pdt,
+       COALESCE(comment, '') as comment
+FROM measurements m
+LEFT JOIN ci_metadata c ON m.ci = c.ci
+```
+
+### Problem 6: pandas Timestamp-Objekte in pretty_timestamp
+
+**Symptom:**
+```
+TypeError: strptime() argument 1 must be str, not Timestamp
+```
+
+**Ursache:** `pretty_timestamp` Funktion erwartet String, bekommt aber pandas Timestamp-Objekt.
+
+**Lösung:**
+```python
+def pretty_timestamp(timestamp):
+    if hasattr(timestamp, 'to_pydatetime'):
+        # pandas Timestamp-Objekt
+        utc_time = timestamp.to_pydatetime()
+        if utc_time.tzinfo is None:
+            utc_time = utc_time.replace(tzinfo=pytz.UTC)
+    else:
+        # String-Timestamp
+        utc_time = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        utc_time = utc_time.replace(tzinfo=pytz.UTC)
+    
+    berlin_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
+    return berlin_time.strftime('%d.%m.%Y %H:%M:%S Uhr')
+```
+
+### Problem 7: ci_metadata Tabelle ist leer
+
+**Symptom:** Plot-Seiten sind leer, keine Metadaten verfügbar.
+
+**Ursache:** Migration hat nur `measurements` Tabelle gefüllt, aber `ci_metadata` ist leer.
+
+**Lösung:**
+```sql
+-- ci_metadata mit Standard-Werten füllen
+INSERT INTO ci_metadata (ci, name, organization, product, bu, tid, pdt, comment)
+SELECT DISTINCT ci, ci as name, '' as organization, '' as product, 
+                '' as bu, '' as tid, '' as pdt, '' as comment
+FROM measurements
+ON CONFLICT (ci) DO NOTHING;
+
+-- Dann mit echten Metadaten aus ci_list.json aktualisieren
+```
+
+### Problem 8: Docker-Volumes sind read-only
+
+**Symptom:**
+```
+sed: cannot rename /app/sedIjVZma: Device or resource busy
+```
+
+**Ursache:** Versuch, gemountete Dateien im Container zu bearbeiten.
+
+**Lösung:** Dateien auf dem Host bearbeiten, dann Container neu starten.
+
 ## ✅ Migration abgeschlossen
 
 Die Migration wurde erfolgreich durchgeführt. Alle HDF5-Fallbacks wurden entfernt und TimescaleDB ist jetzt die einzige Datenspeicherung.
