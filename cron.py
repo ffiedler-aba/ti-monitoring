@@ -445,8 +445,8 @@ def update_statistics_file():
             log("ERROR: Failed to calculate statistics")
             return False
         
-        # Add timestamp for when statistics were calculated
-        stats['last_updated'] = datetime.now().isoformat()
+        # Add timestamp for when statistics were calculated (UTC)
+        stats['last_updated'] = datetime.now(timezone.utc).isoformat()
         
         # Force garbage collection after heavy computation
         import gc
