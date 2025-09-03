@@ -403,15 +403,15 @@ def create_overall_statistics_display(stats):
                     html.Div(className='stat-item', children=[
                         html.Strong('Letzte Aktualisierung: '),
                         html.Span(
-                            pd.to_datetime(stats.get("latest_timestamp", "")).strftime('%d.%m.%Y %H:%M:%S Uhr') 
-                            if stats.get("latest_timestamp", "") else 'Unbekannt'
+                            pd.to_datetime(stats.get("last_updated", stats.get("latest_timestamp", ""))).strftime('%d.%m.%Y %H:%M:%S Uhr') 
+                            if stats.get("last_updated", stats.get("latest_timestamp", "")) else 'Unbekannt'
                         )
                     ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Nächste Aktualisierung: '),
                         html.Span(
-                            (pd.to_datetime(stats.get("latest_timestamp", "")) + pd.Timedelta(hours=1)).strftime('%d.%m.%Y %H:%M:%S Uhr') 
-                            if stats.get("latest_timestamp", "") else 'Unbekannt'
+                            (pd.to_datetime(stats.get("last_updated", stats.get("latest_timestamp", ""))) + pd.Timedelta(hours=1)).strftime('%d.%m.%Y %H:%M:%S Uhr') 
+                            if stats.get("last_updated", stats.get("latest_timestamp", "")) else 'Unbekannt'
                         )
                     ]),
                     html.Div(className='stat-item', children=[
