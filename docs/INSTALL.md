@@ -145,8 +145,11 @@ cron_intervals:
 Die Entwicklungsumgebung ist für lokale Tests und Entwicklung optimiert:
 
 ```bash
-# Container starten
+# Container starten (ohne TimescaleDB)
 docker compose -f docker-compose-dev.yml up -d
+
+# Container starten (mit TimescaleDB-Profil)
+docker compose --profile tsdb -f docker-compose-dev.yml up -d
 
 # Status überprüfen
 docker compose -f docker-compose-dev.yml ps
@@ -184,8 +187,11 @@ mkdir -p letsencrypt-config
 #### 2. Container starten
 
 ```bash
-# Container starten
+# Container starten (ohne TimescaleDB)
 docker compose up -d
+
+# Container starten (mit TimescaleDB-Profil)
+docker compose --profile tsdb up -d
 
 # Status überprüfen
 docker compose ps
@@ -269,6 +275,14 @@ cat data/cron.log.2025-01-26
 - ✅ Sichere Produktionskonfiguration
 
 **Hinweis**: Die Produktionsumgebung verwendet bereits die optimierte Konfiguration mit ungepufferter Logging-Ausgabe und direktem Port-Zugriff für Debugging-Zwecke.
+
+### TimescaleDB optional nutzen
+
+- Compose-Profil `tsdb` aktiviert den TimescaleDB-Container (`db`).
+- App-Seitig steuert `core.timescaledb.enabled` in `config.yaml`, ob Ingestion/Retention aktiv ist.
+- Szenarien:
+  - Ohne TSDB: Profil nicht setzen UND/ODER `enabled: false` -> reine HDF5-Nutzung
+  - Mit TSDB: `--profile tsdb` und `enabled: true` -> HDF5 + TimescaleDB (Ingestion, Retention)
 
 ### Unterschiede zwischen Dev und Prod
 

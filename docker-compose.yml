@@ -7,6 +7,7 @@ volumes:
 services:
   db:
     image: timescale/timescaledb:latest-pg16
+    profiles: ["tsdb"]
     environment:
       - POSTGRES_PASSWORD=timonitor
       - POSTGRES_USER=timonitor
