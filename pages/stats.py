@@ -131,12 +131,20 @@ def get_cached_statistics(config_file_name, cis):
                     data_age_hours = (current_time - file_stats['latest_timestamp']).total_seconds() / 3600
                     file_stats['data_age_formatted'] = format_duration(data_age_hours)
                 
+                # Debug: Print key statistics to verify they are loaded correctly
+                print(f"DEBUG: Loaded statistics - uptime: {file_stats.get('overall_uptime_minutes', 'NOT_FOUND')}, downtime: {file_stats.get('overall_downtime_minutes', 'NOT_FOUND')}, mttr: {file_stats.get('mttr_minutes_mean', 'NOT_FOUND')}")
+                
                 return file_stats
     except Exception as e:
         print(f"Error loading statistics from file: {e}")
     
     # Fallback: calculate statistics if file doesn't exist or is invalid
     print("Statistics file not available, calculating new statistics")
+    
+    # Check if TimescaleDB is enabled
+    config = load_config()
+    use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
+    
     if use_timescaledb:
         print("Using TimescaleDB for statistics calculation...")
         # Import the TimescaleDB statistics function from mylibrary

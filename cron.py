@@ -438,9 +438,9 @@ def update_statistics_file():
         log(f"Retrieved {len(cis)} CIs from TimescaleDB")
         log(f"CI columns: {list(cis.columns)}")
         
-        # Calculate statistics from TimescaleDB
+        # Calculate statistics from TimescaleDB using mylibrary function
         log("Calculating overall statistics...")
-        stats = calculate_overall_statistics(cis)
+        stats = get_timescaledb_statistics_data()
         if not stats:
             log("ERROR: Failed to calculate statistics")
             return False
