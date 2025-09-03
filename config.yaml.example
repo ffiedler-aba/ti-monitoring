@@ -41,6 +41,10 @@ core:
   # Configuration file for notifications
   notifications_config_file: "notifications.json"
   
+  # Data retention (months)
+  # Keep only the last N months of availability datapoints. Default: 6
+  retention_months: 6
+  
   # Cron job intervals (in iterations, where each iteration = 5 minutes)
   cron_intervals:
     # Statistics update interval (default: every 2 iterations = 10 minutes)

@@ -173,7 +173,13 @@ Die Untergruppe des Konfigurationsobjektes in der Gruppe `availability` enthält
 
 Die Untergruppe des Konfigurationsobjektes in der Gruppe `configuration_items` enthält mehrere Datensätze mit allegemeinen Eigenschaften wie `name`, `product` und `organization`. Außerdem die aktuelle Verfügbarkeit `current_availability` sowie die Veränderung der Verfügbarkeit `availability_difference` in Bezug auf den vorherigen Wert (-1: nicht mehr verfügbar, 0: keine Veränderung, 1: wieder verfügbar). Bei Aktualisierungen werden die vorhandenen Datensätze überschrieben.
 
-Je nach Systemleistung kann es sinnvoll sein, die Datei `data.hdf5` von Zeit zu Zeit archivieren. Hierzu kann die Datei beispielsweise per Cronjob in ein Archiv-Verzeichnis verschoben werden.
+Je nach Systemleistung kann es sinnvoll sein, die Datei `data.hdf5` von Zeit zu Zeit zu archivieren. Zusätzlich unterstützt die Anwendung eine konfigurierbare Datenaufbewahrung (Retention):
+
+**Datenaufbewahrung (Retention)**
+- Konfigurierbar über `core.retention_months` in `config.yaml` (Standard: 6)
+- Es werden nur Datenpunkte der letzten N Monate in `availability` beibehalten
+- Die Bereinigung läuft automatisch einmal täglich im Cron-Loop
+- Hinweis: Die HDF5-Dateigröße schrumpft nach Löschungen nicht automatisch. Für physische Verkleinerung optional regelmäßig `h5repack` ausführen oder die Datei neu schreiben
 
 ## Benachrichtigungen
 

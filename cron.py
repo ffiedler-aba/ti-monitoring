@@ -673,6 +673,7 @@ def main():
         config_url = core_config.get('url')
         config_home_url = core_config.get('home_url')
         config_notifications_file = core_config.get('notifications_config_file')
+        retention_months = int(core_config.get('retention_months', 6))
         
         # Get cron intervals with defaults and validation
         cron_intervals = core_config.get('cron_intervals', {})
@@ -693,6 +694,7 @@ def main():
     log(f"  home_url: {config_home_url}")
     log(f"  notifications_file: {config_notifications_file}")
     log(f"  ci_list_update_interval: {ci_list_update_interval} iterations ({ci_list_update_interval * 5} minutes)")
+    log(f"  retention_months: {retention_months} months")
     
     if not config_file_name or not config_url:
         log("ERROR: Required configuration missing in config.yaml")
@@ -795,6 +797,15 @@ def main():
                 except Exception as e:
                     log(f"ERROR in garbage collection: {e}")
             
+            # Enforce retention policy every 288 iterations (24 hours)
+            if iteration_count % 288 == 0:
+                try:
+                    log("Running retention policy...")
+                    deleted = enforce_retention_policy(config_file_name, months=retention_months)
+                    log(f"Retention policy completed. Deleted datapoints: {deleted}")
+                except Exception as e:
+                    log(f"ERROR in retention policy: {e}")
+
             # Clean up old log files every 288 iterations (24 hours)
             if iteration_count % 288 == 0:
                 try:
@@ -888,6 +899,50 @@ def cleanup_old_logs():
                     
     except Exception as e:
         log(f"Error in cleanup_old_logs: {e}")
+
+def enforce_retention_policy(config_file_name: str, months: int = 6) -> int:
+    """Retain only the last 'months' of availability data per CI.
+    Returns the number of deleted datapoints.
+    """
+    try:
+        log(f"Retention: keeping last {months} months of data...")
+        if not os.path.exists(config_file_name):
+            log(f"Retention skipped: file not found: {config_file_name}")
+            return 0
+
+        now_epoch = time.time()
+        # Approximate months to days; 1 month ≈ 30.5 days
+        cutoff_epoch = now_epoch - (months * 30.5 * 24 * 3600)
+
+        deleted = 0
+        with h5py.File(config_file_name, 'a', swmr=False) as f:
+            if 'availability' not in f:
+                log("Retention: availability group not found; nothing to do")
+                return 0
+            availability = f['availability']
+            for ci in list(availability.keys()):
+                ci_group = availability[ci]
+                keys = list(ci_group.keys())
+                to_delete = []
+                for k in keys:
+                    try:
+                        ts = float(k)
+                        if ts < cutoff_epoch:
+                            to_delete.append(k)
+                    except Exception:
+                        # Invalid key → remove
+                        to_delete.append(k)
+                for k in to_delete:
+                    try:
+                        del ci_group[k]
+                        deleted += 1
+                    except Exception as e:
+                        log(f"Retention: failed to delete {ci}/{k}: {e}")
+        log(f"Retention: deleted {deleted} datapoints older than cutoff")
+        return deleted
+    except Exception as e:
+        log(f"Retention ERROR: {e}")
+        return 0
 
 def compute_incident_and_availability_metrics(config_file_name):
     """
