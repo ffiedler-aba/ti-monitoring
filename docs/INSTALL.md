@@ -191,6 +191,7 @@ mkdir -p letsencrypt-config
 docker compose up -d
 
 # Container starten (mit TimescaleDB-Profil)
+# Optional: .env mit POSTGRES_* setzen (siehe unten)
 docker compose --profile tsdb up -d
 
 # Status überprüfen
@@ -283,6 +284,29 @@ cat data/cron.log.2025-01-26
 - Szenarien:
   - Ohne TSDB: Profil nicht setzen UND/ODER `enabled: false` -> reine HDF5-Nutzung
   - Mit TSDB: `--profile tsdb` und `enabled: true` -> HDF5 + TimescaleDB (Ingestion, Retention)
+
+#### PostgreSQL-Konfiguration via .env
+
+Setzen Sie die Verbindungsdaten in `.env` (wird von allen Compose-Dateien gelesen):
+
+```env
+# PostgreSQL / TimescaleDB
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+POSTGRES_DB=timonitor
+POSTGRES_USER=timonitor
+POSTGRES_PASSWORD=timonitor
+```
+
+Diese Variablen werden in den Compose-Dateien genutzt, um:
+- den `db`-Service zu konfigurieren (User/DB/Pass, Port)
+- dem `ti-monitoring-cron` die `DB_*`-Umgebungsvariablen zu übergeben
+
+Beispiel-Start mit Profil und angepassten Variablen:
+
+```bash
+POSTGRES_PASSWORD=supersecret docker compose --profile tsdb up -d
+```
 
 ### Unterschiede zwischen Dev und Prod
 
