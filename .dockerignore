@@ -1,0 +1,12 @@
+data/
+letsencrypt-config/
+nginx/conf.d/
+*.log
+*.hdf5
+.env
+__pycache__/
+*.pyc
+.git/
+portable-build/
+windows-setup-src/build/
+dist/
