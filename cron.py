@@ -378,6 +378,7 @@ def compute_incident_and_availability_metrics(config_file_name):
             total_incidents = 0
             overall_uptime = 0.0
             overall_downtime = 0.0
+            total_datapoints = 0
             for ci_name in availability_group.keys():
                 ci_group = availability_group[ci_name]
                 # Collect and sort all timestamps as floats
@@ -390,6 +391,7 @@ def compute_incident_and_availability_metrics(config_file_name):
                 if not ts_list:
                     continue
                 ts_list.sort()
+                total_datapoints += len(ts_list)
                 # Build status sequence aligned to ts_list
                 statuses = []
                 for ts in ts_list:
@@ -479,7 +481,8 @@ def compute_incident_and_availability_metrics(config_file_name):
                 'mtbf_minutes_mean': float(np.mean(total_mtbf_values)) if total_mtbf_values else 0.0,
                 'top_unstable_cis_by_incidents': [{'ci': ci, 'incidents': inc} for ci, inc in top_unstable],
                 'top_downtime_cis': [{'ci': ci, 'downtime_minutes': mins} for ci, mins in top_downtime],
-                'per_ci_metrics': per_ci_results
+                'per_ci_metrics': per_ci_results,
+                'total_datapoints': int(total_datapoints)
             })
     except Exception as e:
         log(f"Error computing availability metrics: {e}")
@@ -582,7 +585,8 @@ def calculate_overall_statistics(config_file_name, cis):
         'top_unstable_cis_by_incidents': availability_metrics.get('top_unstable_cis_by_incidents', []),
         'top_downtime_cis': availability_metrics.get('top_downtime_cis', []),
         'per_ci_metrics': availability_metrics.get('per_ci_metrics', {}),
-        'database_size_mb': float(database_size_mb)
+        'database_size_mb': float(database_size_mb),
+        'total_datapoints': int(availability_metrics.get('total_datapoints', 0))
     }
 
 def update_statistics_file(config_file_name):
