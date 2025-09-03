@@ -3,6 +3,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 import h5py
 from datetime import datetime, timezone
+from typing import Optional
 
 def get_db_conn():
     host = os.getenv('DB_HOST', 'localhost')
@@ -37,7 +38,7 @@ def write_measurements(rows):
         )
         return cur.rowcount
 
-def ingest_hdf5_to_timescaledb(hdf5_path: str, max_rows: int | None = None) -> int:
+def ingest_hdf5_to_timescaledb(hdf5_path: str, max_rows: Optional[int] = None) -> int:
     """Streamt availability aus HDF5 und schreibt idempotent nach TimescaleDB.
     max_rows: optionales Limit zur Drosselung pro Lauf.
     """
