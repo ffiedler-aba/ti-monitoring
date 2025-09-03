@@ -517,7 +517,7 @@ def serve_layout():
                     sort_action='native',
                     sort_mode='multi',
                     style_table={'overflowX': 'auto', 'minWidth': '100%', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)'},
-                    style_cell={'padding': '8px', 'fontSize': '0.95rem', 'backgroundColor': 'var(--bg-color)', 'color': '#ffffff', 'border': '1px solid var(--border-color)'},
+                    style_cell={'padding': '8px', 'fontSize': '0.95rem', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)', 'border': '1px solid var(--border-color)'},
                     style_cell_conditional=[
                         {"if": {"column_id": "organization"}, "textAlign": "left", "maxWidth": "120px", "minWidth": "100px", "overflow": "hidden", "textOverflow": "ellipsis"},
                         {"if": {"column_id": "name"}, "textAlign": "left", "maxWidth": "150px", "minWidth": "120px", "overflow": "hidden", "textOverflow": "ellipsis"},
