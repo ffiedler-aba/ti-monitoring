@@ -1,6 +1,7 @@
 volumes:
   ti-monitoring-data:
   ti-monitoring-logs:
+  pgdata:
 
 services:
   ti-monitoring-web:

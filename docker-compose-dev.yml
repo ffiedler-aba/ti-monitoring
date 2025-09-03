@@ -1,3 +1,7 @@
+volumes:
+  appdata:
+  pgdata:
+
 services:
   db:
     image: timescale/timescaledb:latest-pg16
@@ -8,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./data/pg:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
   ti-monitoring-web:
@@ -16,7 +20,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./notifications.json:/app/notifications.json
-      - ./data:/app/data
+      - appdata:/app/data
     environment:
       - PYTHONPATH=/app
     restart: unless-stopped
@@ -28,7 +32,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./notifications.json:/app/notifications.json
-      - ./data:/app/data
+      - appdata:/app/data
     environment:
       - PYTHONPATH=/app
       - DB_HOST=db
