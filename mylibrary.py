@@ -226,7 +226,8 @@ def get_timescaledb_statistics_data() -> dict:
         incident_stats AS (
             SELECT 
                 ci,
-                COUNT(*) as incidents
+                COUNT(*) as incidents,
+                SUM(CASE WHEN status = 0 THEN 5.0 ELSE 0 END) as downtime_minutes
             FROM (
                 SELECT 
                     ci,
@@ -251,7 +252,11 @@ def get_timescaledb_statistics_data() -> dict:
             (SELECT latest_ts FROM time_bounds) as latest_timestamp,
             (SELECT SUM(uptime_minutes) FROM ci_time_stats) as overall_uptime_minutes,
             (SELECT SUM(downtime_minutes) FROM ci_time_stats) as overall_downtime_minutes,
-            (SELECT SUM(incidents) FROM incident_stats) as total_incidents
+            (SELECT SUM(incidents) FROM incident_stats) as total_incidents,
+            (SELECT CASE 
+                WHEN SUM(incidents) > 0 THEN SUM(downtime_minutes) / SUM(incidents)
+                ELSE 0 
+             END FROM incident_stats) as mttr_minutes_mean
         """
         
         with conn.cursor() as cur:
@@ -266,7 +271,8 @@ def get_timescaledb_statistics_data() -> dict:
                 'latest_timestamp': result[5] if result[5] else None,
                 'overall_uptime_minutes': result[6] if result[6] else 0,
                 'overall_downtime_minutes': result[7] if result[7] else 0,
-                'total_incidents': result[8] if result[8] else 0
+                'total_incidents': result[8] if result[8] else 0,
+                'mttr_minutes_mean': result[9] if result[9] else 0
             }
         
         # CI-spezifische Metriken mit korrekter Zeitberechnung
@@ -342,6 +348,7 @@ def get_timescaledb_statistics_data() -> dict:
             'overall_downtime_minutes': float(overall_downtime),
             'overall_availability_percentage_rollup': float(overall_availability),
             'total_incidents': int(stats_result['total_incidents']),
+            'mttr_minutes_mean': float(stats_result['mttr_minutes_mean']),
             'top_unstable_cis': ci_metrics.to_dict('records'),
             'calculated_at': time.time()
         }
