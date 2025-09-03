@@ -190,7 +190,13 @@ def get_timescaledb_ci_data() -> pd.DataFrame:
         LEFT JOIN ci_metadata cm ON ls.ci = cm.ci
         ORDER BY ls.ci
         """
-        return pd.read_sql_query(query, conn)
+        with conn.cursor() as cur:
+            cur.execute(query)
+            results = cur.fetchall()
+            return pd.DataFrame(results, columns=[
+                'ci', 'current_availability', 'time', 'name', 'organization', 'product', 
+                'bu', 'tid', 'pdt', 'comment', 'availability_difference'
+            ])
 
 def get_timescaledb_statistics_data() -> dict:
     """Lädt erweiterte Statistiken aus TimescaleDB."""
@@ -248,7 +254,20 @@ def get_timescaledb_statistics_data() -> dict:
             (SELECT SUM(incidents) FROM incident_stats) as total_incidents
         """
         
-        stats_result = pd.read_sql_query(stats_query, conn).iloc[0]
+        with conn.cursor() as cur:
+            cur.execute(stats_query)
+            result = cur.fetchone()
+            stats_result = {
+                'total_cis': result[0] if result[0] else 0,
+                'currently_available': result[1] if result[1] else 0,
+                'total_datapoints': result[2] if result[2] else 0,
+                'total_recording_minutes': result[3] if result[3] else 0,
+                'earliest_timestamp': result[4] if result[4] else None,
+                'latest_timestamp': result[5] if result[5] else None,
+                'overall_uptime_minutes': result[6] if result[6] else 0,
+                'overall_downtime_minutes': result[7] if result[7] else 0,
+                'total_incidents': result[8] if result[8] else 0
+            }
         
         # CI-spezifische Metriken mit korrekter Zeitberechnung
         ci_metrics_query = """
@@ -297,7 +316,13 @@ def get_timescaledb_statistics_data() -> dict:
         LIMIT 10
         """
         
-        ci_metrics = pd.read_sql_query(ci_metrics_query, conn)
+        with conn.cursor() as cur:
+            cur.execute(ci_metrics_query)
+            results = cur.fetchall()
+            ci_metrics = pd.DataFrame(results, columns=[
+                'ci', 'datapoints', 'uptime_minutes', 'downtime_minutes', 
+                'first_seen', 'last_seen', 'incidents', 'availability_percentage'
+            ])
         
         # Berechne Gesamtverfügbarkeit
         overall_uptime = float(stats_result['overall_uptime_minutes']) if stats_result['overall_uptime_minutes'] is not None else 0
@@ -479,7 +504,10 @@ def get_availability_data_of_ci(file_name, ci):
             WHERE ci = %s 
             ORDER BY ts
             """
-            df = pd.read_sql_query(query, conn, params=[ci])
+            with conn.cursor() as cur:
+                cur.execute(query, [ci])
+                results = cur.fetchall()
+                df = pd.DataFrame(results, columns=['times', 'values'])
             if not df.empty:
                 # Convert times to Europe/Berlin timezone
                 df['times'] = pd.to_datetime(df['times']).dt.tz_convert('Europe/Berlin')
@@ -506,13 +534,13 @@ def get_data_of_all_cis(file_name):
             query = """
             SELECT 
                 cm.ci,
-                cm.name,
-                cm.organization,
-                cm.product,
-                cm.bu,
-                cm.tid,
-                cm.pdt,
-                cm.comment,
+                COALESCE(cm.name, '') as name,
+                COALESCE(cm.organization, '') as organization,
+                COALESCE(cm.product, '') as product,
+                COALESCE(cm.bu, '') as bu,
+                COALESCE(cm.tid, '') as tid,
+                COALESCE(cm.pdt, '') as pdt,
+                COALESCE(cm.comment, '') as comment,
                 ls.status as current_availability,
                 ls.ts as time,
                 CASE 
@@ -532,10 +560,30 @@ def get_data_of_all_cis(file_name):
             ) ls ON cm.ci = ls.ci
             ORDER BY cm.ci
             """
-            df = pd.read_sql_query(query, conn)
+            with conn.cursor() as cur:
+                cur.execute(query)
+                results = cur.fetchall()
+                df = pd.DataFrame(results, columns=[
+                    'ci', 'name', 'organization', 'product', 'bu', 'tid', 'pdt', 'comment',
+                    'current_availability', 'time', 'availability_difference'
+                ])
             return df
     except Exception as e:
         print(f"Error reading all CIs from TimescaleDB: {e}")
+        return pd.DataFrame()
+
+def get_data_of_all_cis_from_timescaledb():
+    """
+    Gets general data for all configuration items from TimescaleDB
+    
+    Returns:
+        DataFrame: General data of all configuration items
+    """
+    try:
+        # Use the existing get_data_of_all_cis function which already has the right structure
+        return get_data_of_all_cis(None)
+    except Exception as e:
+        print(f"Error getting data from TimescaleDB: {e}")
         return pd.DataFrame()
 
 def get_data_of_ci(file_name, ci):
@@ -586,25 +634,39 @@ def get_data_of_ci(file_name, ci):
                 ) ls ON cm.ci = ls.ci
                 WHERE cm.ci = %s
                 """
-                df = pd.read_sql_query(query, conn, params=[ci, ci])
+                with conn.cursor() as cur:
+                    cur.execute(query, [ci, ci])
+                    results = cur.fetchall()
+                    df = pd.DataFrame(results, columns=[
+                        'ci', 'name', 'organization', 'product', 'bu', 'tid', 'pdt', 'comment',
+                        'current_availability', 'time', 'availability_difference'
+                    ])
                 if not df.empty:
                     return df
         except Exception as e:
             print(f"Error reading CI {ci} from TimescaleDB: {e}")
             return pd.DataFrame()
 
-def pretty_timestamp(timestamp_str):
+def pretty_timestamp(timestamp):
     """
-    Converts UTC timestamp of API to pretty formatted timestamp in local time
+    Converts UTC timestamp to pretty formatted local time
 
     Args:
-        timestamp_str (str): UTC timestamp from API
+        timestamp (str or pandas.Timestamp): UTC timestamp from API or database
 
     Returns:
         str: pretty formatted timestamp in local time
     """
-    utc_time = datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S.%fZ')
-    utc_time = utc_time.replace(tzinfo=pytz.UTC)
+    # Handle pandas Timestamp objects
+    if hasattr(timestamp, 'to_pydatetime'):
+        utc_time = timestamp.to_pydatetime()
+        if utc_time.tzinfo is None:
+            utc_time = utc_time.replace(tzinfo=pytz.UTC)
+    else:
+        # Handle string timestamps
+        utc_time = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        utc_time = utc_time.replace(tzinfo=pytz.UTC)
+    
     berlin_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
     formatted_time = berlin_time.strftime('%d.%m.%Y %H:%M:%S Uhr')
     return formatted_time

@@ -424,26 +424,15 @@ def serve_layout():
     # Load core configurations (now cached)
     core_config = load_core_config()
     
-    # Get file_name from YAML as primary source, fallback to myconfig.py
-    config_file_name = core_config.get('file_name') or file_name
+    # TimescaleDB mode - no file_name needed
+    config_file_name = None
     config_url = core_config.get('url')
     
-    # Check if data file exists and initialize if needed
-    if not os.path.exists(config_file_name):
-        try:
-            # Create data directory if it doesn't exist
-            os.makedirs(os.path.dirname(config_file_name), exist_ok=True)
-            # Initialize empty data file
-            initialize_data_file(config_file_name)
-            print(f"Initialized data file: {config_file_name}")
-        except Exception as e:
-            print(f"Error initializing data file: {e}")
-    
-    # Try to get data
+    # Try to get data from TimescaleDB
     try:
-        cis = get_data_of_all_cis(config_file_name)
+        cis = get_data_of_all_cis_from_timescaledb()
     except Exception as e:
-        print(f"Error reading data: {e}")
+        print(f"Error reading data from TimescaleDB: {e}")
         cis = pd.DataFrame()  # Empty DataFrame
     
     # Check if DataFrame is empty

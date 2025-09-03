@@ -146,8 +146,8 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     # Load core configurations
     core_config = load_core_config()
     
-    # Get configurations from YAML as primary source, fallback to myconfig.py
-    config_file_name = core_config.get('file_name') or file_name
+    # TimescaleDB mode - no file_name needed
+    config_file_name = None
     config_home_url = core_config.get('home_url') or home_url
     config_stats_delta_hours = core_config.get('stats_delta_hours') or stats_delta_hours
     
@@ -238,7 +238,7 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
     """Update plot and comprehensive statistics based on selected time range"""
     # Load core configurations
     core_config = load_core_config()
-    config_file_name = core_config.get('file_name') or file_name
+    config_file_name = None  # TimescaleDB mode
     
     # Ensure selected_hours is valid
     if selected_hours is None or selected_hours <= 0:
