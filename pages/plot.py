@@ -35,6 +35,31 @@ def format_duration(hours):
         days = hours / 24
         return f"{days:.1f} Tage"
 
+def load_ci_mttr_mtbf(ci):
+    """Load MTTR and MTBF values for a specific CI from statistics.json"""
+    try:
+        import json
+        import os
+        
+        stats_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'statistics.json')
+        if not os.path.exists(stats_file):
+            return 0, 0, 0
+        
+        with open(stats_file, 'r', encoding='utf-8') as f:
+            stats = json.load(f)
+        
+        if 'per_ci_metrics' in stats and ci in stats['per_ci_metrics']:
+            ci_metrics = stats['per_ci_metrics'][ci]
+            mttr_minutes = ci_metrics.get('mttr_minutes', 0)
+            mtbf_minutes = ci_metrics.get('mtbf_minutes', 0)
+            incidents = ci_metrics.get('incidents', 0)
+            return mttr_minutes, mtbf_minutes, incidents
+        
+        return 0, 0, 0
+    except Exception as e:
+        print(f"Error loading MTTR/MTBF for CI {ci}: {e}")
+        return 0, 0, 0
+
 def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name, ci):
     """
     Calculate comprehensive statistics for a CI including:
@@ -104,43 +129,8 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
     longest_downtime_hours = longest_downtime_consecutive * 5 / 60
     longest_uptime_hours = longest_uptime_consecutive * 5 / 60
     
-    # Calculate MTTR and MTBF for selected time range
-    def calculate_mttr_mtbf(data):
-        """Calculate MTTR and MTBF from time series data"""
-        incidents = 0
-        total_downtime_minutes = 0
-        total_uptime_minutes = 0
-        
-        # Find incidents (transitions from 1 to 0)
-        for i in range(1, len(data)):
-            if data.iloc[i-1] == 1 and data.iloc[i] == 0:
-                incidents += 1
-        
-        if incidents == 0:
-            return 0, 0, 0  # No incidents, no MTTR/MTBF
-        
-        # Calculate total downtime and uptime
-        downtime_periods = 0
-        uptime_periods = 0
-        
-        for i in range(len(data)):
-            if data.iloc[i] == 0:
-                downtime_periods += 1
-            else:
-                uptime_periods += 1
-        
-        total_downtime_minutes = downtime_periods * 5  # 5-minute intervals
-        total_uptime_minutes = uptime_periods * 5
-        
-        # MTTR = Total downtime / Number of incidents
-        mttr_minutes = total_downtime_minutes / incidents if incidents > 0 else 0
-        
-        # MTBF = Total uptime / Number of incidents (for incidents > 1)
-        mtbf_minutes = total_uptime_minutes / incidents if incidents > 1 else 0
-        
-        return mttr_minutes, mtbf_minutes, incidents
-    
-    mttr_minutes, mtbf_minutes, incidents = calculate_mttr_mtbf(selected_data['values'])
+    # Load MTTR and MTBF from statistics.json
+    mttr_minutes, mtbf_minutes, incidents = load_ci_mttr_mtbf(ci)
     
     return {
         # Selected time range statistics
@@ -176,7 +166,7 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
         'longest_downtime_hours': longest_downtime_hours,
         'longest_uptime_hours': longest_uptime_hours,
         
-        # MTTR and MTBF
+        # MTTR and MTBF (loaded from statistics.json)
         'mttr_minutes': mttr_minutes,
         'mtbf_minutes': mtbf_minutes,
         'incidents': incidents

@@ -208,7 +208,10 @@ def compute_incident_and_availability_metrics():
                     WHEN ca.incidents > 0 THEN ca.downtime_minutes / ca.incidents
                     ELSE 0
                 END as mttr_minutes,
-                NULL as mtbf_minutes,  -- MTBF now calculated per CI in plots
+                CASE 
+                    WHEN ca.incidents > 1 THEN ca.uptime_minutes / ca.incidents
+                    ELSE 0
+                END as mtbf_minutes,
                 CASE 
                     WHEN (ca.uptime_minutes + ca.downtime_minutes) > 0 THEN
                         (ca.uptime_minutes / (ca.uptime_minutes + ca.downtime_minutes)) * 100
