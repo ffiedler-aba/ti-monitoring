@@ -1,5 +1,5 @@
 import dash
-from dash import html
+from dash import html, dcc, callback, Input, Output, State, clientside_callback
 from mylibrary import *
 import yaml
 import os
@@ -7,6 +7,7 @@ import functools
 import time
 import gc
 import pandas as pd
+import json
 
 # Configuration cache for home page with size limit
 _home_config_cache = {}
@@ -53,6 +54,182 @@ def load_core_config():
 
 
 dash.register_page(__name__, path='/')
+
+# Clientside callback for incidents table toggle
+clientside_callback(
+    """
+    function(n_clicks, incidents_data) {
+        if (!incidents_data || incidents_data.length === 0) {
+            return window.dash_clientside.no_update;
+        }
+        
+        const showAll = n_clicks % 2 === 1;
+        const displayIncidents = showAll ? incidents_data : incidents_data.slice(0, 5);
+        
+        // Create table rows
+        let tableRows = '';
+        displayIncidents.forEach(incident => {
+            const statusClass = incident.status === 'ongoing' ? 'incident-ongoing' : 'incident-resolved';
+            const statusText = incident.status === 'ongoing' ? 'Noch gestört' : 'Wieder aktiv';
+            
+            // Format duration
+            const durationHours = incident.duration_minutes / 60.0;
+            const durationText = durationHours < 1 ? 
+                `${incident.duration_minutes.toFixed(0)} Min` : 
+                `${durationHours.toFixed(1)} Std`;
+            
+            // Format timestamps
+            const startTime = new Date(incident.incident_start).toLocaleString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const endTime = incident.incident_end ? 
+                new Date(incident.incident_end).toLocaleString('de-DE', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }) : 'Laufend';
+            
+            tableRows += `
+                <tr>
+                    <td>
+                        <a href="/plot?ci=${incident.ci}" class="ci-link">${incident.ci}</a><br>
+                        <span class="ci-name">${incident.name}</span>
+                    </td>
+                    <td>
+                        <span class="org-name">${incident.organization}</span><br>
+                        <span class="product-name">${incident.product}</span>
+                    </td>
+                    <td class="timestamp">${startTime}</td>
+                    <td class="timestamp">${endTime}</td>
+                    <td class="duration">${durationText}</td>
+                    <td>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        const buttonText = showAll ? 'Nur 5 anzeigen' : 'Alle anzeigen';
+        const buttonHtml = incidents_data.length > 5 ? 
+            `<button class="incidents-expand-btn" style="margin-top: 15px; padding: 8px 16px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.3s ease;">${buttonText}</button>` : '';
+        
+        return `
+            <table class="incidents-table">
+                <thead>
+                    <tr>
+                        <th>CI</th>
+                        <th>Organisation</th>
+                        <th>Beginn</th>
+                        <th>Ende</th>
+                        <th>Dauer</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+            ${buttonHtml}
+        `;
+    }
+    """,
+    Output('incidents-table-container', 'children'),
+    Input('incidents-expand-btn', 'n_clicks'),
+    State('incidents-data-store', 'data')
+)
+
+def create_incidents_table(incidents_data, show_all=False):
+    """Erstellt eine erweiterbare Tabelle mit den letzten Incidents"""
+    if not incidents_data:
+        return html.P("Keine Incidents verfügbar.")
+    
+    # Limit incidents based on show_all parameter
+    display_incidents = incidents_data if show_all else incidents_data[:5]
+    
+    # Create table rows
+    table_rows = []
+    for incident in display_incidents:
+        # Determine status styling
+        status_class = 'incident-ongoing' if incident['status'] == 'ongoing' else 'incident-resolved'
+        status_text = 'Noch gestört' if incident['status'] == 'ongoing' else 'Wieder aktiv'
+        
+        # Format duration
+        duration_hours = incident['duration_minutes'] / 60.0
+        if duration_hours < 1:
+            duration_text = f"{incident['duration_minutes']:.0f} Min"
+        else:
+            duration_text = f"{duration_hours:.1f} Std"
+        
+        # Format timestamps
+        start_time = pd.to_datetime(incident['incident_start']).tz_convert('Europe/Berlin').strftime('%d.%m.%Y %H:%M')
+        end_time = ''
+        if incident['incident_end']:
+            end_time = pd.to_datetime(incident['incident_end']).tz_convert('Europe/Berlin').strftime('%d.%m.%Y %H:%M')
+        else:
+            end_time = 'Laufend'
+        
+        table_rows.append(html.Tr([
+            html.Td([
+                html.A(incident['ci'], href=f'/plot?ci={incident["ci"]}', className='ci-link'),
+                html.Br(),
+                html.Span(incident['name'], className='ci-name')
+            ]),
+            html.Td([
+                html.Span(incident['organization'], className='org-name'),
+                html.Br(),
+                html.Span(incident['product'], className='product-name')
+            ]),
+            html.Td(start_time, className='timestamp'),
+            html.Td(end_time, className='timestamp'),
+            html.Td(duration_text, className='duration'),
+            html.Td([
+                html.Span(status_text, className=f'status-badge {status_class}')
+            ])
+        ]))
+    
+    # Create expand button if there are more than 5 incidents
+    expand_button = None
+    if len(incidents_data) > 5:
+        expand_button = html.Button(
+            'Alle anzeigen' if not show_all else 'Nur 5 anzeigen',
+            className='incidents-expand-btn',
+            style={
+                'marginTop': '15px',
+                'padding': '8px 16px',
+                'backgroundColor': '#3498db',
+                'color': 'white',
+                'border': 'none',
+                'borderRadius': '6px',
+                'cursor': 'pointer',
+                'fontSize': '0.85rem',
+                'fontWeight': '500',
+                'transition': 'all 0.3s ease'
+            }
+        )
+    
+    return html.Div([
+        html.Table([
+            html.Thead([
+                html.Tr([
+                    html.Th("CI"),
+                    html.Th("Organisation"),
+                    html.Th("Beginn"),
+                    html.Th("Ende"),
+                    html.Th("Dauer"),
+                    html.Th("Status")
+                ])
+            ]),
+            html.Tbody(table_rows)
+        ], className='incidents-table'),
+        expand_button
+    ])
 
 def create_accordion_element(group_name, group_data):
     """Create accordion element for a group of CIs"""
@@ -124,6 +301,18 @@ def serve_layout():
     config_file_name = None
     config_url = core_config.get('url')
     
+    # Load incidents data from statistics.json
+    incidents_data = []
+    try:
+        statistics_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'statistics.json')
+        if os.path.exists(statistics_file_path):
+            with open(statistics_file_path, 'r', encoding='utf-8') as f:
+                stats = json.load(f)
+                incidents_data = stats.get('recent_incidents', [])
+    except Exception as e:
+        print(f"Error loading incidents data: {e}")
+        incidents_data = []
+    
     # Try to get data from TimescaleDB
     try:
         cis = get_data_of_all_cis_from_timescaledb()
@@ -190,9 +379,26 @@ def serve_layout():
         del grouped
     gc.collect()
     
+    # Create incidents table (show first 5 by default)
+    incidents_table = create_incidents_table(incidents_data, show_all=False)
+    
     layout = html.Div([
         html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
-        html.Div(className='accordion', children=accordion_elements)
+        
+        # Incidents section
+        html.Div([
+            html.H3("Letzte Incidents", className='incidents-title'),
+            html.Div([
+                dcc.Store(id='incidents-data-store', data=incidents_data),
+                html.Div(id='incidents-table-container', children=incidents_table)
+            ], className='incidents-container')
+        ], className='incidents-section'),
+        
+        # CI Groups section
+        html.Div([
+            html.H3("TI-Komponenten nach Produkten", className='groups-title'),
+            html.Div(className='accordion', children=accordion_elements)
+        ], className='groups-section')
     ])
     
     return layout

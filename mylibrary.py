@@ -198,6 +198,78 @@ def get_timescaledb_ci_data() -> pd.DataFrame:
                 'bu', 'tid', 'pdt', 'comment', 'availability_difference'
             ])
 
+def get_recent_incidents(limit: int = 5) -> list:
+    """Lädt die letzten Incidents aus TimescaleDB mit Status-Informationen."""
+    import gc
+    
+    with get_db_conn() as conn:
+        incidents_query = """
+        WITH incident_transitions AS (
+            SELECT 
+                ci,
+                ts,
+                status,
+                LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status,
+                LEAD(ts) OVER (PARTITION BY ci ORDER BY ts) as next_ts
+            FROM measurements
+            ORDER BY ci, ts
+        ),
+        incidents AS (
+            SELECT 
+                ci,
+                ts as incident_start,
+                next_ts as incident_end,
+                CASE 
+                    WHEN next_ts IS NOT NULL THEN 
+                        EXTRACT(EPOCH FROM (next_ts - ts)) / 60.0
+                    ELSE 
+                        EXTRACT(EPOCH FROM (NOW() - ts)) / 60.0
+                END as duration_minutes,
+                CASE 
+                    WHEN next_ts IS NULL THEN 'ongoing'
+                    ELSE 'resolved'
+                END as status
+            FROM incident_transitions
+            WHERE status = 0 AND prev_status = 1
+        )
+        SELECT 
+            i.ci,
+            i.incident_start,
+            i.incident_end,
+            i.duration_minutes,
+            i.status,
+            cm.name,
+            cm.organization,
+            cm.product
+        FROM incidents i
+        LEFT JOIN ci_metadata cm ON i.ci = cm.ci
+        ORDER BY i.incident_start DESC
+        LIMIT %s
+        """
+        
+        with conn.cursor() as cur:
+            cur.execute(incidents_query, (limit,))
+            results = cur.fetchall()
+            
+            incidents = []
+            for row in results:
+                incidents.append({
+                    'ci': row[0],
+                    'incident_start': row[1],
+                    'incident_end': row[2],
+                    'duration_minutes': float(row[3]) if row[3] else 0.0,
+                    'status': row[4],
+                    'name': row[5] or 'Unbekannt',
+                    'organization': row[6] or 'Unbekannt',
+                    'product': row[7] or 'Unbekannt'
+                })
+            
+            # Clean up
+            del results
+            gc.collect()
+            
+            return incidents
+
 def get_timescaledb_statistics_data() -> dict:
     """Lädt erweiterte Statistiken aus TimescaleDB."""
     import gc

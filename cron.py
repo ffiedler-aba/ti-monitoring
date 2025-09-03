@@ -445,6 +445,12 @@ def update_statistics_file():
             log("ERROR: Failed to calculate statistics")
             return False
         
+        # Get recent incidents data
+        log("Retrieving recent incidents...")
+        recent_incidents = get_recent_incidents(limit=10)  # Get more for potential expansion
+        stats['recent_incidents'] = recent_incidents
+        log(f"Retrieved {len(recent_incidents)} recent incidents")
+        
         # Add timestamp for when statistics were calculated (UTC)
         stats['last_updated'] = datetime.now(timezone.utc).isoformat()
         
