@@ -252,6 +252,43 @@ docker compose up -d
 - **Datenpersistenz**: Alle wichtigen Dateien werden als Volumes gemountet
 - **Entwicklungsmodus**: `docker-compose-dev.yml` für lokale Entwicklung
 
+## TimescaleDB-Integration (experimentell)
+
+Diese Version bietet eine optionale TimescaleDB-Integration zur Speicherung der Zeitreihen. Aktivierung durch Konfiguration und Compose-Service.
+
+### Aktivierung
+
+1) Compose startet eine TimescaleDB-Instanz:
+   - Service `db` in `docker-compose.yml`
+   - Standard-Creds: `timonitor`/`timonitor`, DB `timonitor`
+
+2) Konfiguration in `config.yaml`:
+
+```yaml
+core:
+  timescaledb:
+    enabled: true
+    host: db
+    port: 5432
+    dbname: timonitor
+    user: timonitor
+    password: timonitor
+```
+
+3) Cron-Ingestion
+   - Wenn `enabled: true`, importiert `cron.py` pro Iteration bis zu ~20k Messpunkte aus `data/data.hdf5` idempotent nach TimescaleDB.
+
+### Backfill
+
+Um historische Daten einmalig zu migrieren:
+
+```bash
+source .venv/bin/activate
+python scripts/backfill_timescaledb.py data/data.hdf5
+```
+
+Hinweis: Das Skript ist idempotent (ON CONFLICT DO NOTHING).
+
 ## Web-App
 
 Der aktuelle Status verschiedener Komponenten kann optional auch in Form einer Web-App auf Basis des [Dash-Frameworks](https://dash.plotly.com) bereitgestellt werden. Die App kann z.B. in Kombination mit uWSGi und nginx (ähnlich [wie hier beschrieben](https://carpiero.medium.com/host-a-dashboard-using-python-dash-and-linux-in-your-own-linux-server-85d891e960bc) veröffentlicht werden.

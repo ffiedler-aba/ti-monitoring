@@ -1,6 +1,8 @@
 import os
 import psycopg2
 from psycopg2.extras import execute_values
+import h5py
+from datetime import datetime, timezone
 
 def get_db_conn():
     host = os.getenv('DB_HOST', 'localhost')
@@ -34,6 +36,54 @@ def write_measurements(rows):
             rows
         )
         return cur.rowcount
+
+def ingest_hdf5_to_timescaledb(hdf5_path: str, max_rows: int | None = None) -> int:
+    """Streamt availability aus HDF5 und schreibt idempotent nach TimescaleDB.
+    max_rows: optionales Limit zur Drosselung pro Lauf.
+    """
+    if not os.path.exists(hdf5_path):
+        return 0
+    init_timescaledb_schema()
+    inserted = 0
+    batch = []
+    batch_size = 5000
+    processed = 0
+    with get_db_conn() as conn, conn.cursor() as cur:
+        with h5py.File(hdf5_path, 'r', swmr=True) as f:
+            if 'availability' not in f:
+                return 0
+            availability = f['availability']
+            for ci in availability.keys():
+                ci_group = availability[ci]
+                for ts_key in ci_group.keys():
+                    try:
+                        ts = float(ts_key)
+                        ds = ci_group[ts_key]
+                        val = int(ds[()]) if isinstance(ds, h5py.Dataset) else int(ds)
+                        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+                        batch.append((ci, dt, val))
+                        processed += 1
+                        if len(batch) >= batch_size:
+                            cur.executemany(
+                                "INSERT INTO measurements (ci, ts, status) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
+                                batch,
+                            )
+                            inserted += cur.rowcount
+                            batch.clear()
+                        if max_rows is not None and processed >= max_rows:
+                            break
+                    except Exception:
+                        continue
+                if max_rows is not None and processed >= max_rows:
+                    break
+            if batch:
+                cur.executemany(
+                    "INSERT INTO measurements (ci, ts, status) VALUES (%s,%s,%s) ON CONFLICT DO NOTHING",
+                    batch,
+                )
+                inserted += cur.rowcount
+                batch.clear()
+    return inserted
 # Import packages
 import numpy as np
 import pandas as pd

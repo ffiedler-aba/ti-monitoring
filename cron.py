@@ -741,11 +741,14 @@ def main():
                 log(f"ERROR in update_file: {e}")
                 # Continue with other tasks even if update_file fails
 
-            # Experimental: write last batch to TimescaleDB (optional initial wiring)
+            # Optional TimescaleDB ingestion (feature-flagged)
             try:
-                init_timescaledb_schema()
+                tsdb_cfg = core_config.get('timescaledb', {}) if isinstance(core_config, dict) else {}
+                if tsdb_cfg.get('enabled', False):
+                    inserted = ingest_hdf5_to_timescaledb(config_file_name, max_rows=20000)
+                    log(f"TimescaleDB ingest: inserted ~{inserted} rows this iteration")
             except Exception as e:
-                log(f"TimescaleDB init failed (non-fatal): {e}")
+                log(f"TimescaleDB ingest failed (non-fatal): {e}")
             
             # Update CI list file at configured interval with error handling
             if iteration_count % ci_list_update_interval == 0:
