@@ -403,23 +403,7 @@ def create_overall_statistics_display(stats):
         ])
     ]
     
-    # Add comprehensive availability statistics
-    if stats.get('total_recording_minutes', 0) > 0:
-        children.append(
-            html.Div(className='comprehensive-availability', children=[
-                html.H4('⏱️ Gesamtverfügbarkeit über alle CIs'),
-                html.Div(className='stat-grid', children=[
-                    html.Div(className='stat-item', children=[
-                        html.Strong('Gesamtverfügbarkeit (Zeitbasis): '),
-                        html.Span(f'{stats["overall_availability_percentage_total"]:.2f}%')
-                    ]),
-                    html.Div(className='stat-item', children=[
-                        html.Strong('Gesamtaufzeichnungszeit: '),
-                        html.Span(format_duration(stats["total_recording_minutes"] / 60))
-                    ])
-                ])
-            ])
-        )
+    # Entfernt: doppelte Gesamtstatistik (zeitgewichtete Verfügbarkeit & Aufzeichnungszeit)
     
 
     
