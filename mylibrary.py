@@ -914,3 +914,4 @@ def validate_apprise_urls(urls):
         return True
     except Exception:
         return False
+        
