@@ -1,4 +1,16 @@
 services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      - POSTGRES_PASSWORD=timonitor
+      - POSTGRES_USER=timonitor
+      - POSTGRES_DB=timonitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    restart: unless-stopped
+
   ti-monitoring-web:
     build: .
     volumes:
@@ -19,5 +31,12 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONPATH=/app
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=timonitor
+      - DB_USER=timonitor
+      - DB_PASSWORD=timonitor
     command: ["python", "-u", "cron.py"]
     restart: unless-stopped
+    depends_on:
+      - db
