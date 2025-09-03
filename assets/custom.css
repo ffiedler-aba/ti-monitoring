@@ -81,6 +81,14 @@ input:focus, textarea:focus {
     overflow: hidden;
 }
 
+.incidents-table-container {
+    max-height: 200px; /* Show exactly 5 rows */
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--card-bg-color);
+}
+
 .incidents-table {
     width: 100%;
     border-collapse: collapse;

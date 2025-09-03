@@ -55,103 +55,15 @@ def load_core_config():
 
 dash.register_page(__name__, path='/')
 
-# Clientside callback for incidents table toggle
-clientside_callback(
-    """
-    function(n_clicks, incidents_data) {
-        if (!incidents_data || incidents_data.length === 0) {
-            return window.dash_clientside.no_update;
-        }
-        
-        const showAll = n_clicks % 2 === 1;
-        const displayIncidents = showAll ? incidents_data : incidents_data.slice(0, 5);
-        
-        // Create table rows
-        let tableRows = '';
-        displayIncidents.forEach(incident => {
-            const statusClass = incident.status === 'ongoing' ? 'incident-ongoing' : 'incident-resolved';
-            const statusText = incident.status === 'ongoing' ? 'Noch gestört' : 'Wieder aktiv';
-            
-            // Format duration
-            const durationHours = incident.duration_minutes / 60.0;
-            const durationText = durationHours < 1 ? 
-                `${incident.duration_minutes.toFixed(0)} Min` : 
-                `${durationHours.toFixed(1)} Std`;
-            
-            // Format timestamps
-            const startTime = new Date(incident.incident_start).toLocaleString('de-DE', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            const endTime = incident.incident_end ? 
-                new Date(incident.incident_end).toLocaleString('de-DE', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }) : 'Laufend';
-            
-            tableRows += `
-                <tr>
-                    <td>
-                        <a href="/plot?ci=${incident.ci}" class="ci-link">${incident.ci}</a><br>
-                        <span class="ci-name">${incident.name}</span>
-                    </td>
-                    <td>
-                        <span class="org-name">${incident.organization}</span><br>
-                        <span class="product-name">${incident.product}</span>
-                    </td>
-                    <td class="timestamp">${startTime}</td>
-                    <td class="timestamp">${endTime}</td>
-                    <td class="duration">${durationText}</td>
-                    <td>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        const buttonText = showAll ? 'Nur 5 anzeigen' : 'Alle anzeigen';
-        const buttonHtml = incidents_data.length > 5 ? 
-            `<button class="incidents-expand-btn" style="margin-top: 15px; padding: 8px 16px; background-color: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.3s ease;">${buttonText}</button>` : '';
-        
-        return `
-            <table class="incidents-table">
-                <thead>
-                    <tr>
-                        <th>CI</th>
-                        <th>Organisation</th>
-                        <th>Beginn</th>
-                        <th>Ende</th>
-                        <th>Dauer</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-            ${buttonHtml}
-        `;
-    }
-    """,
-    Output('incidents-table-container', 'children'),
-    Input('incidents-expand-btn', 'n_clicks'),
-    State('incidents-data-store', 'data')
-)
+# No callback needed - table is scrollable
 
 def create_incidents_table(incidents_data, show_all=False):
     """Erstellt eine erweiterbare Tabelle mit den letzten Incidents"""
     if not incidents_data:
         return html.P("Keine Incidents verfügbar.")
     
-    # Limit incidents based on show_all parameter
-    display_incidents = incidents_data if show_all else incidents_data[:5]
+    # Show all incidents in a scrollable table
+    display_incidents = incidents_data
     
     # Create table rows
     table_rows = []
@@ -194,25 +106,7 @@ def create_incidents_table(incidents_data, show_all=False):
             ])
         ]))
     
-    # Create expand button if there are more than 5 incidents
-    expand_button = None
-    if len(incidents_data) > 5:
-        expand_button = html.Button(
-            'Alle anzeigen' if not show_all else 'Nur 5 anzeigen',
-            className='incidents-expand-btn',
-            style={
-                'marginTop': '15px',
-                'padding': '8px 16px',
-                'backgroundColor': '#3498db',
-                'color': 'white',
-                'border': 'none',
-                'borderRadius': '6px',
-                'cursor': 'pointer',
-                'fontSize': '0.85rem',
-                'fontWeight': '500',
-                'transition': 'all 0.3s ease'
-            }
-        )
+    # No expand button needed - table is scrollable
     
     return html.Div([
         html.Table([
@@ -227,9 +121,8 @@ def create_incidents_table(incidents_data, show_all=False):
                 ])
             ]),
             html.Tbody(table_rows)
-        ], className='incidents-table'),
-        expand_button
-    ])
+        ], className='incidents-table')
+    ], className='incidents-table-container')
 
 def create_accordion_element(group_name, group_data):
     """Create accordion element for a group of CIs"""
