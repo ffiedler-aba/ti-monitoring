@@ -53,6 +53,8 @@ core:
     dbname: "timonitor"
     user: "timonitor"
     password: "timonitor"
+    # Retention (Tage) für TimescaleDB (drop_chunks Policy)
+    keep_days: 185
   
   # Cron job intervals (in iterations, where each iteration = 5 minutes)
   cron_intervals:
