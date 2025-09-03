@@ -395,18 +395,14 @@ def create_overall_statistics_display(stats):
                     html.Div(className='stat-item', children=[
                         html.Strong('Datenbankgröße: '),
                         html.Span(f'{stats.get("database_size_mb", 0):.1f} MB')
-                    ])
-                ])
-            ]),
-            html.Div(className='stat-card', children=[
-                html.H4('📊 Datenpunkte'),
-                html.Div(className='stat-grid', children=[
+                    ]),
                     html.Div(className='stat-item', children=[
                         html.Strong('Gesamtanzahl Datenpunkte: '),
                         html.Span(f"{int(stats.get('total_datapoints', 0)):,}")
                     ])
                 ])
             ]),
+            
             
 
         ])
