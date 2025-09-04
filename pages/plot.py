@@ -191,8 +191,8 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
         return html.Div([
             html.H2('Fehler: Keine Komponente angegeben'),
             html.P('Bitte geben Sie eine Komponenten-ID in der URL an, z.B. /plot?ci=12345'),
-            html.A(href=config_home_url, children=[
-                html.Button('Zurück zur Startseite', className='button')
+            html.A(href='javascript:history.back()', children=[
+                html.Button('Zurück', className='button')
             ])
         ])
     
@@ -202,7 +202,7 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     layout = [
         html.H2('Verfügbarkeit der Komponente ' + str(ci)),
         html.H3(ci_info['product'].iloc[0] + ', ' + ci_info['name'].iloc[0] + ', ' + ci_info['organization'].iloc[0]),
-        html.A(href=config_home_url, children = [
+        html.A(href='javascript:history.back()', children = [
             html.Button('Zurück', className = 'button')
         ]),
         
