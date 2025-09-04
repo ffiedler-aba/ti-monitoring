@@ -1,8 +1,2 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-COMPOSE="docker compose -f ./docker-compose-dev.yml"
-
-# TimescaleDB ist immer aktiviert (Standard-Datenbank)
-$COMPOSE down
-$COMPOSE up --build -d
+docker compose -f docker-compose-dev.yml down && docker compose -f docker-compose-dev.yml builddocker compose -f docker-compose-dev.yml up -d
