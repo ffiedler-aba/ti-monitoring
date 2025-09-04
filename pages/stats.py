@@ -557,7 +557,8 @@ def serve_layout():
                         {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
                         {"if": {"column_id": "availability_percentage"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
                     ],
-                    style_header={'backgroundColor': 'var(--card-bg-color)', 'color': '#ffffff', 'fontWeight': 'bold'},
+                    # Header klar sichtbar (kontrastierende Farbe zum Hintergrund)
+                    style_header={'backgroundColor': 'var(--card-bg-color)', 'color': 'var(--text-color)', 'fontWeight': 'bold', 'border': '1px solid var(--border-color)'},
                     style_data_conditional=[
                         {
                             'if': {'state': 'active'},
