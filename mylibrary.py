@@ -348,6 +348,18 @@ def get_timescaledb_statistics_data() -> dict:
                 'total_incidents': result[8] if result[8] else 0,
                 'mttr_minutes_mean': result[9] if result[9] else 0
             }
+
+        # Datenbankgröße in MB bestimmen
+        database_size_mb = 0.0
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT pg_database_size(current_database()) AS size_bytes")
+                size_row = cur.fetchone()
+                if size_row and size_row[0] is not None:
+                    database_size_mb = float(size_row[0]) / (1024.0 * 1024.0)
+        except Exception:
+            # Still allow stats to be returned even if size query fails
+            database_size_mb = 0.0
         
         # CI-spezifische Metriken mit korrekter Zeitberechnung
         ci_metrics_query = """
@@ -432,6 +444,7 @@ def get_timescaledb_statistics_data() -> dict:
             'overall_availability_percentage_rollup': float(overall_availability),
             'total_incidents': int(stats_result['total_incidents']),
             'mttr_minutes_mean': float(stats_result['mttr_minutes_mean']),
+            'database_size_mb': float(database_size_mb),
             'top_unstable_cis': top_unstable_cis,
             'calculated_at': time.time()
         }
