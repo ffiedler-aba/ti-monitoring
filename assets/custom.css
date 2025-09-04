@@ -74,11 +74,12 @@ input:focus, textarea:focus {
 }
 
 .incidents-container {
-    background: white;
+    background: var(--card-bg-color, #0b1220);
     border-radius: 8px;
     padding: 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     overflow: hidden;
+    border: 1px solid var(--border-color, #374151);
 }
 
 .incidents-table-container {
@@ -97,8 +98,8 @@ input:focus, textarea:focus {
 }
 
 .incidents-table th {
-    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-    color: white;
+    background: #111827;
+    color: #f9fafb;
     padding: 15px 12px;
     text-align: left;
     font-weight: 600;
@@ -109,12 +110,13 @@ input:focus, textarea:focus {
 
 .incidents-table td {
     padding: 12px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid #374151;
     vertical-align: top;
+    color: #e5e7eb;
 }
 
 .incidents-table tr:hover {
-    background-color: #f8f9fa;
+    background-color: #1f2937;
     transform: scale(1.01);
     transition: all 0.2s ease;
 }
@@ -124,19 +126,19 @@ input:focus, textarea:focus {
 }
 
 .ci-link {
-    color: #3498db !important;
+    color: #60a5fa !important;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
 }
 
 .ci-link:hover {
-    color: #2980b9 !important;
+    color: #93c5fd !important;
     text-decoration: underline;
 }
 
 .ci-name {
-    color: #2c3e50;
+    color: #d1d5db;
     font-size: 0.8rem;
     font-weight: 500;
     margin-top: 4px;
@@ -144,13 +146,13 @@ input:focus, textarea:focus {
 }
 
 .org-name {
-    color: #34495e;
+    color: #e5e7eb;
     font-weight: 600;
     font-size: 0.85rem;
 }
 
 .product-name {
-    color: #7f8c8d;
+    color: #9ca3af;
     font-size: 0.75rem;
     margin-top: 2px;
     display: block;
@@ -159,7 +161,7 @@ input:focus, textarea:focus {
 .timestamp {
     font-family: 'Courier New', monospace;
     font-size: 0.8rem;
-    color: #2c3e50;
+    color: #d1d5db;
     white-space: nowrap;
 }
 
