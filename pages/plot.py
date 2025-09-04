@@ -129,8 +129,56 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
     longest_downtime_hours = longest_downtime_consecutive * 5 / 60
     longest_uptime_hours = longest_uptime_consecutive * 5 / 60
     
-    # Load MTTR and MTBF from statistics.json
+    # Load MTTR and MTBF from statistics.json (fallbacks will be recalculated below)
     mttr_minutes, mtbf_minutes, incidents = load_ci_mttr_mtbf(ci)
+
+    # Recalculate incidents and MTTR for the entire available data to ensure accuracy per CI
+    try:
+        series_times = pd.to_datetime(all_data['times']).to_list()
+        series_vals = all_data['values'].astype(int).to_list()
+        incidents_count = 0
+        downtime_durations_min = []
+        in_downtime = False
+        downtime_start_idx = None
+
+        for idx in range(1, len(series_vals)):
+            prev_val = series_vals[idx - 1]
+            curr_val = series_vals[idx]
+
+            # Start of incident (1 -> 0 transition)
+            if not in_downtime and prev_val == 1 and curr_val == 0:
+                in_downtime = True
+                incidents_count += 1
+                downtime_start_idx = idx
+
+            # End of incident (0 -> 1 transition)
+            if in_downtime and prev_val == 0 and curr_val == 1:
+                # Duration from start idx-1 time to current idx time
+                start_time = series_times[downtime_start_idx]
+                end_time = series_times[idx]
+                duration_min = max(0.0, (end_time - start_time).total_seconds() / 60.0)
+                downtime_durations_min.append(duration_min)
+                in_downtime = False
+                downtime_start_idx = None
+
+        # Handle ongoing downtime at end of series
+        if in_downtime and downtime_start_idx is not None:
+            start_time = series_times[downtime_start_idx]
+            end_time = series_times[-1]
+            duration_min = max(0.0, (end_time - start_time).total_seconds() / 60.0)
+            downtime_durations_min.append(duration_min)
+
+        # Compute MTTR from collected durations (if any incidents)
+        if incidents_count > 0 and len(downtime_durations_min) > 0:
+            mttr_minutes = sum(downtime_durations_min) / len(downtime_durations_min)
+            incidents = incidents_count
+        else:
+            # Keep loaded values if present; otherwise zero
+            incidents = incidents if incidents else 0
+            mttr_minutes = mttr_minutes if mttr_minutes else 0
+    except Exception as _e:
+        # If recalculation fails, keep existing loaded values
+        pass
     
     return {
         # Selected time range statistics
