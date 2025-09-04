@@ -180,7 +180,6 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     
     # TimescaleDB mode - no file_name needed
     config_file_name = None
-    config_home_url = core_config.get('home_url', 'http://localhost:8050')
     config_stats_delta_hours = core_config.get('stats_delta_hours', 12)
     
     # Use provided hours parameter or default from config
