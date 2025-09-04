@@ -141,6 +141,12 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
         in_downtime = False
         downtime_start_idx = None
 
+        # Handle case: series starts already in downtime (0)
+        if len(series_vals) > 0 and series_vals[0] == 0:
+            in_downtime = True
+            incidents_count += 1
+            downtime_start_idx = 0
+
         for idx in range(1, len(series_vals)):
             prev_val = series_vals[idx - 1]
             curr_val = series_vals[idx]
