@@ -271,12 +271,14 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
     if selected_hours is None or selected_hours <= 0:
         selected_hours = 12  # Default fallback
     
-    # Calculate cutoff time
-    cutoff = (pd.Timestamp.now() - pd.Timedelta(hours=selected_hours)).tz_localize(get_localzone())
+    # Calculate cutoff time in Europe/Berlin to match data timezone
+    cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
     
-    # Get data
+    # Get data (ensure timezone-aware in Europe/Berlin)
     ci_data = get_availability_data_of_ci(config_file_name, ci)
-    ci_data = ci_data[ci_data['times']>=cutoff]
+    if not ci_data.empty:
+        ci_data['times'] = pd.to_datetime(ci_data['times']).dt.tz_convert('Europe/Berlin')
+        ci_data = ci_data[ci_data['times']>=cutoff]
     
     if ci_data.empty:
         # Return empty plot and message if no data
