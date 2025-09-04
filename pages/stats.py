@@ -547,8 +547,8 @@ def serve_layout():
                     ],
                     sort_action='native',
                     sort_mode='multi',
-                    style_table={'overflowX': 'auto', 'minWidth': '100%', 'backgroundColor': '#0b1220', 'color': '#e5e7eb', 'border': '1px solid #374151'},
-                    style_cell={'padding': '8px', 'fontSize': '0.95rem', 'backgroundColor': '#0b1220', 'color': '#e5e7eb', 'border': '1px solid #374151'},
+                    style_table={'overflowX': 'auto', 'minWidth': '100%', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)'},
+                    style_cell={'padding': '8px', 'fontSize': '0.95rem', 'backgroundColor': 'var(--bg-color)', 'color': 'var(--text-color)', 'border': '1px solid var(--border-color)'},
                     style_cell_conditional=[
                         {"if": {"column_id": "organization"}, "textAlign": "left", "maxWidth": "120px", "minWidth": "100px", "overflow": "hidden", "textOverflow": "ellipsis"},
                         {"if": {"column_id": "name"}, "textAlign": "left", "maxWidth": "150px", "minWidth": "120px", "overflow": "hidden", "textOverflow": "ellipsis"},
@@ -557,18 +557,18 @@ def serve_layout():
                         {"if": {"column_id": "downtime_minutes"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
                         {"if": {"column_id": "availability_percentage"}, "textAlign": "right", "maxWidth": "100px", "minWidth": "80px", 'fontVariantNumeric': 'tabular-nums'},
                     ],
-                    # Header klar sichtbar (hoher Kontrast, Dark-Mode freundlich)
-                    style_header={'backgroundColor': '#111827', 'color': '#f9fafb', 'fontWeight': 'bold', 'border': '1px solid #4b5563'},
+                    # Header sichtbar (nutzt Theme-Variablen)
+                    style_header={'backgroundColor': 'var(--card-bg-color)', 'color': 'var(--text-color)', 'fontWeight': 'bold', 'border': '1px solid var(--border-color)'},
                     style_data_conditional=[
                         {
                             'if': {'state': 'active'},
-                            'backgroundColor': '#1f2937',
-                            'color': '#f9fafb',
+                            'backgroundColor': 'var(--primary-color)',
+                            'color': 'white',
                         },
                         {
                             'if': {'state': 'selected'},
-                            'backgroundColor': '#374151',
-                            'color': '#f9fafb',
+                            'backgroundColor': 'var(--primary-color-light)',
+                            'color': 'white',
                         }
                     ],
                     css=[
