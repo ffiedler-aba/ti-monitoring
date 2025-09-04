@@ -86,11 +86,11 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
     first_timestamp_total = all_data['times'].iloc[0]
     last_timestamp_total = all_data['times'].iloc[-1]
     
-    # Calculate downtime statistics for selected time range
-    downtime_count = (selected_data['values'] == 0).sum()
-    uptime_count = (selected_data['values'] == 1).sum()
-    downtime_percentage = (downtime_count / number_of_values) * 100 if number_of_values > 0 else 0
-    uptime_percentage = (uptime_count / number_of_values) * 100 if number_of_values > 0 else 0
+    # Calculate downtime statistics for the entire available data
+    downtime_count = (all_data['values'] == 0).sum()
+    uptime_count = (all_data['values'] == 1).sum()
+    downtime_percentage = (downtime_count / total_records) * 100 if total_records > 0 else 0
+    uptime_percentage = (uptime_count / total_records) * 100 if total_records > 0 else 0
     
     # Calculate total downtime duration (assuming 5-minute intervals)
     downtime_minutes = downtime_count * 5
@@ -122,8 +122,8 @@ def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name
                 current_consecutive = 0
         return max_consecutive
     
-    longest_downtime_consecutive = find_longest_consecutive(selected_data['values'], 0)
-    longest_uptime_consecutive = find_longest_consecutive(selected_data['values'], 1)
+    longest_downtime_consecutive = find_longest_consecutive(all_data['values'], 0)
+    longest_uptime_consecutive = find_longest_consecutive(all_data['values'], 1)
     
     # Convert consecutive periods to time
     longest_downtime_hours = longest_downtime_consecutive * 5 / 60
@@ -366,9 +366,9 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
             ])
         ]),
         
-        # Downtime statistics
+        # Downtime statistics (entire data range)
         html.Div(className='stats-section', children=[
-            html.H4('🔴 Downtime-Statistik (ausgewählter Zeitraum)'),
+            html.H4('🔴 Downtime-Statistik (gesamter Zeitraum)'),
             html.Div(className='stats-grid', children=[
                 html.Div(className='stat-item', children=[
                     html.Strong('Downtime: '),
