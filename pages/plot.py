@@ -191,9 +191,8 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
         return html.Div([
             html.H2('Fehler: Keine Komponente angegeben'),
             html.P('Bitte geben Sie eine Komponenten-ID in der URL an, z.B. /plot?ci=12345'),
-            html.A(href='javascript:history.back()', children=[
-                html.Button('Zurück', className='button')
-            ])
+            dcc.Store(id='home-url-store-error', data=config_home_url),
+            html.Button('Zurück', id='back-button-error', className='button')
         ])
     
     # Get CI info for display
@@ -202,9 +201,8 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     layout = [
         html.H2('Verfügbarkeit der Komponente ' + str(ci)),
         html.H3(ci_info['product'].iloc[0] + ', ' + ci_info['name'].iloc[0] + ', ' + ci_info['organization'].iloc[0]),
-        html.A(href='javascript:history.back()', children = [
-            html.Button('Zurück', className = 'button')
-        ]),
+        dcc.Store(id='home-url-store', data=config_home_url),
+        html.Button('Zurück', id='back-button', className='button'),
         
         # Plot section (moved up to avoid overlay issues)
         html.Div(id='plot-container', children=[
@@ -257,6 +255,53 @@ def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
     return layout
 
 layout = serve_layout
+
+from dash import clientside_callback
+
+# Clientside back navigation: use history.back if possible, otherwise go to home_url
+clientside_callback(
+    """
+    function(n, homeUrl) {
+        if (!n) { return window.dash_clientside.no_update; }
+        try {
+            if (window.history && window.history.length > 1) {
+                window.history.back();
+            } else if (homeUrl) {
+                window.location.href = homeUrl;
+            }
+        } catch (e) {
+            if (homeUrl) { window.location.href = homeUrl; }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output('url', 'href'),
+    [Input('back-button', 'n_clicks')],
+    [dash.State('home-url-store', 'data')],
+    prevent_initial_call=True
+)
+
+clientside_callback(
+    """
+    function(n, homeUrl) {
+        if (!n) { return window.dash_clientside.no_update; }
+        try {
+            if (window.history && window.history.length > 1) {
+                window.history.back();
+            } else if (homeUrl) {
+                window.location.href = homeUrl;
+            }
+        } catch (e) {
+            if (homeUrl) { window.location.href = homeUrl; }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output('url', 'pathname'),
+    [Input('back-button-error', 'n_clicks')],
+    [dash.State('home-url-store-error', 'data')],
+    prevent_initial_call=True
+)
 
 @callback(
     [Output('availability-plot', 'figure'),
