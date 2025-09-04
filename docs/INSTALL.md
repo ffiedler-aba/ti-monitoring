@@ -72,9 +72,6 @@ core:
     password: "timonitor"
     keep_days: 185
   
-  # Home URL for dash app (Ihre Domain)
-  home_url: "https://ti-monitoring.example.com"
-  
   # Time frame for statistics in web app (Standardwert für Plots)
   stats_delta_hours: 12
   

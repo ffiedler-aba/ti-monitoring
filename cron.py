@@ -491,13 +491,14 @@ def main():
         
         # Get configurations from YAML with validation
         config_url = core_config.get('url')
-        config_home_url = core_config.get('home_url')
+        # home_url entfernt – nicht mehr benötigt
+        config_home_url = None
         retention_months = core_config.get('retention_months', 6)
 
         
         log(f"Configuration values:")
         log(f"  url: {config_url}")
-        log(f"  home_url: {config_home_url}")
+        # log(f"  home_url: {config_home_url}")
         log(f"  retention_months: {retention_months} months")
         
         if not config_url:
@@ -551,7 +552,7 @@ def main():
                             
                             if notifications_config and len(notifications_config) > 0:
                                 log("Sending notifications...")
-                                send_apprise_notifications('', config_notifications_file, config_home_url)  # file_name parameter not used anymore
+                                send_apprise_notifications('', config_notifications_file, None)  # home_url entfällt
                                 log("Notifications sent successfully")
                             else:
                                 log("No notifications configured")

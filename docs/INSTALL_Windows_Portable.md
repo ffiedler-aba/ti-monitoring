@@ -65,7 +65,7 @@ core:
     keep_days: 185
   
   # Home URL for dash app
-  home_url: "http://localhost:8050"
+  # home_url entfernt – Zurück-Links führen fest auf '/'
   
   # Time frame for statistics in web app
   stats_delta_hours: 12

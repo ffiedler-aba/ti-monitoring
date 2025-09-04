@@ -109,8 +109,8 @@ def serve_layout():
         core_config = load_core_config()
         header_config = load_header_config()
         
-        # Get home_url from config.yaml
-        app_home_url = core_config.get('home_url', 'https://ti-monitoring.lukas-schmidt-russnak.de')
+        # home_url entfernt – Logo-Link führt auf Startseite
+        app_home_url = '/'
         
         # Get header configurations
         header_title = header_config.get('title', 'TI-Monitoring')
