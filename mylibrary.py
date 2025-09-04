@@ -775,14 +775,15 @@ def create_html_list_item_for_change(change, home_url):
     elif change['availability_difference'] == 1:
         emoji = '✅'
 
-    html_str = '<li>' + emoji + ' <strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
+    html_str = '<li>' + ' <strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
     if change['availability_difference'] == 1:
         html_str += '<span style=color:green> *ist wieder verfügbar*</span>'
     elif change['availability_difference'] == -1:
         html_str += '<span style=color:red> *ist nicht mehr verfügbar*</span>'
     else:
         html_str += ' keine Veränderung'
-    html_str += ', Stand: ' + str(pretty_timestamp(change['time'])) + '</li>'
+    html_str += + emoji + ' '
+    html_str += '- Stand: ' + str(pretty_timestamp(change['time'])) + '</li>'
     return html_str
 
 def create_notification_message(changes, recipient_name, home_url):
