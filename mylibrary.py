@@ -768,13 +768,20 @@ def create_html_list_item_for_change(change, home_url):
         href = home_url + '/plot?ci=' + str(change['ci'])
     else:
         href = ''
-    html_str = '<li><strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
+    # Emoji je nach Änderungstyp bestimmen
+    emoji = 'ℹ️'
+    if change['availability_difference'] == -1:
+        emoji = '🚨'
+    elif change['availability_difference'] == 1:
+        emoji = '✅'
+
+    html_str = '<li>' + emoji + ' <strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
     if change['availability_difference'] == 1:
-        html_str += '<span style=color:green>ist wieder verfügbar</span>'
+        html_str += '<span style=color:green> *ist wieder verfügbar*</span>'
     elif change['availability_difference'] == -1:
-        html_str += '<span style=color:red>ist nicht mehr verfügbar</span>'
+        html_str += '<span style=color:red> *ist nicht mehr verfügbar*</span>'
     else:
-        html_str += 'keine Veränderung'
+        html_str += ' keine Veränderung'
     html_str += ', Stand: ' + str(pretty_timestamp(change['time'])) + '</li>'
     return html_str
 
@@ -791,7 +798,18 @@ def create_notification_message(changes, recipient_name, home_url):
         str: HTML formatted message
     """
     message = f'<html lang="de"><body><p>Hallo {recipient_name},</p>'
-    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Komponenten geändert:</p><ul>'
+    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Komponenten geändert:</p>'
+
+    # Kurze Emoji-Zusammenfassung (Anzahl Incidents / Entwarnungen)
+    try:
+        incidents_count = int((changes['availability_difference'] == -1).sum()) if 'availability_difference' in changes.columns else 0
+        recoveries_count = int((changes['availability_difference'] == 1).sum()) if 'availability_difference' in changes.columns else 0
+        if incidents_count or recoveries_count:
+            message += f'<p><strong>Übersicht:</strong> 🚨 {incidents_count} | ✅ {recoveries_count}</p>'
+    except Exception:
+        pass
+
+    message += '<ul>'
     
     for index, change in changes.iterrows():
         message += create_html_list_item_for_change(change, home_url)
