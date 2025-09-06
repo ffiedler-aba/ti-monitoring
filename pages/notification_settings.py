@@ -5,6 +5,7 @@ from mylibrary import *
 import yaml
 import os
 import apprise
+import secrets
 
 # Modern button styles
 MODERN_BUTTON_STYLES = {
@@ -116,8 +117,8 @@ def load_core_config():
 
 dash.register_page(__name__, path='/notifications')
 
-# Global variable to store authentication status (in production, use session or database)
-auth_status = {'authenticated': False}
+# Store for authenticated user
+auth_status = {'authenticated': False, 'user_id': None, 'email': None}
 
 def serve_layout():
     layout = html.Div([
@@ -129,16 +130,16 @@ def serve_layout():
             'paddingBottom': '10px'
         }),
         # Store for authentication status (persistent in browser)
-        dcc.Store(id='auth-status', storage_type='local', data=auth_status),
+        dcc.Store(id='auth-status', storage_type='session', data=auth_status),
         
-        # Login form (shown when not authenticated)
-        html.Div(id='login-container', children=[
-            html.H3('Anmeldung erforderlich', style={'color': '#2c3e50', 'marginBottom': '20px'}),
-            html.P('Bitte geben Sie das Passwort ein, um auf die Benachrichtigungseinstellungen zuzugreifen.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
+        # OTP Login form (shown when not authenticated)
+        html.Div(id='otp-login-container', children=[
+            html.H3('OTP-Anmeldung erforderlich', style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.P('Bitte geben Sie Ihre E-Mail-Adresse ein, um einen OTP-Code zu erhalten.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
             dcc.Input(
-                id='password-input',
-                type='password',
-                placeholder='Passwort eingeben',
+                id='email-input',
+                type='email',
+                placeholder='E-Mail-Adresse eingeben',
                 style={
                     'width': '100%', 
                     'marginBottom': '15px',
@@ -150,8 +151,8 @@ def serve_layout():
                     'boxSizing': 'border-box'
                 }
             ),
-            html.Button('Anmelden', id='login-button', n_clicks=0, style=get_button_style('primary')),
-            html.Div(id='login-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
+            html.Button('OTP anfordern', id='request-otp-button', n_clicks=0, style=get_button_style('primary')),
+            html.Div(id='otp-request-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
         ], style={
             'width': '100%',
             'maxWidth': '900px',
@@ -163,8 +164,52 @@ def serve_layout():
             'boxSizing': 'border-box'
         }),
         
+        # OTP Code form (shown after email is entered)
+        html.Div(id='otp-code-container', children=[
+            html.H3('OTP-Code eingeben', style={'color': '#2c3e50', 'marginBottom': '20px'}),
+            html.P(id='otp-instructions', children='Bitte geben Sie den 6-stelligen Code ein, den Sie per E-Mail erhalten haben.', style={'color': '#7f8c8d', 'marginBottom': '20px'}),
+            dcc.Input(
+                id='otp-code-input',
+                type='text',
+                placeholder='6-stelliger Code',
+                style={
+                    'width': '100%', 
+                    'marginBottom': '15px',
+                    'padding': 'clamp(8px, 2vw, 12px)',
+                    'border': '2px solid #e9ecef',
+                    'borderRadius': '8px',
+                    'fontSize': 'clamp(12px, 2.5vw, 14px)',
+                    'transition': 'border-color 0.3s ease',
+                    'boxSizing': 'border-box'
+                }
+            ),
+            html.Button('Anmelden', id='verify-otp-button', n_clicks=0, style=get_button_style('primary')),
+            html.Button('Neuen Code anfordern', id='resend-otp-button', n_clicks=0, style=get_button_style('secondary')),
+            html.Div(id='otp-verify-error', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'})
+        ], style={
+            'width': '100%',
+            'maxWidth': '900px',
+            'margin': '0 auto',
+            'padding': 'clamp(20px, 4vw, 30px)',
+            'backgroundColor': 'white',
+            'borderRadius': '12px',
+            'boxShadow': '0 4px 6px rgba(0, 0, 0, 0.1)',
+            'boxSizing': 'border-box',
+            'display': 'none'
+        }),
+        
         # Settings interface (hidden when not authenticated)
         html.Div(id='settings-container', children=[
+            html.Div(id='user-info', style={
+                'marginBottom': '20px',
+                'padding': '15px',
+                'backgroundColor': '#f8f9fa',
+                'borderRadius': '8px',
+                'display': 'flex',
+                'justifyContent': 'space-between',
+                'alignItems': 'center'
+            }),
+            
             html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.', style={
                 'color': '#7f8c8d',
                 'fontSize': '16px',
@@ -186,6 +231,7 @@ def serve_layout():
                     'paddingBottom': '10px'
                 }),
                 dcc.Store(id='editing-profile-index'),
+                dcc.Store(id='editing-profile-id'),
                 dcc.Store(id='available-cis-data'),
                 dcc.Store(id='selected-cis-data', data=[]),
                 dcc.Store(id='ci-filter-text', data=''),
@@ -284,23 +330,58 @@ def serve_layout():
                     'marginBottom': '15px',
                     'width': '100%'
                 }),
-                dcc.Textarea(
-                    id='apprise-urls-textarea',
-                    placeholder='Apprise URLs (eine pro Zeile)',
-                    style={
-                        'width': '100%', 
-                        'height': '100px', 
-                        'marginBottom': '15px',
-                        'padding': '12px',
-                        'border': '2px solid #e9ecef',
-                        'borderRadius': '8px',
+                html.Div([
+                    html.Label('Benachrichtigungsmethode:', style={
+                        'display': 'block',
+                        'marginBottom': '10px',
+                        'fontWeight': '500',
+                        'color': '#2c3e50'
+                    }),
+                    dcc.RadioItems(
+                        id='notification-method-radio',
+                        options=[
+                            {'label': 'Apprise (Erweitert)', 'value': 'apprise'},
+                            {'label': 'E-Mail (Einfach)', 'value': 'email'}
+                        ],
+                        value='apprise',
+                        inline=True,
+                        style={
+                            'marginBottom': '15px',
+                            'width': '100%',
+                            'display': 'flex',
+                            'gap': '20px'
+                        }
+                    )
+                ], style={
+                    'marginBottom': '15px',
+                    'width': '100%'
+                }),
+                html.Div(id='apprise-section', children=[
+                    dcc.Textarea(
+                        id='apprise-urls-textarea',
+                        placeholder='Apprise URLs (eine pro Zeile)',
+                        style={
+                            'width': '100%', 
+                            'height': '100px', 
+                            'marginBottom': '15px',
+                            'padding': '12px',
+                            'border': '2px solid #e9ecef',
+                            'borderRadius': '8px',
+                            'fontSize': '14px',
+                            'fontFamily': 'monospace',
+                            'resize': 'vertical',
+                            'transition': 'border-color 0.3s ease',
+                            'boxSizing': 'border-box'
+                        }
+                    )
+                ]),
+                html.Div(id='email-section', children=[
+                    html.P('Die E-Mail wird an Ihre Anmeldeadresse gesendet.', style={
+                        'color': '#7f8c8d',
                         'fontSize': '14px',
-                        'fontFamily': 'monospace',
-                        'resize': 'vertical',
-                        'transition': 'border-color 0.3s ease',
-                        'boxSizing': 'border-box'
-                    }
-                ),
+                        'marginBottom': '15px'
+                    })
+                ], style={'display': 'none'}),
                 html.Div(id='form-error', style={
                     **get_error_style(visible=False),
                     'width': '100%'
@@ -390,35 +471,183 @@ def serve_layout():
 
 layout = serve_layout
 
-# Callback to handle login
+# Callback to handle OTP request
 @callback(
-    [Output('login-container', 'style'),
-     Output('settings-container', 'style'),
-     Output('login-error', 'children'),
-     Output('auth-status', 'data')],
-    [Input('login-button', 'n_clicks')],
-    [State('password-input', 'value'),
-     State('auth-status', 'data')]
+    [Output('otp-login-container', 'style'),
+     Output('otp-code-container', 'style'),
+     Output('otp-request-error', 'children'),
+     Output('otp-instructions', 'children')],
+    [Input('request-otp-button', 'n_clicks')],
+    [State('email-input', 'value')]
 )
-def handle_login(n_clicks, password, auth_data):
+def handle_otp_request(n_clicks, email):
     if n_clicks and n_clicks > 0:
-        if password:
-            if validate_password(password):
-                auth_data['authenticated'] = True
-                return [{'display': 'none'}, {'display': 'block'}, '', auth_data]
+        if not email:
+            return [no_update, no_update, 'Bitte geben Sie eine E-Mail-Adresse ein.', no_update]
+        
+        try:
+            # Validate email format
+            if '@' not in email or '.' not in email:
+                return [no_update, no_update, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.', no_update]
+            
+            # Check if user exists, create if not
+            user = get_user_by_email(email)
+            if user:
+                user_id = user[0]
             else:
-                return [no_update, no_update, 'Ungültiges Passwort. Bitte versuchen Sie es erneut.', auth_data]
-        else:
-            return [no_update, no_update, 'Bitte geben Sie ein Passwort ein.', auth_data]
-    return [no_update, no_update, '', auth_data]
+                user_id = create_user(email)
+            
+            if not user_id:
+                return [no_update, no_update, 'Fehler beim Erstellen des Benutzers.', no_update]
+            
+            # Generate OTP
+            otp, otp_id = generate_otp_for_user(user_id)
+            
+            # Send OTP via Apprise (using the template from config)
+            config = load_config()
+            otp_template = config.get('core', {}).get('otp_apprise_url_template')
+            
+            if otp_template:
+                # Format the template with user email and OTP
+                apprise_url = otp_template.format(email=email, otp=otp)
+                
+                # Send OTP notification
+                apobj = apprise.Apprise()
+                apobj.add(apprise_url)
+                apobj.notify(
+                    title='TI-Monitoring OTP-Code',
+                    body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                    body_format=apprise.NotifyFormat.TEXT
+                )
+            
+            instructions = f'Bitte geben Sie den 6-stelligen Code ein, den Sie per E-Mail an {email} erhalten haben.'
+            return [{'display': 'none'}, {'display': 'block'}, '', instructions]
+            
+        except Exception as e:
+            return [no_update, no_update, f'Fehler beim Senden des OTP-Codes: {str(e)}', no_update]
+    
+    return [no_update, no_update, '', no_update]
 
+# Callback to handle OTP verification
+@callback(
+    [Output('otp-code-container', 'style', allow_duplicate=True),
+     Output('settings-container', 'style'),
+     Output('otp-verify-error', 'children'),
+     Output('auth-status', 'data'),
+     Output('user-info', 'children')],
+    [Input('verify-otp-button', 'n_clicks')],
+    [State('email-input', 'value'),
+     State('otp-code-input', 'value'),
+     State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def handle_otp_verification(n_clicks, email, otp_code, auth_data):
+    if n_clicks and n_clicks > 0:
+        if not email or not otp_code:
+            return [no_update, no_update, 'Bitte geben Sie E-Mail und OTP-Code ein.', no_update, no_update]
+        
+        try:
+            # Get user by email
+            user = get_user_by_email(email)
+            if not user:
+                return [no_update, no_update, 'Benutzer nicht gefunden.', no_update, no_update]
+            
+            user_id = user[0]
+            
+            # Check if account is locked
+            if is_account_locked(user_id):
+                return [no_update, no_update, 'Konto ist gesperrt. Bitte versuchen Sie es später erneut.', no_update, no_update]
+            
+            # Validate OTP
+            if validate_otp(user_id, otp_code):
+                # Authentication successful
+                auth_data['authenticated'] = True
+                auth_data['user_id'] = user_id
+                auth_data['email'] = email
+                
+                user_info = html.Div([
+                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+                    html.Button('Abmelden', id='logout-button', n_clicks=0, style={
+                        **get_button_style('secondary'),
+                        'padding': '5px 10px',
+                        'fontSize': '12px',
+                        'marginLeft': '15px'
+                    })
+                ])
+                
+                return [{'display': 'none'}, {'display': 'block'}, '', auth_data, user_info]
+            else:
+                # OTP validation failed
+                # Check if we should lock the account
+                with get_db_conn() as conn, conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT failed_login_attempts FROM users WHERE id = %s
+                    """, (user_id,))
+                    failed_attempts = cur.fetchone()[0] if cur.fetchone() else 0
+                    
+                    if failed_attempts >= 5:
+                        lock_user_account(user_id)
+                        return [no_update, no_update, 'Zu viele fehlgeschlagene Versuche. Konto ist jetzt gesperrt.', no_update, no_update]
+                
+                return [no_update, no_update, 'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.', no_update, no_update]
+                
+        except Exception as e:
+            return [no_update, no_update, f'Fehler bei der Verifizierung: {str(e)}', no_update, no_update]
+    
+    return [no_update, no_update, '', no_update, no_update]
 
+# Callback to resend OTP
+@callback(
+    Output('otp-request-error', 'children', allow_duplicate=True),
+    [Input('resend-otp-button', 'n_clicks')],
+    [State('email-input', 'value')],
+    prevent_initial_call=True
+)
+def handle_resend_otp(n_clicks, email):
+    if n_clicks and n_clicks > 0:
+        if not email:
+            return 'Bitte geben Sie eine E-Mail-Adresse ein.'
+        
+        try:
+            # Get user by email
+            user = get_user_by_email(email)
+            if not user:
+                return 'Benutzer nicht gefunden.'
+            
+            user_id = user[0]
+            
+            # Generate new OTP
+            otp, otp_id = generate_otp_for_user(user_id)
+            
+            # Send OTP via Apprise (using the template from config)
+            config = load_config()
+            otp_template = config.get('core', {}).get('otp_apprise_url_template')
+            
+            if otp_template:
+                # Format the template with user email and OTP
+                apprise_url = otp_template.format(email=email, otp=otp)
+                
+                # Send OTP notification
+                apobj = apprise.Apprise()
+                apobj.add(apprise_url)
+                apobj.notify(
+                    title='TI-Monitoring OTP-Code (Neu)',
+                    body=f'Ihr neuer OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                    body_format=apprise.NotifyFormat.TEXT
+                )
+            
+            return 'Neuer OTP-Code wurde gesendet.'
+            
+        except Exception as e:
+            return f'Fehler beim Senden des OTP-Codes: {str(e)}'
+    
+    return ''
 
 # Callback to handle Enter key in password input
 @callback(
-    Output('login-button', 'n_clicks'),
-    [Input('password-input', 'n_submit')],
-    [State('login-button', 'n_clicks')]
+    Output('verify-otp-button', 'n_clicks'),
+    [Input('otp-code-input', 'n_submit')],
+    [State('verify-otp-button', 'n_clicks')]
 )
 def handle_enter_key(n_submit, current_clicks):
     if n_submit and n_submit > 0:
@@ -770,7 +999,38 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index, filt
     except Exception as e:
         return html.P(f'Error updating checkboxes: {str(e)}', style={'color': '#e74c3c', 'textAlign': 'center'})
 
-# Callback to load and display profiles
+# Callback to handle logout
+@callback(
+    [Output('otp-login-container', 'style', allow_duplicate=True),
+     Output('settings-container', 'style', allow_duplicate=True),
+     Output('otp-code-container', 'style', allow_duplicate=True),
+     Output('auth-status', 'data', allow_duplicate=True),
+     Output('email-input', 'value'),
+     Output('otp-code-input', 'value')],
+    [Input('logout-button', 'n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def handle_logout(n_clicks, auth_data):
+    if n_clicks and n_clicks > 0:
+        # Reset authentication status
+        auth_data['authenticated'] = False
+        auth_data['user_id'] = None
+        auth_data['email'] = None
+        
+        # Reset form inputs
+        return [
+            {'display': 'block'},  # Show login container
+            {'display': 'none'},   # Hide settings container
+            {'display': 'none'},   # Hide OTP code container
+            auth_data,             # Reset auth data
+            '',                    # Clear email input
+            ''                     # Clear OTP input
+        ]
+    
+    return [no_update, no_update, no_update, no_update, no_update, no_update]
+
+# Callback to load and display profiles from database
 @callback(
     Output('profiles-container', 'children'),
     [Input('auth-status', 'data'),
@@ -781,23 +1041,35 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
     if not auth_data.get('authenticated', False):
         return []
     
-    # Load core configurations
-    core_config = load_core_config()
-    config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
+    user_id = auth_data.get('user_id')
+    if not user_id:
+        return html.P('Fehler: Benutzer nicht authentifiziert.')
     
     try:
-        config = get_notification_config(config_notifications_config_file)
-        if not config:
+        # Load profiles from database
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, type, ci_list, apprise_urls, email_notifications
+                FROM notification_profiles
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (user_id,))
+            profiles = cur.fetchall()
+        
+        if not profiles:
             return html.P('Keine Benachrichtigungsprofile gefunden. Fügen Sie ein neues Profil hinzu, um zu beginnen.')
         
         profile_cards = []
-        for i, profile in enumerate(config):
+        for profile in profiles:
+            profile_id, name, notification_type, ci_list, apprise_urls, email_notifications = profile
+            
             # Count items
-            ci_count = len(profile.get('ci_list', []))
-            url_count = len(profile.get('apprise_urls', []))
+            ci_count = len(ci_list) if ci_list else 0
+            url_count = len(apprise_urls) if apprise_urls else 0
+            notification_method = 'E-Mail' if email_notifications else 'Apprise'
             
             card = html.Div([
-                html.H4(profile.get('name', 'Unbenanntes Profil'), style={
+                html.H4(name or 'Unbenanntes Profil', style={
                     'color': '#2c3e50',
                     'marginBottom': '15px',
                     'fontWeight': '600',
@@ -805,7 +1077,12 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
                     'paddingBottom': '10px'
                 }),
                 html.Div([
-                    html.P(f"Typ: {profile.get('type', 'whitelist').title()}", style={
+                    html.P(f"Typ: {notification_type.title() if notification_type else 'Whitelist'}", style={
+                        'color': '#7f8c8d',
+                        'margin': '5px 0',
+                        'fontSize': '14px'
+                    }),
+                    html.P(f"Benachrichtigungsmethode: {notification_method}", style={
                         'color': '#7f8c8d',
                         'margin': '5px 0',
                         'fontSize': '14px'
@@ -822,8 +1099,8 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
                     })
                 ], style={'marginBottom': '20px'}),
                 html.Div([
-                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'index': i}, n_clicks=0, style=get_button_style('secondary')),
-                    html.Button('Löschen', id={'type': 'delete-profile', 'index': i}, n_clicks=0, 
+                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'profile_id': profile_id}, n_clicks=0, style=get_button_style('secondary')),
+                    html.Button('Löschen', id={'type': 'delete-profile', 'profile_id': profile_id}, n_clicks=0, 
                                style=get_button_style('danger'))
                 ], style={
                     'display': 'flex', 
@@ -857,50 +1134,80 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 # Callback to show profile form
 @callback(
     [Output('profile-form-container', 'style'),
-     Output('editing-profile-index', 'data'),
+     Output('editing-profile-id', 'data'),
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
-     Output('apprise-urls-textarea', 'value')],
+     Output('notification-method-radio', 'value'),
+     Output('apprise-urls-textarea', 'value'),
+     Output('apprise-section', 'style'),
+     Output('email-section', 'style')],
     [Input('add-profile-button', 'n_clicks'),
-     Input({'type': 'edit-profile', 'index': dash.ALL}, 'n_clicks')],
+     Input({'type': 'edit-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     [State('auth-status', 'data')]
 )
 def show_profile_form(add_clicks, edit_clicks, auth_data):
     if not auth_data.get('authenticated', False):
-        return [{'display': 'none'}, None, '', 'whitelist', '']
+        return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
     
     # Check if add button was clicked
     ctx = callback_context
     if not ctx.triggered:
-        return [{'display': 'none'}, None, '', 'whitelist', '']
+        return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
     
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     
     if button_id == 'add-profile-button':
         # Show empty form for new profile
-        return [{'display': 'block'}, None, '', 'whitelist', '']
+        return [{'display': 'block'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
     else:
         # Show form with existing profile data for editing
         try:
             button_data = json.loads(button_id.replace("'", '"'))
-            index = button_data['index']
+            profile_id = button_data['profile_id']
             
-            # Load core configurations
-            core_config = load_core_config()
-            config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
-            
-            config = get_notification_config(config_notifications_config_file)
-            if 0 <= index < len(config):
-                profile = config[index]
-                name = profile.get('name', '')
-                notification_type = profile.get('type', 'whitelist')
-                apprise_urls = '\n'.join(profile.get('apprise_urls', []))
+            # Load profile from database
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT name, type, ci_list, apprise_urls, email_notifications
+                    FROM notification_profiles
+                    WHERE id = %s
+                """, (profile_id,))
+                profile = cur.fetchone()
                 
-                return [{'display': 'block'}, index, name, notification_type, apprise_urls]
+                if profile:
+                    name, notification_type, ci_list, apprise_urls, email_notifications = profile
+                    notification_method = 'email' if email_notifications else 'apprise'
+                    apprise_urls_text = '\n'.join(apprise_urls) if apprise_urls else ''
+                    
+                    apprise_section_style = {'display': 'block'} if notification_method == 'apprise' else {'display': 'none'}
+                    email_section_style = {'display': 'block'} if notification_method == 'email' else {'display': 'none'}
+                    
+                    return [
+                        {'display': 'block'}, 
+                        profile_id, 
+                        name or '', 
+                        notification_type or 'whitelist', 
+                        notification_method,
+                        apprise_urls_text,
+                        apprise_section_style,
+                        email_section_style
+                    ]
         except Exception:
             pass
     
-    return [{'display': 'none'}, None, '', 'whitelist', '']
+    return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
+
+# Callback to toggle between notification methods
+@callback(
+    [Output('apprise-section', 'style', allow_duplicate=True),
+     Output('email-section', 'style', allow_duplicate=True)],
+    [Input('notification-method-radio', 'value')]
+)
+def toggle_notification_method(method):
+    if method == 'apprise':
+        return [{'display': 'block'}, {'display': 'none'}]
+    else:
+        return [{'display': 'none'}, {'display': 'block'}]
 
 # Callback to save profile
 @callback(
@@ -910,15 +1217,16 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
      Output('save-profile-button', 'n_clicks')],
     [Input('save-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
-    [State('editing-profile-index', 'data'),
+    [State('editing-profile-id', 'data'),
      State('profile-name-input', 'value'),
      State('notification-type-radio', 'value'),
+     State('notification-method-radio', 'value'),
      State('apprise-urls-textarea', 'value'),
      State('selected-cis-data', 'data'),
      State('auth-status', 'data')],
     prevent_initial_call=True
 )
-def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notification_type, apprise_urls, selected_cis, auth_data):
+def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_type, notification_method, apprise_urls, selected_cis, auth_data):
     # Check which button was clicked
     ctx = callback_context
     if not ctx.triggered:
@@ -934,48 +1242,53 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
     if button_id == 'save-profile-button' and save_clicks > 0:
         # Validate inputs
         if not name:
-            return [no_update, 'Profile name is required.', get_error_style(visible=True), 0]
+            return [no_update, 'Profilname ist erforderlich.', get_error_style(visible=True), 0]
+        
+        user_id = auth_data.get('user_id')
+        if not user_id:
+            return [no_update, 'Benutzer nicht authentifiziert.', get_error_style(visible=True), 0]
         
         # Get selected CIs from the selected-cis-data store
         ci_items = selected_cis if selected_cis else []
         
-        # Process Apprise URLs
-        url_items = [url.strip() for url in apprise_urls.split('\n') if url.strip()]
+        # Process notification method
+        email_notifications = notification_method == 'email'
+        email_address = auth_data.get('email') if email_notifications else None
         
-        # Validate Apprise URLs
-        if url_items and not validate_apprise_urls(url_items):
-            return [no_update, 'One or more Apprise URLs are invalid.', get_error_style(visible=True), 0]
-        
-        # Create profile object
-        profile = {
-            'name': name,
-            'type': notification_type,
-            'ci_list': ci_items,
-            'apprise_urls': url_items
-        }
+        # Process Apprise URLs only if using Apprise method
+        url_items = []
+        if notification_method == 'apprise':
+            url_items = [url.strip() for url in apprise_urls.split('\n') if url.strip()]
+            
+            # Validate Apprise URLs
+            if url_items and not validate_apprise_urls(url_items):
+                return [no_update, 'Eine oder mehrere Apprise-URLs sind ungültig.', get_error_style(visible=True), 0]
         
         try:
-            # Load core configurations
-            core_config = load_core_config()
-            config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
+            # Save profile to database
+            with get_db_conn() as conn, conn.cursor() as cur:
+                if edit_id:
+                    # Update existing profile
+                    cur.execute("""
+                        UPDATE notification_profiles 
+                        SET name = %s, type = %s, ci_list = %s, apprise_urls = %s, 
+                            email_notifications = %s, email_address = %s, updated_at = NOW()
+                        WHERE id = %s AND user_id = %s
+                    """, (name, notification_type, ci_items, url_items, email_notifications, email_address, edit_id, user_id))
+                else:
+                    # Generate unsubscribe token
+                    unsubscribe_token = secrets.token_urlsafe(32)
+                    
+                    # Add new profile
+                    cur.execute("""
+                        INSERT INTO notification_profiles 
+                        (user_id, name, type, ci_list, apprise_urls, email_notifications, email_address, unsubscribe_token)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (user_id, name, notification_type, ci_items, url_items, email_notifications, email_address, unsubscribe_token))
             
-            # Load existing config
-            config = get_notification_config(config_notifications_config_file)
-            
-            if edit_index is not None and 0 <= edit_index < len(config):
-                # Update existing profile
-                config[edit_index] = profile
-            else:
-                # Add new profile
-                config.append(profile)
-            
-            # Save config
-            if save_notification_config(config_notifications_config_file, config):
-                return [{'display': 'none'}, '', get_error_style(visible=False), 0]  # Hide form and reset clicks
-            else:
-                return [no_update, 'Error saving configuration.', get_error_style(visible=True), 0]
+            return [{'display': 'none'}, '', get_error_style(visible=False), 0]  # Hide form and reset clicks
         except Exception as e:
-            return [no_update, f'Error: {str(e)}', get_error_style(visible=True), 0]
+            return [no_update, f'Fehler beim Speichern: {str(e)}', get_error_style(visible=True), 0]
     
     return [no_update, '', get_error_style(visible=False), 0]
 
@@ -984,7 +1297,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_index, name, notificati
     [Output('delete-confirm', 'displayed'),
      Output('delete-confirm', 'message'),
      Output('delete-index-store', 'data')],
-    [Input({'type': 'delete-profile', 'index': dash.ALL}, 'n_clicks')],
+    [Input({'type': 'delete-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     prevent_initial_call=True
 )
 def show_delete_confirm(delete_clicks):
@@ -1002,17 +1315,18 @@ def show_delete_confirm(delete_clicks):
     try:
         button_id = triggered_input['prop_id'].split('.')[0]
         button_data = json.loads(button_id.replace("'", '"'))
-        index = button_data['index']
+        profile_id = button_data['profile_id']
         
-        # Load core configurations
-        core_config = load_core_config()
-        config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
+        # Get profile name for confirmation message
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT name FROM notification_profiles WHERE id = %s
+            """, (profile_id,))
+            result = cur.fetchone()
+            profile_name = result[0] if result else 'Unbenanntes Profil'
         
-        config = get_notification_config(config_notifications_config_file)
-        if 0 <= index < len(config):
-            profile_name = config[index].get('name', 'Unnamed Profile')
-            message = f'Sind Sie sicher, dass Sie das Profil "{profile_name}" löschen möchten?'
-            return [True, message, index]
+        message = f'Sind Sie sicher, dass Sie das Profil "{profile_name}" löschen möchten?'
+        return [True, message, profile_id]
     except Exception as e:
         print(f"Error in show_delete_confirm: {e}")
     
@@ -1022,30 +1336,27 @@ def show_delete_confirm(delete_clicks):
 @callback(
     Output('delete-confirm', 'submit_n_clicks'),
     [Input('delete-confirm', 'submit_n_clicks')],
-    [State('delete-index-store', 'data')],
+    [State('delete-index-store', 'data'),
+     State('auth-status', 'data')],
     prevent_initial_call=True
 )
-def delete_profile(submit_n_clicks, delete_index):
-    if submit_n_clicks == 0 or delete_index is None:
+def delete_profile(submit_n_clicks, delete_id, auth_data):
+    if submit_n_clicks == 0 or delete_id is None:
+        return 0
+    
+    user_id = auth_data.get('user_id')
+    if not user_id:
         return 0
     
     try:
-        # Load core configurations
-        core_config = load_core_config()
-        config_notifications_config_file = core_config.get('notifications_config_file', 'notifications.json')
-        
-        # Load config
-        config = get_notification_config(config_notifications_config_file)
-        
-        # Remove profile at index
-        if 0 <= delete_index < len(config):
-            config.pop(delete_index)
+        # Delete profile from database
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM notification_profiles 
+                WHERE id = %s AND user_id = %s
+            """, (delete_id, user_id))
             
-            # Save updated config
-            if save_notification_config(config_notifications_config_file, config):
-                print(f"Successfully deleted profile at index {delete_index}")
-            else:
-                print(f"Failed to save config after deleting profile at index {delete_index}")
+        print(f"Successfully deleted profile with id {delete_id}")
     except Exception as e:
         print(f"Error in delete_profile: {e}")
     
@@ -1079,7 +1390,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Br(),
-                html.Span('Häufiges Mattermost-Format: mmost://username:password@hostname/channel', style={'color': 'blue', 'font-size': '0.9em'}),
+                html.Span('Häufiges Mattermost-Format: mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Span('Beispiel: mmost://user:pass@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'})
             ])
@@ -1131,4 +1442,3 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
             html.Br(),
             html.Span('mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-family': 'monospace'})
         ])
-        

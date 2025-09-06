@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import numpy as np
 import pytz
+import apprise
 # h5py removed - using TimescaleDB only
 
 # Enhanced logging setup with file logging and daily rotation
@@ -545,19 +546,28 @@ def main():
                 # Send notifications every 5 minutes
                 if now_epoch - last_notification_time > 300:  # Every 5 minutes
                     try:
-                        config_notifications_file = os.path.join(os.path.dirname(__file__), 'notifications.json')
-                        if os.path.exists(config_notifications_file):
-                            with open(config_notifications_file, 'r', encoding='utf-8') as f:
-                                notifications_config = json.load(f)
-                            
-                            if notifications_config and len(notifications_config) > 0:
-                                log("Sending notifications...")
-                                send_apprise_notifications('', config_notifications_file, None)  # home_url entfällt
-                                log("Notifications sent successfully")
+                        # First try to send notifications using the new multi-user system
+                        log("Sending notifications using multi-user system...")
+                        profiles_processed = send_db_notifications()
+                        
+                        # If no profiles were processed, fall back to the old notifications.json system
+                        if profiles_processed == 0:
+                            config_notifications_file = os.path.join(os.path.dirname(__file__), 'notifications.json')
+                            if os.path.exists(config_notifications_file):
+                                with open(config_notifications_file, 'r', encoding='utf-8') as f:
+                                    notifications_config = json.load(f)
+                                
+                                if notifications_config and len(notifications_config) > 0:
+                                    log("Sending notifications using legacy system...")
+                                    send_apprise_notifications('', config_notifications_file, None)  # home_url entfällt
+                                    log("Notifications sent successfully using legacy system")
+                                else:
+                                    log("No notifications configured")
                             else:
-                                log("No notifications configured")
+                                log("No notifications file found")
                         else:
-                            log("No notifications file found")
+                            log(f"Notifications sent successfully to {profiles_processed} user profiles")
+                            
                         last_notification_time = now_epoch
                     except Exception as e:
                         log(f"ERROR in notifications: {e}")

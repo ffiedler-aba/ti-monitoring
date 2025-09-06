@@ -5,7 +5,7 @@ import yaml
 import os
 import functools
 import time
-from flask import jsonify
+from flask import jsonify, request
 import psutil
 import gc
 
@@ -256,6 +256,155 @@ def health_check():
             "error": f"Health check failed: {str(e)}"
         }
         return jsonify(error_data), 503
+
+# Unsubscribe endpoint
+@server.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    """Unsubscribe endpoint for deleting notification profiles via token"""
+    try:
+        # Get profile by token
+        profile = get_profile_by_unsubscribe_token(token)
+        if not profile:
+            return html.Div([
+                html.H2('Ungültiger Link'),
+                html.P('Der von Ihnen aufgerufene Link ist ungültig oder wurde bereits verwendet.')
+            ]), 404
+        
+        profile_id, user_id, name, email_notifications, email_address = profile
+        
+        # Delete the profile
+        if delete_profile_by_unsubscribe_token(token):
+            return html.Div([
+                html.H2('Abmeldung erfolgreich'),
+                html.P(f'Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.'),
+                html.P('Sie erhalten keine weiteren Benachrichtigungen von diesem Profil.')
+            ]), 200
+        else:
+            return html.Div([
+                html.H2('Fehler bei der Abmeldung'),
+                html.P('Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.')
+            ]), 500
+            
+    except Exception as e:
+        return html.Div([
+            html.H2('Fehler'),
+            html.P(f'Ein Fehler ist aufgetreten: {str(e)}')
+        ]), 500
+
+# API endpoint for requesting OTP
+@server.route('/api/auth/otp/request', methods=['POST'])
+def request_otp():
+    """Request OTP for email"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({'error': 'E-Mail-Adresse ist erforderlich'}), 400
+        
+        # Validate email format
+        if '@' not in email or '.' not in email:
+            return jsonify({'error': 'Ungültige E-Mail-Adresse'}), 400
+        
+        # Check if user exists, create if not
+        user = get_user_by_email(email)
+        if user:
+            user_id = user[0]
+        else:
+            user_id = create_user(email)
+        
+        if not user_id:
+            return jsonify({'error': 'Fehler beim Erstellen des Benutzers'}), 500
+        
+        # Generate OTP
+        otp, otp_id = generate_otp_for_user(user_id, request.remote_addr)
+        
+        # Send OTP via Apprise (using the template from config)
+        config = load_config()
+        otp_template = config.get('core', {}).get('otp_apprise_url_template')
+        
+        if otp_template:
+            # Format the template with user email and OTP
+            apprise_url = otp_template.format(email=email, otp=otp)
+            
+            # Send OTP notification
+            apobj = apprise.Apprise()
+            apobj.add(apprise_url)
+            apobj.notify(
+                title='TI-Monitoring OTP-Code',
+                body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                body_format=apprise.NotifyFormat.TEXT
+            )
+        
+        return jsonify({'message': 'OTP-Code wurde gesendet'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Fehler beim Senden des OTP-Codes: {str(e)}'}), 500
+
+# API endpoint for validating OTP
+@server.route('/api/auth/otp/validate', methods=['POST'])
+def validate_otp_api():
+    """Validate OTP code"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        otp_code = data.get('otp')
+        
+        if not email or not otp_code:
+            return jsonify({'error': 'E-Mail und OTP-Code sind erforderlich'}), 400
+        
+        # Get user by email
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({'error': 'Benutzer nicht gefunden'}), 404
+        
+        user_id = user[0]
+        
+        # Check if account is locked
+        if is_account_locked(user_id):
+            return jsonify({'error': 'Konto ist gesperrt. Bitte versuchen Sie es später erneut.'}), 423
+        
+        # Validate OTP
+        if validate_otp(user_id, otp_code):
+            # Authentication successful
+            return jsonify({
+                'message': 'Authentifizierung erfolgreich',
+                'user_id': user_id,
+                'email': email
+            }), 200
+        else:
+            # OTP validation failed
+            # Check if we should lock the account
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT failed_login_attempts FROM users WHERE id = %s
+                """, (user_id,))
+                failed_attempts = cur.fetchone()[0] if cur.fetchone() else 0
+                
+                if failed_attempts >= 5:
+                    lock_user_account(user_id)
+                    return jsonify({'error': 'Zu viele fehlgeschlagene Versuche. Konto ist jetzt gesperrt.'}), 423
+            
+            return jsonify({'error': 'Ungültiger OTP-Code'}), 401
+            
+    except Exception as e:
+        return jsonify({'error': f'Fehler bei der Verifizierung: {str(e)}'}), 500
+
+# API endpoint for logout
+@server.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """End user session"""
+    # In a session-based implementation, we would clear the session here
+    # For now, we just return a success message
+    return jsonify({'message': 'Erfolgreich abgemeldet'}), 200
+
+# API endpoint for listing user profiles
+@server.route('/api/profiles', methods=['GET'])
+def list_profiles():
+    """List user profiles"""
+    # In a real implementation, we would check authentication here
+    # For now, we'll just return an empty list
+    return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(debug=False)

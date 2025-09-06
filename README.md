@@ -13,7 +13,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 
 ### Was unterscheidet dieses Projekt vom Original
 
-- Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplexe Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
+- Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplekte Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
 - Die E-Mail Benachrichtigung der ursprünglichen App wurde ersetzt durch die Integration von [Apprise](https://github.com/caronc/apprise). Vorteile:
   - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail
   - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
@@ -94,6 +94,9 @@ cp .env.example .env
 cp notifications.json.example notifications.json
 cp config.yaml.example config.yaml
 
+# Datenbank-Schema für OTP-System initialisieren
+python scripts/init_otp_database.py
+
 # Container starten
 docker compose -f docker-compose-dev.yml up -d
 ```
@@ -109,6 +112,7 @@ Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigke
 - apprise für Benachrichtigungen
 - python-dotenv für Umgebungsvariablen-Management
 - matplotlib für Beispiele und Entwicklung
+- cryptography für Datenverschlüsselung
 
 ## Konfiguration
 
@@ -118,9 +122,23 @@ Die Anwendung kann über folgende Konfigurationsdateien konfiguriert werden:
 
 1. **config.yaml** - Hauptkonfigurationsdatei (API-URL, Datenbank, Intervals, etc.)
 2. **.env** - Umgebungsvariablen für sensible Daten (Passwörter, SSL-Konfiguration)
-3. **notifications.json** - Benachrichtigungsprofile
+3. **notifications.json** - Benachrichtigungsprofile (veraltet, wird durch das neue Multi-User-System ersetzt)
 
 Alle Konfigurationsdateien basieren auf den entsprechenden `.example` Dateien, die Sie kopieren und anpassen müssen.
+
+### Neue Konfigurationsoptionen für das Multi-User-System
+
+In der `config.yaml` wurden folgende neue Optionen hinzugefügt:
+
+```yaml
+core:
+  # OTP Apprise URL template for sending OTP codes
+  # Variables: {email} for user email, {otp} for the OTP code
+  otp_apprise_url_template: "mailtos://smtp.example.com?to={email}&subject=TI-Monitoring OTP&body=Your OTP code is: {otp}"
+  
+  # Base URL for unsubscribe links
+  unsubscribe_base_url: "https://ti-monitoring.example.com/unsubscribe"
+```
 
 ## Abruf und Archivierung
 
@@ -178,40 +196,49 @@ Die Benachrichtigungen werden ebenfalls über das Skript `cron.py` versendet, so
 
 ![Beispiel einer Telegram-Benachrichtigung](docs/img/screenshot-telegram.png "Beispiel einer Telegram-Benachrichtigung")
 
-### Web-Oberfläche für Benachrichtigungseinstellungen
+### Web-Oberfläche für Benachrichtigungseinstellungen (Multi-User OTP-System)
 
-Ab Version 1.2.0 steht eine webbasierte Oberfläche zur Verwaltung der Benachrichtigungseinstellungen zur Verfügung. Über die Seite "Notification Settings" in der Web-App können Benachrichtigungsprofile erstellt, bearbeitet und gelöscht werden.
+Ab der neuesten Version steht eine vollständig überarbeitete webbasierte Oberfläche zur Verwaltung der Benachrichtigungseinstellungen zur Verfügung. Das alte Passwort-basierte System wurde durch ein sicheres Multi-User-System mit OTP-Authentifizierung (One-Time Password) ersetzt.
 
-![Screenshot der Notifications-Seite](docs/img/screenshot_notification-page.png "Screenshot der Notifications-Seite - Einheitliche Breite aller Elemente und responsives Design")
+#### Features des neuen Systems:
 
-Die Seite ist durch ein einfaches Passwortschutzsystem gesichert. Das Passwort wird über eine Umgebungsvariable `NOTIFICATION_SETTINGS_PASSWORD` konfiguriert, die in einer `.env` Datei im Projektverzeichnis gespeichert wird.
+1. **Multi-User-Unterstützung**: Jeder Benutzer verwaltet seine eigenen Benachrichtigungsprofile
+2. **OTP-Authentifizierung**: Sicherer Anmeldevorgang mit einmaligen Codes per E-Mail
+3. **Zwei Benachrichtigungsmethoden**:
+   - **Apprise**: Erweiterte Benachrichtigungen über 90+ Plattformen
+   - **E-Mail**: Einfache E-Mail-Benachrichtigungen an die Anmeldeadresse
+4. **CI-Auswahl**: Flexible Auswahl von Configuration Items mit Filterfunktion
+5. **Datensicherheit**: Alle sensiblen Daten werden verschlüsselt in der Datenbank gespeichert
+6. **Abmeldelinks**: Jedes Profil erhält einen sicheren Abmeldelink für direktes Löschen ohne Anmeldung
 
-In der Datei `notifications.json` können mehrere Profile definiert werden. Ein Profil besteht aus folgenden Eigenschaften:
+#### Verwendung:
 
-| Name | Beschreibung |
-| ----------- | ----------- |
-| name | Name des Profils (wird in der Anrede verwendet) |
-| apprise_urls | Liste mit mindestens einer Apprise-URL (z.B. `["mailto://user:pass@gmail.com", "tgram://bottoken/ChatID"]`) |
-| ci_list | Liste von Konfigurationsobjekten (z.B. `["CI-000001", "CI-0000002"]`) |
-| type | entweder `blacklist` oder `whitelist` (legt fest, wie die Liste der Konfigurationsobjekte behandelt wird) |
+1. Navigieren Sie zur "Notification Settings" Seite in der Web-App
+2. Geben Sie Ihre E-Mail-Adresse ein und fordern Sie einen OTP-Code an
+3. Prüfen Sie Ihr E-Mail-Postfach und geben Sie den erhaltenen Code ein
+4. Nach erfolgreicher Authentifizierung können Sie Ihre Benachrichtigungsprofile verwalten
 
-Die neue Konfigurationsstruktur ist abwärtskompatibel - bestehende E-Mail-Konfigurationen mit dem Feld `recipients` funktionieren weiterhin.
-
-Um den Passwortschutz zu konfigurieren:
+#### Konfiguration:
 
 1. Kopieren Sie die Datei `.env.example` in `.env`:
    ```bash
    cp .env.example .env
    ```
 
-2. Bearbeiten Sie die `.env` Datei und setzen Sie ein sicheres Passwort:
-   ```bash
-   NOTIFICATION_SETTINGS_PASSWORD=IhrSicheresPasswortHier
+2. Bearbeiten Sie die `config.yaml` Datei und konfigurieren Sie die OTP-Einstellungen:
+   ```yaml
+   core:
+     # OTP Apprise URL template for sending OTP codes
+     otp_apprise_url_template: "mailtos://smtp.example.com?to={email}&subject=TI-Monitoring OTP&body=Your OTP code is: {otp}"
+     
+     # Base URL for unsubscribe links
+     unsubscribe_base_url: "https://ti-monitoring.example.com/unsubscribe"
    ```
 
-3. Stellen Sie sicher, dass die `.env` Datei nicht in das Git-Repository eingeschlossen wird (bereits in `.gitignore` enthalten).
+3. Konfigurieren Sie die Apprise-URL für OTP-Versand in der `config.yaml`:
+   - Beispiel für SMTP: `mailtos://username:password@smtp.gmail.com?to={email}&subject=TI-Monitoring OTP&body=Your OTP code is: {otp}`
 
-Nach der Konfiguration können Sie über den Navigationslink "Notification Settings" auf die Einstellungsseite zugreifen und sich mit dem konfigurierten Passwort anmelden.
+4. Stellen Sie sicher, dass die `.env` Datei nicht in das Git-Repository eingeschlossen wird (bereits in `.gitignore` enthalten).
 
 In der neuesten Version wurde ein Fehler behoben, bei dem der Bestätigungsdialog zum Löschen von Profilen beim Laden der Seite fälschlicherweise angezeigt wurde. Dieses Problem wurde in Version 1.2.1 behoben.
 
@@ -348,25 +375,3 @@ Die Statistiken-Seite bietet folgende Informationen:
 - **Pro Jahr**: Durchschnittliche Ausfallzeit pro Jahr über den gesamten Aufzeichnungszeitraum
 
 ### Performance-Optimierung
-
-Die Statistiken werden gecacht, um die Ladezeiten zu optimieren:
-- **Cache-TTL**: 5 Minuten
-- **Automatische Erneuerung**: Statistiken werden automatisch neu berechnet, wenn der Cache abläuft
-- **Cache-Informationen**: Anzeige der letzten Berechnung und verbleibenden Cache-Zeit
-
-### Berechnungsmethodik
-
-Die Ausfallzeit-Statistiken basieren auf einer Stichprobe der CIs (maximal 20 CIs) zur Performance-Optimierung:
-- **Sampling**: Repräsentative Stichprobe mit festem Seed für konsistente Ergebnisse
-- **Skalierung**: Ergebnisse werden auf die Gesamtanzahl der CIs hochskaliert
-- **Zeitbasis**: Berechnungen basieren auf dem gesamten Aufzeichnungszeitraum aller CIs
-
----
-
-**DISCLAIMER**
-
-Es handelt sich um ein privates Projekt ohne offiziellen Support. Jegliche Nutzung erfolgt auf eigene Verantwortung. 
-
-Die Daten werden über eine öffentlich erreichbare Schnittstelle der gematik GmbH abgerufen. Eine ausführliche Beschreibung diser Schnittstelle ist öffentlich auf GitHub verfügbar: [https://github.com/gematik/api-tilage](https://github.com/gematik/api-tilage).
-
----
