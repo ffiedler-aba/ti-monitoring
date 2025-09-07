@@ -9,6 +9,13 @@ from flask import jsonify, request
 import psutil
 import gc
 
+# Run idempotent DB migrations on startup
+try:
+    run_db_migrations()
+except Exception as _e:
+    # Avoid blocking startup; errors will be visible in logs
+    print(f"DB migration warning: {_e}")
+
 app = Dash(__name__, use_pages=True, title='TI-Monitoring', suppress_callback_exceptions=True)
 server = app.server
 

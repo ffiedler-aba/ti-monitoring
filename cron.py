@@ -480,6 +480,12 @@ def update_statistics_file():
 def main():
     """Main cron job function - TimescaleDB only version"""
     try:
+        # Ensure DB schema/migrations
+        try:
+            run_db_migrations()
+        except Exception as _e:
+            log(f"DB migration warning: {_e}")
+
         log("Starting TI-Monitoring cron job (TimescaleDB only)")
         
 

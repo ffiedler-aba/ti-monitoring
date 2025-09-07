@@ -213,6 +213,61 @@ def init_otp_database_schema():
             CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token ON notification_profiles(unsubscribe_token);
         """)
 
+def run_db_migrations():
+    """Run idempotent DB migrations for production upgrades.
+
+    - Ensure columns and indexes on notification_profiles
+    - Ensure users/otp_codes tables and indexes exist
+    """
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # Ensure new columns on notification_profiles
+        cur.execute("""
+            ALTER TABLE IF EXISTS notification_profiles
+              ADD COLUMN IF NOT EXISTS apprise_urls_hash TEXT[],
+              ADD COLUMN IF NOT EXISTS apprise_urls_salt TEXT[],
+              ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT FALSE,
+              ADD COLUMN IF NOT EXISTS email_address TEXT,
+              ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT UNIQUE
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token
+              ON notification_profiles(unsubscribe_token)
+        """)
+
+        # Ensure users table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                email_hash TEXT NOT NULL,
+                email_salt TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_login TIMESTAMPTZ,
+                failed_login_attempts INTEGER DEFAULT 0,
+                locked_until TIMESTAMPTZ
+            )
+        """)
+        # Ensure otp_codes table and indexes
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                otp_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                expires_at TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                used BOOLEAN DEFAULT FALSE,
+                ip_address TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_user_id ON otp_codes(user_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at)
+        """)
+        conn.commit()
+
 def get_timescaledb_ci_data() -> pd.DataFrame:
     """Lädt CI-Daten aus TimescaleDB für Statistiken."""
     with get_db_conn() as conn:
