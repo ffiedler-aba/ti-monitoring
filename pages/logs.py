@@ -18,17 +18,17 @@ _logs_config_cache_max_size = 10  # Limit cache size
 def load_config():
     """Load configuration from YAML file with caching"""
     global _logs_config_cache, _logs_config_cache_timestamp
-    
+
     current_time = time.time()
-    if (not _logs_config_cache or 
+    if (not _logs_config_cache or
         current_time - _logs_config_cache_timestamp > _logs_config_cache_ttl):
-        
+
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 _logs_config_cache = yaml.safe_load(f) or {}
             _logs_config_cache_timestamp = current_time
-            
+
             # Limit cache size
             if len(_logs_config_cache) > _logs_config_cache_max_size:
                 # Keep only the most recent entries
@@ -37,7 +37,7 @@ def load_config():
         except (FileNotFoundError, Exception):
             _logs_config_cache = {}
             _logs_config_cache_timestamp = current_time
-    
+
     return _logs_config_cache
 
 def load_core_config():
@@ -52,7 +52,7 @@ def get_log_file_path():
 def get_log_file_info():
     """Get information about the log file"""
     log_file_path = get_log_file_path()
-    
+
     if not os.path.exists(log_file_path):
         return {
             'exists': False,
@@ -60,18 +60,18 @@ def get_log_file_info():
             'modified': None,
             'lines': 0
         }
-    
+
     try:
         stat = os.stat(log_file_path)
         size = stat.st_size
-        
+
         # Count lines
         with open(log_file_path, 'r', encoding='utf-8') as f:
             lines = sum(1 for _ in f)
-        
+
         # Get modification time in Europe/Berlin timezone
         modified_timestamp = datetime.fromtimestamp(stat.st_mtime, tz=pytz.timezone('Europe/Berlin'))
-        
+
         return {
             'exists': True,
             'size': size,
@@ -90,20 +90,20 @@ def get_log_file_info():
 def read_log_tail(lines=100):
     """Read the last N lines from the log file and reverse them (newest first)"""
     log_file_path = get_log_file_path()
-    
+
     if not os.path.exists(log_file_path):
         return "Log-Datei nicht gefunden: data/cron.log"
-    
+
     try:
         with open(log_file_path, 'r', encoding='utf-8') as f:
             all_lines = f.readlines()
-        
+
         # Get last N lines
         tail_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
-        
+
         # Reverse the order so newest lines appear first
         tail_lines.reverse()
-        
+
         return ''.join(tail_lines)
     except Exception as e:
         return f"Fehler beim Lesen der Log-Datei: {e}"
@@ -112,13 +112,13 @@ def format_file_size(size_bytes):
     """Format file size in human readable format"""
     if size_bytes == 0:
         return "0 B"
-    
+
     size_names = ["B", "KB", "MB", "GB"]
     i = 0
     while size_bytes >= 1024 and i < len(size_names) - 1:
         size_bytes /= 1024.0
         i += 1
-    
+
     return f"{size_bytes:.1f} {size_names[i]}"
 
 dash.register_page(__name__, path='/logs')
@@ -139,7 +139,7 @@ def create_log_info_display(log_info):
                 ])
             ])
         ])
-    
+
     return html.Div([
         html.H4('📄 Log-Datei Status'),
         html.Div(className='log-info', children=[
@@ -169,19 +169,19 @@ def create_log_info_display(log_info):
 def serve_layout():
     # Load core configurations
     core_config = load_core_config()
-    
+
     # Get log file information
     log_info = get_log_file_info()
-    
+
     # Get initial log content
     log_content = read_log_tail(100)
-    
+
     layout = html.Div([
         html.P('Hier können Sie die Log-Datei des Cron-Jobs einsehen. Die Logs werden automatisch täglich rotiert und 7 Tage lang aufbewahrt.'),
-        
+
         # Log file information
         create_log_info_display(log_info),
-        
+
         # Controls
         html.Div(className='log-controls', children=[
             html.H4('🔧 Steuerung'),
@@ -205,7 +205,7 @@ def serve_layout():
                 html.Button('📄 Vollständige Logs', id='full-logs-btn', n_clicks=0, className='btn btn-secondary')
             ])
         ]),
-        
+
         # Log content
         html.Div(className='log-content', children=[
             html.H4('📋 Log-Inhalt'),
@@ -228,7 +228,7 @@ def serve_layout():
                 ]
             )
         ]),
-        
+
         # Auto-refresh interval
         dcc.Interval(
             id='log-refresh-interval',
@@ -236,7 +236,7 @@ def serve_layout():
             n_intervals=0
         )
     ])
-    
+
     return layout
 
 @callback(
@@ -250,12 +250,12 @@ def serve_layout():
 def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_lines):
     """Update log content based on user actions"""
     ctx = dash.callback_context
-    
+
     if not ctx.triggered:
         return dash.no_update, dash.no_update
-    
+
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    
+
     # Determine number of lines to show
     if trigger_id == 'full-logs-btn':
         lines = 0  # Show all lines
@@ -263,10 +263,10 @@ def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_li
         lines = selected_lines or 100
     else:
         lines = selected_lines or 100
-    
+
     # Read log content
     log_content = read_log_tail(lines)
-    
+
     # Create display
     display = html.Pre(
         log_content,
@@ -281,7 +281,7 @@ def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_li
             'overflow-y': 'auto'
         }
     )
-    
+
     return display, lines
 
 layout = serve_layout

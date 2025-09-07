@@ -18,17 +18,17 @@ _home_config_cache_max_size = 10  # Limit cache size
 def load_config():
     """Load configuration from YAML file with caching"""
     global _home_config_cache, _home_config_cache_timestamp
-    
+
     current_time = time.time()
-    if (not _home_config_cache or 
+    if (not _home_config_cache or
         current_time - _home_config_cache_timestamp > _home_config_cache_ttl):
-        
+
         config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 _home_config_cache = yaml.safe_load(f) or {}
             _home_config_cache_timestamp = current_time
-            
+
             # Limit cache size
             if len(_home_config_cache) > _home_config_cache_max_size:
                 # Keep only the most recent entries
@@ -37,7 +37,7 @@ def load_config():
         except (FileNotFoundError, Exception):
             _home_config_cache = {}
             _home_config_cache_timestamp = current_time
-    
+
     return _home_config_cache
 
 def load_core_config():
@@ -48,9 +48,9 @@ def load_core_config():
 
 
 
-    
 
-        
+
+
 
 
 dash.register_page(__name__, path='/')
@@ -61,24 +61,24 @@ def create_incidents_table(incidents_data, show_all=False):
     """Erstellt eine erweiterbare Tabelle mit den letzten Incidents"""
     if not incidents_data:
         return html.P("Keine Incidents verfügbar.")
-    
+
     # Show all incidents in a scrollable table
     display_incidents = incidents_data
-    
+
     # Create table rows
     table_rows = []
     for incident in display_incidents:
         # Determine status styling
         status_class = 'incident-ongoing' if incident['status'] == 'ongoing' else 'incident-resolved'
         status_text = 'Noch gestört' if incident['status'] == 'ongoing' else 'Wieder aktiv'
-        
+
         # Format duration
         duration_hours = incident['duration_minutes'] / 60.0
         if duration_hours < 1:
             duration_text = f"{incident['duration_minutes']:.0f} Min"
         else:
             duration_text = f"{duration_hours:.1f} Std"
-        
+
         # Format timestamps
         start_time = pd.to_datetime(incident['incident_start']).tz_convert('Europe/Berlin').strftime('%d.%m.%Y %H:%M')
         end_time = ''
@@ -86,7 +86,7 @@ def create_incidents_table(incidents_data, show_all=False):
             end_time = pd.to_datetime(incident['incident_end']).tz_convert('Europe/Berlin').strftime('%d.%m.%Y %H:%M')
         else:
             end_time = 'Laufend'
-        
+
         table_rows.append(html.Tr([
             html.Td([
                 html.A(incident['ci'], href=f'/plot?ci={incident["ci"]}', className='ci-link'),
@@ -105,9 +105,9 @@ def create_incidents_table(incidents_data, show_all=False):
                 html.Span(status_text, className=f'status-badge {status_class}')
             ])
         ]))
-    
+
     # No expand button needed - table is scrollable
-    
+
     return html.Div([
         html.Table([
             html.Thead([
@@ -138,12 +138,12 @@ def create_accordion_element(group_name, group_data):
                 html.P('Keine Daten verfügbar für diese Gruppe.')
             ])
         ])
-    
+
     # Calculate availability statistics
     current_availability_sum = group_data['current_availability'].sum()
     total_count = len(group_data)
     available_count = (group_data['current_availability'] == 1).sum()
-    
+
     # Determine availability status
     if current_availability_sum == total_count:
         availability_class = 'available'
@@ -151,7 +151,7 @@ def create_accordion_element(group_name, group_data):
         availability_class = 'unavailable'
     else:
         availability_class = 'impaired'
-    
+
     return html.Div(className='accordion-element', children = [
         html.Div(
             className='accordion-element-title',
@@ -171,7 +171,7 @@ def create_accordion_element(group_name, group_data):
                 html.Li([
                     html.Span(
                         className='availability-icon ' + (
-                            'available' if row['current_availability'] == 1 
+                            'available' if row['current_availability'] == 1
                             else 'unavailable'
                         )
                     ),
@@ -189,11 +189,11 @@ def create_accordion_element(group_name, group_data):
 def serve_layout():
     # Load core configurations (now cached)
     core_config = load_core_config()
-    
+
     # TimescaleDB mode - no file_name needed
     config_file_name = None
     config_url = core_config.get('url')
-    
+
     # Load incidents data from statistics.json
     incidents_data = []
     try:
@@ -205,14 +205,14 @@ def serve_layout():
     except Exception as e:
         print(f"Error loading incidents data: {e}")
         incidents_data = []
-    
+
     # Try to get data from TimescaleDB
     try:
         cis = get_data_of_all_cis_from_timescaledb()
     except Exception as e:
         print(f"Error reading data from TimescaleDB: {e}")
         cis = pd.DataFrame()  # Empty DataFrame
-    
+
     # Check if DataFrame is empty
     if cis.empty:
         # Try to load data from API if URL is available
@@ -224,7 +224,7 @@ def serve_layout():
                 print("API updates are handled by the cron job in TimescaleDB mode")
             except Exception as e:
                 print(f"Error loading data from API: {e}")
-        
+
         # If still empty, show message
         if cis.empty:
             layout = html.Div([
@@ -234,7 +234,7 @@ def serve_layout():
                 html.P('Datenbank: TimescaleDB')
             ])
             return layout
-    
+
     # Check if 'product' column exists
     if 'product' not in cis.columns:
         layout = html.Div([
@@ -243,7 +243,7 @@ def serve_layout():
             html.P(f'Anzahl Datensätze: {len(cis)}')
         ])
         return layout
-    
+
     # Optimize DataFrame operations
     try:
         grouped = cis.groupby('product')
@@ -254,30 +254,30 @@ def serve_layout():
             html.P(f'Verfügbare Spalten: {", ".join(cis.columns.tolist()) if not cis.empty else "Keine"}')
         ])
         return layout
-    
 
-    
+
+
     # Create accordion elements efficiently
     accordion_elements = []
     for group_name, group_data in grouped:
         accordion_elements.append(create_accordion_element(group_name, group_data))
-    
+
     # Force garbage collection after processing large DataFrames
     gc.collect()
-    
+
     # Clean up large DataFrames immediately after use
     if 'cis' in locals():
         del cis
     if 'grouped' in locals():
         del grouped
     gc.collect()
-    
+
     # Create incidents table (show first 5 by default)
     incidents_table = create_incidents_table(incidents_data, show_all=False)
-    
+
     layout = html.Div([
         html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
-        
+
         # Incidents section
         html.Div([
             html.H3("Letzte Incidents", className='incidents-title'),
@@ -286,14 +286,14 @@ def serve_layout():
                 html.Div(id='incidents-table-container', children=incidents_table)
             ], className='incidents-container')
         ], className='incidents-section'),
-        
+
         # CI Groups section
         html.Div([
             html.H3("TI-Komponenten nach Produkten", className='groups-title'),
             html.Div(className='accordion', children=accordion_elements)
         ], className='groups-section')
     ])
-    
+
     return layout
 
 layout = serve_layout

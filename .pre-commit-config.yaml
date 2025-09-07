@@ -1,0 +1,22 @@
+repos:
+  - repo: local
+    hooks:
+      - id: validate-callbacks
+        name: Validate Dash Callbacks
+        entry: .venv/bin/python scripts/validate_callbacks.py
+        language: system
+        files: ^pages/.*\.py$
+        pass_filenames: false
+        always_run: true
+  
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^pages/.*\.py$
+      - id: end-of-file-fixer
+        files: ^pages/.*\.py$
+      - id: check-yaml
+        files: \.(yaml|yml)$
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
