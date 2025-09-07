@@ -91,7 +91,6 @@ cd ti-monitoring
 # Konfigurationsdateien einrichten
 mkdir data
 cp .env.example .env
-cp notifications.json.example notifications.json
 cp config.yaml.example config.yaml
 
 # Datenbank-Schema für OTP-System initialisieren
@@ -122,7 +121,8 @@ Die Anwendung kann über folgende Konfigurationsdateien konfiguriert werden:
 
 1. **config.yaml** - Hauptkonfigurationsdatei (API-URL, Datenbank, Intervals, etc.)
 2. **.env** - Umgebungsvariablen für sensible Daten (Passwörter, SSL-Konfiguration)
-3. **notifications.json** - Benachrichtigungsprofile (veraltet, wird durch das neue Multi-User-System ersetzt)
+
+Hinweis: Das frühere Datei-basierte System `notifications.json` ist vollständig abgelöst. Benachrichtigungsprofile werden jetzt über die Web-Oberfläche im Multi-User-OTP-System verwaltet und in der Datenbank gespeichert.
 
 Alle Konfigurationsdateien basieren auf den entsprechenden `.example` Dateien, die Sie kopieren und anpassen müssen.
 

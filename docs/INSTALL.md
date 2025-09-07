@@ -75,39 +75,15 @@ core:
   # Time frame for statistics in web app (Standardwert für Plots)
   stats_delta_hours: 12
   
-  # Configuration file for notifications
-  notifications_config_file: "notifications.json"
-  
   # Enable/disable notifications globally
   notifications_enabled: false
 ```
 
 **Hinweis:** Der Wert `stats_delta_hours` dient als Standardwert für die Plot-Darstellung. Benutzer können den Zeitraum für jeden Plot individuell über ein Dropdown-Menü anpassen (1 Stunde bis 1 Woche). Der gewählte Zeitraum wird in der URL gespeichert.
 
-#### notifications.json konfigurieren (Optional)
+#### Hinweise zur Konfiguration der Benachrichtigungen
 
-```bash
-cp notifications.json.example notifications.json
-```
-
-Bearbeiten Sie die `notifications.json` Datei und passen Sie Ihre Benachrichtigungsprofile an:
-```json
-[
-  {
-    "name": "Team Complete",
-    "type": "whitelist",
-    "ci_list": [
-      "CI001",
-      "CI002",
-      "CI003"
-    ],
-    "apprise_urls": [
-      "mailto://user:pass@gmail.com",
-      "tgram://bottoken/ChatID"
-    ]
-  }
-]
-```
+Das frühere Datei-basierte System `notifications.json` wurde durch das neue Multi-User-OTP-System ersetzt. Benachrichtigungsprofile werden über die Web-Oberfläche angelegt und in der Datenbank gespeichert. Eine separate JSON-Datei ist nicht mehr erforderlich.
 
 **Beispiele für Anpassungen:**
 ```yaml
