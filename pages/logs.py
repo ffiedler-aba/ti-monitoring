@@ -108,6 +108,54 @@ def read_log_tail(lines=100):
     except Exception as e:
         return f"Fehler beim Lesen der Log-Datei: {e}"
 
+def get_app_status():
+    """Return status dict for the web app itself (this page is served → running)."""
+    return { 'label': 'App', 'status': 'OK', 'detail': 'Web-App läuft', 'color': 'green' }
+
+def get_cron_status():
+    """Determine cron status from log freshness."""
+    info = get_log_file_info()
+    if not info['exists']:
+        return { 'label': 'Cron', 'status': 'Fehlt', 'detail': 'Keine Log-Datei gefunden', 'color': 'red' }
+    try:
+        now = datetime.now(pytz.timezone('Europe/Berlin'))
+        age_sec = (now - info['modified']).total_seconds() if info['modified'] else 1e9
+        if age_sec < 600:  # < 10 Minuten
+            return { 'label': 'Cron', 'status': 'OK', 'detail': 'Letzte Aktivität < 10 min', 'color': 'green' }
+        elif age_sec < 3600:
+            return { 'label': 'Cron', 'status': 'Alt', 'detail': 'Letzte Aktivität < 60 min', 'color': 'orange' }
+        else:
+            return { 'label': 'Cron', 'status': 'Stale', 'detail': 'Letzte Aktivität > 60 min', 'color': 'red' }
+    except Exception as e:
+        return { 'label': 'Cron', 'status': 'Fehler', 'detail': str(e), 'color': 'red' }
+
+def get_db_status():
+    """Ping DB using get_db_conn()."""
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute('SELECT 1')
+            _ = cur.fetchone()
+        return { 'label': 'Datenbank', 'status': 'OK', 'detail': 'Verbindung erfolgreich', 'color': 'green' }
+    except Exception as e:
+        return { 'label': 'Datenbank', 'status': 'Fehler', 'detail': str(e), 'color': 'red' }
+
+def render_status_badge(item):
+    return html.Div(
+        style={
+            'border': f"1px solid {'#2ecc71' if item['color']=='green' else ('#f39c12' if item['color']=='orange' else '#e74c3c')}",
+            'borderRadius': '8px',
+            'padding': '8px 12px',
+            'minWidth': '220px'
+        },
+        children=[
+            html.Div([
+                html.Strong(item['label']),
+                html.Span(f" – {item['status']}", style={'color': item['color'], 'marginLeft': '6px'})
+            ]),
+            html.Div(item['detail'], style={'fontSize': '0.85em', 'color': '#7f8c8d'})
+        ]
+    )
+
 def format_file_size(size_bytes):
     """Format file size in human readable format"""
     if size_bytes == 0:
@@ -178,6 +226,19 @@ def serve_layout():
 
     layout = html.Div([
         html.P('Hier können Sie die Log-Datei des Cron-Jobs einsehen. Die Logs werden automatisch täglich rotiert und 7 Tage lang aufbewahrt.'),
+
+        # Status-Kacheln
+        html.Div([
+            html.H4('🩺 Systemstatus'),
+            html.Div(
+                style={'display': 'flex', 'gap': '12px', 'flexWrap': 'wrap'},
+                children=[
+                    render_status_badge(get_app_status()),
+                    render_status_badge(get_cron_status()),
+                    render_status_badge(get_db_status()),
+                ]
+            )
+        ], style={'marginBottom': '16px'}),
 
         # Log file information
         create_log_info_display(log_info),
