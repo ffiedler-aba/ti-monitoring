@@ -1263,7 +1263,20 @@ def load_env_file():
     Returns:
         bool: True if .env file was loaded, False otherwise
     """
-    return load_dotenv()
+    # Try default lookup first (current working dir or parents)
+    loaded = load_dotenv()
+    if loaded:
+        return True
+    # Try explicit common paths used in containers
+    for path in (os.path.join(os.getcwd(), '.env'), '/app/.env'): 
+        try:
+            if os.path.exists(path) and load_dotenv(dotenv_path=path, override=False):
+                print(f"Loaded .env from {path}")
+                return True
+        except Exception:
+            continue
+    print("Warning: .env not found; expecting POSTGRES_* vars in environment")
+    return False
 
 def validate_password(provided_password):
     """

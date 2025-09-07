@@ -485,6 +485,13 @@ def main():
             run_db_migrations()
         except Exception as _e:
             log(f"DB migration warning: {_e}")
+        # Ensure .env is loaded for DB credentials
+        try:
+            loaded = load_env_file()
+            if not loaded:
+                log("Warning: .env not loaded; using process environment for POSTGRES_* vars")
+        except Exception as _e:
+            log(f".env load warning: {_e}")
 
         log("Starting TI-Monitoring cron job (TimescaleDB only)")
         
