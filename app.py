@@ -154,13 +154,44 @@ def serve_layout():
                 # Hamburger-Menü (rechts)
                 html.Div(children=[
                     html.Details(children=[
-                        html.Summary(html.I(className='material-icons', children='menu'), style={'listStyle': 'none', 'cursor': 'pointer'}),
+                        html.Summary(
+                            html.I(className='material-icons', children='menu'),
+                            style={'listStyle': 'none', 'cursor': 'pointer', 'padding': '6px 8px', 'borderRadius': '8px', 'border': '1px solid #e0e0e0'}
+                        ),
                         html.Div(children=[
-                            html.A([html.I(className='material-icons', children='home'),  html.Span(' Start', style={'marginLeft': '6px'})], href='/', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
-                            html.A([html.I(className='material-icons', children='analytics'), html.Span(' Statistiken', style={'marginLeft': '6px'})], href='/stats', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
-                            html.A([html.I(className='material-icons', children='notifications'), html.Span(' Benachrichtigungen', style={'marginLeft': '6px'})], href='/notifications', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
-                            html.A([html.I(className='material-icons', children='description'), html.Span(' Logs', style={'marginLeft': '6px'})], href='/logs', className='nav-icon', style={'display': 'block', 'padding': '6px 0'})
-                        ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': 'white', 'border': '1px solid #e0e0e0', 'borderRadius': '8px', 'padding': '8px 12px', 'boxShadow': '0 2px 12px rgba(0,0,0,0.08)'}),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='home'), style={'marginRight': '10px'}),
+                                    html.Span('Start')
+                                ],
+                                href='/',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='analytics'), style={'marginRight': '10px'}),
+                                    html.Span('Statistiken')
+                                ],
+                                href='/stats',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='notifications'), style={'marginRight': '10px'}),
+                                    html.Span('Benachrichtigungen')
+                                ],
+                                href='/notifications',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='description'), style={'marginRight': '10px'}),
+                                    html.Span('Logs')
+                                ],
+                                href='/logs',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            )
+                        ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': '#ffffff', 'border': '1px solid #e0e0e0', 'borderRadius': '10px', 'padding': '8px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.12)', 'minWidth': '220px', 'display': 'grid', 'rowGap': '4px'})
                     ], style={'position': 'relative'})
                 ], style={'marginLeft': 'auto'})
             ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px', 'padding': '8px 12px'}),
