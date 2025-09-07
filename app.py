@@ -9,7 +9,7 @@ from flask import jsonify, request
 import psutil
 import gc
 
-app = Dash(__name__, use_pages=True, title='TI-Monitoring')
+app = Dash(__name__, use_pages=True, title='TI-Monitoring', suppress_callback_exceptions=True)
 server = app.server
 
 # Add local CSS for Material Icons
