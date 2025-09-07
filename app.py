@@ -143,20 +143,27 @@ def serve_layout():
         # Create layout
         _layout_cache = html.Div([
             html.Header(children = [
-                html.Div(id='logo-wrapper', children = [
-                    html.A(href=app_home_url, children = [
-                        html.Img(id='logo', src=logo_path, alt=logo_alt, height=logo_height, width=logo_width)
-                    ])
-                ]),
-                html.H1(children=header_title),
-                # Add navigation links with Material icons
-                html.Nav(children=[
-                    html.A(html.I(className='material-icons', children='home'), href='/', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='analytics'), href='/stats', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='notifications'), href='/notifications', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='description'), href='/logs', className='nav-icon')
-                ], className='navigation')
-            ]),
+                html.Div(children=[
+                    html.Div(id='logo-wrapper', children = [
+                        html.A(href=app_home_url, children = [
+                            html.Img(id='logo', src=logo_path, alt=logo_alt, height=logo_height, width=logo_width)
+                        ])
+                    ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+                    html.H1(children=header_title, style={'margin': '0', 'fontSize': '1.6rem'})
+                ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px'}),
+                # Hamburger-Menü (rechts)
+                html.Div(children=[
+                    html.Details(children=[
+                        html.Summary(html.I(className='material-icons', children='menu'), style={'listStyle': 'none', 'cursor': 'pointer'}),
+                        html.Div(children=[
+                            html.A([html.I(className='material-icons', children='home'),  html.Span(' Start', style={'marginLeft': '6px'})], href='/', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
+                            html.A([html.I(className='material-icons', children='analytics'), html.Span(' Statistiken', style={'marginLeft': '6px'})], href='/stats', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
+                            html.A([html.I(className='material-icons', children='notifications'), html.Span(' Benachrichtigungen', style={'marginLeft': '6px'})], href='/notifications', className='nav-icon', style={'display': 'block', 'padding': '6px 0'}),
+                            html.A([html.I(className='material-icons', children='description'), html.Span(' Logs', style={'marginLeft': '6px'})], href='/logs', className='nav-icon', style={'display': 'block', 'padding': '6px 0'})
+                        ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': 'white', 'border': '1px solid #e0e0e0', 'borderRadius': '8px', 'padding': '8px 12px', 'boxShadow': '0 2px 12px rgba(0,0,0,0.08)'}),
+                    ], style={'position': 'relative'})
+                ], style={'marginLeft': 'auto'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px', 'padding': '8px 12px'}),
             html.Main(children = [
                 html.Div(id='page-container', children=[
                     dcc.Loading(
