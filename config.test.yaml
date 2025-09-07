@@ -1,0 +1,19 @@
+# Core configuration (Test)
+core:
+  url: "https://example.com"
+  stats_delta_hours: 12
+  notifications_config_file: "notifications.json"
+  otp_apprise_url_template: "mailto://test@example.com/{email}"
+  unsubscribe_base_url: "http://localhost:18050/unsubscribe"
+
+  notifications_enabled: false
+
+  timescaledb:
+    enabled: true
+    host: "db"
+    port: 5432
+    dbname: "ti_monitoring_test_restore"
+    user: "timonitor"
+    password: "timonitor"
+
+

@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import numpy as np
 import pytz
+import apprise
 # h5py removed - using TimescaleDB only
 
 # Enhanced logging setup with file logging and daily rotation
@@ -479,6 +480,12 @@ def update_statistics_file():
 def main():
     """Main cron job function - TimescaleDB only version"""
     try:
+        # Ensure DB schema/migrations
+        try:
+            run_db_migrations()
+        except Exception as _e:
+            log(f"DB migration warning: {_e}")
+
         log("Starting TI-Monitoring cron job (TimescaleDB only)")
         
 
@@ -545,19 +552,15 @@ def main():
                 # Send notifications every 5 minutes
                 if now_epoch - last_notification_time > 300:  # Every 5 minutes
                     try:
-                        config_notifications_file = os.path.join(os.path.dirname(__file__), 'notifications.json')
-                        if os.path.exists(config_notifications_file):
-                            with open(config_notifications_file, 'r', encoding='utf-8') as f:
-                                notifications_config = json.load(f)
-                            
-                            if notifications_config and len(notifications_config) > 0:
-                                log("Sending notifications...")
-                                send_apprise_notifications('', config_notifications_file, None)  # home_url entfällt
-                                log("Notifications sent successfully")
-                            else:
-                                log("No notifications configured")
+                        # Send notifications using the new multi-user system only
+                        log("Sending notifications using multi-user system...")
+                        profiles_processed = send_db_notifications()
+                        
+                        if profiles_processed > 0:
+                            log(f"Notifications sent successfully to {profiles_processed} user profiles")
                         else:
-                            log("No notifications file found")
+                            log("No notification profiles configured or no relevant changes found")
+                            
                         last_notification_time = now_epoch
                     except Exception as e:
                         log(f"ERROR in notifications: {e}")

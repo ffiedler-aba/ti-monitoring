@@ -55,6 +55,13 @@ core:
     # Retention (Tage) für TimescaleDB (drop_chunks Policy)
     keep_days: 185
   
+  # OTP Apprise URL template for sending OTP codes
+  # Variables: {email} for user email, {otp} for the OTP code
+  otp_apprise_url_template: "mailtos://smtp.example.com?to={email}&subject=TI-Monitoring OTP&body=Your OTP code is: {otp}"
+  
+  # Base URL for unsubscribe links
+  unsubscribe_base_url: "https://ti-monitoring.example.com/unsubscribe"
+
   # Cron job intervals (in iterations, where each iteration = 5 minutes)
   cron_intervals:
     # Statistics update interval (default: every 2 iterations = 10 minutes)

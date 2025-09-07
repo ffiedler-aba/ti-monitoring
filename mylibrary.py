@@ -4,8 +4,15 @@ from psycopg2.extras import execute_values
 import h5py
 import pandas as pd
 import yaml
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
+import hashlib
+import secrets
+import hmac
+import json
+import apprise
+from dotenv import load_dotenv
+from cryptography.fernet import Fernet
 
 def load_config():
     """Load configuration from YAML file"""
@@ -144,6 +151,172 @@ def setup_timescaledb_retention(keep_days: int = 185) -> None:
         # add_retention_policy ist idempotent mit if_not_exists => TRUE
         sql = f"SELECT add_retention_policy('measurements', INTERVAL '{int(keep_days)} days', if_not_exists => TRUE);"
         cur.execute(sql)
+
+def init_otp_database_schema():
+    """Initialize database schema for multi-user OTP system"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # Create users table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                email_hash TEXT NOT NULL,
+                email_salt TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_login TIMESTAMPTZ,
+                failed_login_attempts INTEGER DEFAULT 0,
+                locked_until TIMESTAMPTZ
+            );
+        """)
+        
+        # Create otp_codes table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                otp_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                expires_at TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                used BOOLEAN DEFAULT FALSE,
+                ip_address TEXT
+            );
+        """)
+        
+        # Create notification_profiles table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notification_profiles (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL CHECK (type IN ('whitelist', 'blacklist')),
+                ci_list TEXT[] DEFAULT '{}',
+                apprise_urls TEXT[] DEFAULT '{}',
+                apprise_urls_hash TEXT[],
+                apprise_urls_salt TEXT[],
+                email_notifications BOOLEAN DEFAULT FALSE,
+                email_address TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                last_tested_at TIMESTAMPTZ,
+                test_result TEXT,
+                unsubscribe_token TEXT UNIQUE
+            );
+        """)
+        
+        # Create indexes for better performance
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_users_email_hash ON users(email_hash);
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_user_id ON otp_codes(user_id);
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at);
+            CREATE INDEX IF NOT EXISTS idx_notification_profiles_user_id ON notification_profiles(user_id);
+            CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token ON notification_profiles(unsubscribe_token);
+        """)
+
+def run_db_migrations():
+    """Run idempotent DB migrations for production upgrades.
+
+    - Ensure columns and indexes on notification_profiles
+    - Ensure users/otp_codes tables and indexes exist
+    """
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # 1) Ensure users table exists (first - referenced by others)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                email_hash TEXT NOT NULL,
+                email_salt TEXT NOT NULL,
+                email_encrypted TEXT,
+                email_enc_salt TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                last_login TIMESTAMPTZ,
+                failed_login_attempts INTEGER DEFAULT 0,
+                locked_until TIMESTAMPTZ
+            )
+        """)
+        # Add columns for encrypted email if missing
+        cur.execute("""
+            ALTER TABLE IF EXISTS users
+              ADD COLUMN IF NOT EXISTS email_encrypted TEXT,
+              ADD COLUMN IF NOT EXISTS email_enc_salt TEXT
+        """)
+
+        # 2) Ensure otp_codes table and indexes
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS otp_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                otp_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                expires_at TIMESTAMPTZ NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                used BOOLEAN DEFAULT FALSE,
+                ip_address TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_user_id ON otp_codes(user_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at)
+        """)
+
+        # 3) Ensure notification_profiles table exists (latest schema)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notification_profiles (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL CHECK (type IN ('whitelist', 'blacklist')),
+                ci_list TEXT[] DEFAULT '{}',
+                apprise_urls TEXT[] DEFAULT '{}',
+                apprise_urls_hash TEXT[],
+                apprise_urls_salt TEXT[],
+                email_notifications BOOLEAN DEFAULT FALSE,
+                email_address TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                last_tested_at TIMESTAMPTZ,
+                test_result TEXT,
+                unsubscribe_token TEXT UNIQUE
+            )
+        """)
+        # Ensure new columns on notification_profiles
+        cur.execute("""
+            ALTER TABLE IF EXISTS notification_profiles
+              ADD COLUMN IF NOT EXISTS apprise_urls_hash TEXT[],
+              ADD COLUMN IF NOT EXISTS apprise_urls_salt TEXT[],
+              ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT FALSE,
+              ADD COLUMN IF NOT EXISTS email_address TEXT,
+              ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT UNIQUE
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token
+              ON notification_profiles(unsubscribe_token)
+        """)
+
+        # Sanitize existing PII: replace plain emails with hashes where detectable
+        try:
+            cur.execute("""
+                UPDATE users
+                SET email = email_hash
+                WHERE email ~ '^[^@]+@[^@]+\.[^@]+$'
+            """)
+            # Null out any stored profile email addresses
+            cur.execute("""
+                ALTER TABLE IF EXISTS notification_profiles
+                  ALTER COLUMN email_address DROP NOT NULL
+            """)
+            cur.execute("""
+                UPDATE notification_profiles
+                SET email_address = NULL
+                WHERE email_address IS NOT NULL
+            """)
+        except Exception as _e:
+            # best-effort; continue
+            pass
+        conn.commit()
 
 def get_timescaledb_ci_data() -> pd.DataFrame:
     """Lädt CI-Daten aus TimescaleDB für Statistiken."""
@@ -468,7 +641,197 @@ import hmac
 
 # Note: HDF5 cache removed - now using TimescaleDB only
 
+def generate_salt():
+    """Generate a random salt for hashing"""
+    import random
+    import string
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(64))
 
+def hash_with_salt(data, salt):
+    """Hash data with salt using SHA-256"""
+    import random
+    import string
+    
+    if not data or not salt or data == "" or salt == "":
+        # Generate a fallback salt if none provided
+        if not salt:
+            salt = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(64))
+        if not data:
+            raise ValueError("Data cannot be empty")
+    return hashlib.sha256((str(data) + str(salt)).encode()).hexdigest()
+
+def generate_otp():
+    """Generate a 6-digit numeric OTP"""
+    import random
+    return str(random.randint(100000, 999999))
+
+def generate_encryption_key():
+    """Generate a encryption key for sensitive data"""
+    return Fernet.generate_key()
+
+def encrypt_data(data, key):
+    """Encrypt data using Fernet encryption"""
+    if not data:
+        return None, None
+    f = Fernet(key)
+    salt = generate_salt()
+    encrypted_data = f.encrypt((data + salt).encode())
+    return encrypted_data.decode(), salt
+
+def decrypt_data(encrypted_data, salt, key):
+    """Decrypt data using Fernet encryption"""
+    if not encrypted_data or not salt or not key:
+        return None
+    try:
+        f = Fernet(key)
+        decrypted_data = f.decrypt(encrypted_data.encode())
+        # Remove the salt from the end
+        original_data = decrypted_data.decode()[:-len(salt)]
+        return original_data
+    except Exception:
+        return None
+
+def create_user(email):
+    """Create a new user with hashed email"""
+    salt = generate_salt()
+    if not salt:
+        raise Exception("Failed to generate salt for user")
+    email_hash = hash_with_salt(email.lower(), salt)
+    # Encrypt email for reversible use in notifications
+    encryption_key = os.getenv('ENCRYPTION_KEY')
+    if encryption_key:
+        encryption_key = encryption_key.encode()
+    else:
+        encryption_key = generate_encryption_key()
+    email_encrypted, email_enc_salt = encrypt_data(email.lower(), encryption_key)
+    
+    with get_db_conn() as conn, conn.cursor() as cur:
+        try:
+            cur.execute("""
+                INSERT INTO users (email, email_hash, email_salt, email_encrypted, email_enc_salt)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (email_hash, email_hash, salt, email_encrypted, email_enc_salt))
+            user_id = cur.fetchone()[0]
+            return user_id
+        except psycopg2.IntegrityError:
+            # User already exists, get the existing user
+            cur.execute("""
+                SELECT id FROM users WHERE email_hash = %s AND email_salt = %s
+            """, (email_hash, salt))
+            result = cur.fetchone()
+            return result[0] if result else None
+
+def get_user_by_email(email):
+    """Get user by email"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # We need to check all users to find a match
+        cur.execute("""
+            SELECT id, email, email_hash, email_salt, failed_login_attempts, locked_until, email_encrypted, email_enc_salt
+            FROM users
+        """)
+        users = cur.fetchall()
+        
+        email_lower = email.lower()
+        for user in users:
+            user_id, user_email, email_hash, email_salt, failed_attempts, locked_until, email_encrypted, email_enc_salt = user
+            # Hash the provided email with the user's salt
+            provided_email_hash = hash_with_salt(email_lower, email_salt)
+            if hmac.compare_digest(email_hash, provided_email_hash):
+                return user
+                
+        return None
+
+def generate_otp_for_user(user_id, ip_address=None):
+    """Generate and store OTP for user"""
+    try:
+        otp = generate_otp()
+        salt = generate_salt()
+        
+        # Debug: Check if otp and salt are valid
+        print(f"Debug: otp={otp}, salt={salt}")
+        
+        if not otp or not salt:
+            raise Exception(f"OTP or salt generation failed: otp={otp}, salt={salt}")
+        
+        otp_hash = hash_with_salt(otp, salt)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO otp_codes (user_id, otp_hash, salt, expires_at, ip_address)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (user_id, otp_hash, salt, expires_at, ip_address))
+            result = cur.fetchone()
+            if result:
+                otp_id = result[0]
+                return otp, otp_id
+            else:
+                raise Exception("Failed to insert OTP into database")
+    except Exception as e:
+        print(f"Error in generate_otp_for_user: {e}")
+        return None, None
+
+def validate_otp(user_id, otp):
+    """Validate OTP for user"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # Get the most recent unused OTP for the user
+        cur.execute("""
+            SELECT id, otp_hash, salt, expires_at FROM otp_codes
+            WHERE user_id = %s AND used = FALSE AND expires_at > NOW()
+            ORDER BY created_at DESC LIMIT 1
+        """, (user_id,))
+        result = cur.fetchone()
+        
+        if not result:
+            return False
+            
+        otp_id, otp_hash, salt, expires_at = result
+        
+        # Hash the provided OTP with the stored salt
+        provided_otp_hash = hash_with_salt(otp, salt)
+        
+        # Check if hashes match
+        if hmac.compare_digest(otp_hash, provided_otp_hash):
+            # Mark OTP as used
+            cur.execute("""
+                UPDATE otp_codes SET used = TRUE WHERE id = %s
+            """, (otp_id,))
+            # Update user's last login
+            cur.execute("""
+                UPDATE users SET last_login = NOW(), failed_login_attempts = 0
+                WHERE id = %s
+            """, (user_id,))
+            return True
+        else:
+            # Increment failed login attempts
+            cur.execute("""
+                UPDATE users SET failed_login_attempts = failed_login_attempts + 1
+                WHERE id = %s
+            """, (user_id,))
+            return False
+
+def lock_user_account(user_id, lock_duration_minutes=30):
+    """Lock user account after too many failed attempts"""
+    lock_until = datetime.now(timezone.utc) + timedelta(minutes=lock_duration_minutes)
+    
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            UPDATE users SET locked_until = %s WHERE id = %s
+        """, (lock_until, user_id))
+
+def is_account_locked(user_id):
+    """Check if user account is locked"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT locked_until FROM users WHERE id = %s
+        """, (user_id,))
+        result = cur.fetchone()
+        if result and result[0]:
+            return result[0] > datetime.now(timezone.utc)
+        return False
 
 def update_file(file_name, url):
     """
@@ -847,6 +1210,9 @@ def load_apprise_config(notifications_config_file):
 
 def send_apprise_notifications(file_name, notifications_config_file, home_url):
     """
+    DEPRECATED: Legacy notification system - use send_db_notifications() instead.
+    This function does NOT include unsubscribe links and should not be used.
+    
     Sends notifications via Apprise for each notification configuration about all
     changes that are relevant for the respective configuration
 
@@ -858,6 +1224,8 @@ def send_apprise_notifications(file_name, notifications_config_file, home_url):
     Returns:
         None
     """
+    print("WARNING: send_apprise_notifications() is deprecated and does not include unsubscribe links!")
+    print("Use send_db_notifications() instead for the new multi-user system.")
     # Load and potentially convert configuration
     notification_config = load_apprise_config(notifications_config_file)
     
@@ -1018,4 +1386,309 @@ def validate_apprise_urls(urls):
         return True
     except Exception:
         return False
+
+def get_user_notification_profiles(user_id):
+    """Get all notification profiles for a user"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, name, type, ci_list, apprise_urls, email_notifications, email_address, created_at, updated_at
+            FROM notification_profiles
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+        return cur.fetchall()
+
+def get_notification_profile(profile_id, user_id):
+    """Get a specific notification profile for a user"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, name, type, ci_list, apprise_urls, email_notifications, email_address, created_at, updated_at
+            FROM notification_profiles
+            WHERE id = %s AND user_id = %s
+        """, (profile_id, user_id))
+        return cur.fetchone()
+
+def create_notification_profile(user_id, name, profile_type, ci_list, apprise_urls, email_notifications, email_address):
+    """Create a new notification profile for a user with encrypted Apprise URLs"""
+    unsubscribe_token = secrets.token_urlsafe(32)
+    
+    # Encrypt Apprise URLs
+    encrypted_urls = []
+    url_hashes = []
+    url_salts = []
+    
+    # Get encryption key from environment or generate one
+    encryption_key = os.getenv('ENCRYPTION_KEY')
+    if encryption_key:
+        encryption_key = encryption_key.encode()
+    else:
+        encryption_key = generate_encryption_key()
+    
+    for url in apprise_urls:
+        if url:
+            encrypted_url, salt = encrypt_data(url, encryption_key)
+            if encrypted_url:
+                encrypted_urls.append(encrypted_url)
+                url_salts.append(salt)
+                # Hash the URL for searching without decrypting
+                url_hash = hash_with_salt(url, salt)
+                url_hashes.append(url_hash)
+    
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO notification_profiles 
+            (user_id, name, type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, 
+             email_notifications, email_address, unsubscribe_token)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (user_id, name, profile_type, ci_list, encrypted_urls, url_hashes, url_salts, 
+              email_notifications, email_address, unsubscribe_token))
+        return cur.fetchone()[0]
+
+def update_notification_profile(profile_id, user_id, name, profile_type, ci_list, apprise_urls, email_notifications, email_address):
+    """Update an existing notification profile with encrypted Apprise URLs"""
+    # Encrypt Apprise URLs
+    encrypted_urls = []
+    url_hashes = []
+    url_salts = []
+    
+    # Get encryption key from environment or generate one
+    encryption_key = os.getenv('ENCRYPTION_KEY')
+    if encryption_key:
+        encryption_key = encryption_key.encode()
+    else:
+        encryption_key = generate_encryption_key()
+    
+    for url in apprise_urls:
+        if url:
+            encrypted_url, salt = encrypt_data(url, encryption_key)
+            if encrypted_url:
+                encrypted_urls.append(encrypted_url)
+                url_salts.append(salt)
+                # Hash the URL for searching without decrypting
+                url_hash = hash_with_salt(url, salt)
+                url_hashes.append(url_hash)
+    
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            UPDATE notification_profiles 
+            SET name = %s, type = %s, ci_list = %s, apprise_urls = %s, apprise_urls_hash = %s, apprise_urls_salt = %s,
+                email_notifications = %s, email_address = %s, updated_at = NOW()
+            WHERE id = %s AND user_id = %s
+        """, (name, profile_type, ci_list, encrypted_urls, url_hashes, url_salts, 
+              email_notifications, email_address, profile_id, user_id))
+        return cur.rowcount > 0
+
+def delete_notification_profile(profile_id, user_id):
+    """Delete a notification profile"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            DELETE FROM notification_profiles 
+            WHERE id = %s AND user_id = %s
+        """, (profile_id, user_id))
+        return cur.rowcount > 0
+
+def get_profile_by_unsubscribe_token(token):
+    """Get a notification profile by its unsubscribe token"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT id, user_id, name, email_notifications, email_address
+            FROM notification_profiles
+            WHERE unsubscribe_token = %s
+        """, (token,))
+        return cur.fetchone()
+
+def delete_profile_by_unsubscribe_token(token):
+    """Delete a notification profile by its unsubscribe token"""
+    with get_db_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            DELETE FROM notification_profiles 
+            WHERE unsubscribe_token = %s
+        """, (token,))
+        return cur.rowcount > 0
+
+def remove_apprise_url_by_token_and_hash(token: str, url_hash: str) -> bool:
+    """Remove a single apprise URL from a profile identified by unsubscribe token using stored url hash.
+
+    Returns True if an URL was removed and profile updated; False otherwise.
+    """
+    if not token or not url_hash:
+        return False
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # Load arrays
+        cur.execute(
+            """
+            SELECT id, apprise_urls, apprise_urls_hash, apprise_urls_salt
+            FROM notification_profiles
+            WHERE unsubscribe_token = %s
+            """,
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return False
+        profile_id, urls, hashes, salts = row
+        urls = list(urls or [])
+        hashes = list(hashes or [])
+        salts = list(salts or [])
+        if not hashes or len(hashes) != len(urls):
+            return False
+        # Find index by hash
+        try:
+            idx = hashes.index(url_hash)
+        except ValueError:
+            return False
+        # Remove the corresponding entries
+        del urls[idx]
+        del hashes[idx]
+        if salts and len(salts) > idx:
+            del salts[idx]
+        # Update DB
+        cur.execute(
+            """
+            UPDATE notification_profiles
+            SET apprise_urls = %s, apprise_urls_hash = %s, apprise_urls_salt = %s, updated_at = NOW()
+            WHERE id = %s
+            """,
+            (urls, hashes, salts, profile_id)
+        )
+        return cur.rowcount > 0
+
+def send_db_notifications():
+    """
+    Send notifications to all users using the new multi-user system.
+    Returns the number of profiles processed.
+    """
+    profiles_processed = 0
+    
+    try:
+        # Get all notification profiles from the database
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT np.id, np.user_id, np.name, np.type, np.ci_list,
+                       np.apprise_urls, np.apprise_urls_hash, np.apprise_urls_salt,
+                       np.email_notifications,
+                       u.email_encrypted, u.email_enc_salt
+                FROM notification_profiles np
+                JOIN users u ON np.user_id = u.id
+                WHERE (np.apprise_urls IS NOT NULL AND array_length(np.apprise_urls, 1) > 0) 
+                   OR np.email_notifications = TRUE
+            """)
+            profiles = cur.fetchall()
+            
+            if not profiles:
+                return 0
+                
+            # Get changes in CI status
+            ci_data = get_data_of_all_cis('')
+            changes = ci_data[ci_data['availability_difference'] != 0]
+            changes_sorted = changes.sort_values(by='availability_difference')
+            
+            if len(changes_sorted) == 0:
+                return len(profiles)
+            
+            # Process each profile
+            for profile in profiles:
+                try:
+                    profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, email_notifications, email_encrypted, email_enc_salt = profile
+                    
+                    # Filter relevant changes
+                    if profile_type == 'whitelist':
+                        relevant_changes = changes_sorted[changes_sorted['ci'].isin(ci_list)]
+                    elif profile_type == 'blacklist':
+                        relevant_changes = changes_sorted[~changes_sorted['ci'].isin(ci_list)]
+                    else:
+                        relevant_changes = changes_sorted
+                        
+                    number_of_relevant_changes = len(relevant_changes)
+                    
+                    if number_of_relevant_changes > 0:
+                        # Create notification message
+                        message = create_notification_message(relevant_changes, profile_name, '')
+                        subject = f'TI-Monitoring: {number_of_relevant_changes} Änderungen der Verfügbarkeit'
+                        
+                        # Prepare base unsubscribe token/link (profile-level)
+                        config = load_config()
+                        unsubscribe_base_url = config.get('core', {}).get('unsubscribe_base_url', '')
+                        
+                        if unsubscribe_base_url:
+                            # Get the unsubscribe token for this profile
+                            cur.execute("""
+                                SELECT unsubscribe_token FROM notification_profiles WHERE id = %s
+                            """, (profile_id,))
+                            token_result = cur.fetchone()
+                            if token_result:
+                                unsubscribe_token = token_result[0]
+                                profile_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}"
+                                # Hinweis: Profil-weites Opt-Out weiterhin anbieten
+                                message_with_profile_unsub = message + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
+                        
+                        # Versand-Strategie: E-Mail (einfach) ist exklusiv; sonst benutzerdefinierte Apprise-URLs
+                        if email_notifications:
+                            # Senden über otp_apprise_url_template (ohne OTP, mit Empfänger-E-Mail)
+                            try:
+                                cfg = load_config()
+                                otp_tpl = (cfg.get('core', {}) or {}).get('otp_apprise_url_template')
+                                # Empfänger aus verschlüsseltem Benutzerkonto entschlüsseln
+                                encryption_key = os.getenv('ENCRYPTION_KEY')
+                                if encryption_key:
+                                    encryption_key = encryption_key.encode()
+                                else:
+                                    encryption_key = generate_encryption_key()
+                                recipient = ''
+                                if email_encrypted and email_enc_salt:
+                                    decrypted = decrypt_data(email_encrypted, email_enc_salt, encryption_key)
+                                    if decrypted:
+                                        recipient = decrypted
+                                if otp_tpl:
+                                    # {otp} ggf. mit leerem String befüllen
+                                    try:
+                                        apprise_url = otp_tpl.format(email=recipient, otp='')
+                                    except Exception:
+                                        # Minimal: nur {email} ersetzen
+                                        apprise_url = otp_tpl.replace('{email}', recipient).replace('{otp}', '')
+                                    apobj = apprise.Apprise()
+                                    apobj.add(apprise_url)
+                                    # Fester Betreff für einfache E-Mail
+                                    simple_subject = 'TI-Monitor Statusänderung'
+                                    body = message_with_profile_unsub if unsubscribe_base_url else message
+                                    apobj.notify(title=simple_subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                else:
+                                    print('otp_apprise_url_template not configured; skipping simple email notification')
+                            except Exception as e:
+                                print(f'Error sending simple email via otp_apprise_url_template for profile {profile_id}: {e}')
+                        elif apprise_urls and len(apprise_urls) > 0:
+                            # Benutzerdefinierte Apprise-URLs verwenden
+                            apobj = apprise.Apprise()
+                            # Falls Hashes vorhanden sind, pro URL individuellen Opt-Out-Link beilegen
+                            if unsubscribe_base_url and apprise_urls_hash and len(apprise_urls_hash) == len(apprise_urls):
+                                for idx, url in enumerate(apprise_urls):
+                                    try:
+                                        url_hash = apprise_urls_hash[idx]
+                                        per_url_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}?u={url_hash}"
+                                        body = message + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
+                                        # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
+                                        body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
+                                        apobj = apprise.Apprise()
+                                        apobj.add(url)
+                                        apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                    except Exception as e:
+                                        print(f"Error sending per-URL notification for profile {profile_id}: {e}")
+                            else:
+                                # Fallback: eine Nachricht an alle URLs mit Profil-Opt-Out-Link
+                                for url in apprise_urls:
+                                    apobj = apprise.Apprise()
+                                    apobj.add(url)
+                                    body = message_with_profile_unsub if unsubscribe_base_url else message
+                                    apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                        
+                        profiles_processed += 1
+                        
+                except Exception as e:
+                    print(f'Error sending notification for profile {profile_id}: {e}')
+                    continue
+                    
+    except Exception as e:
+        print(f'Error in send_db_notifications: {e}')
         
+    return profiles_processed

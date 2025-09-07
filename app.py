@@ -5,11 +5,18 @@ import yaml
 import os
 import functools
 import time
-from flask import jsonify
+from flask import jsonify, request
 import psutil
 import gc
 
-app = Dash(__name__, use_pages=True, title='TI-Monitoring')
+# Run idempotent DB migrations on startup
+try:
+    run_db_migrations()
+except Exception as _e:
+    # Avoid blocking startup; errors will be visible in logs
+    print(f"DB migration warning: {_e}")
+
+app = Dash(__name__, use_pages=True, title='TI-Monitoring', suppress_callback_exceptions=True)
 server = app.server
 
 # Add local CSS for Material Icons
@@ -136,20 +143,58 @@ def serve_layout():
         # Create layout
         _layout_cache = html.Div([
             html.Header(children = [
-                html.Div(id='logo-wrapper', children = [
-                    html.A(href=app_home_url, children = [
-                        html.Img(id='logo', src=logo_path, alt=logo_alt, height=logo_height, width=logo_width)
-                    ])
-                ]),
-                html.H1(children=header_title),
-                # Add navigation links with Material icons
-                html.Nav(children=[
-                    html.A(html.I(className='material-icons', children='home'), href='/', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='analytics'), href='/stats', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='notifications'), href='/notifications', className='nav-icon'),
-                    html.A(html.I(className='material-icons', children='description'), href='/logs', className='nav-icon')
-                ], className='navigation')
-            ]),
+                html.Div(children=[
+                    html.Div(id='logo-wrapper', children = [
+                        html.A(href=app_home_url, children = [
+                            html.Img(id='logo', src=logo_path, alt=logo_alt, height=logo_height, width=logo_width)
+                        ])
+                    ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+                    html.H1(children=header_title, style={'margin': '0', 'fontSize': '1.6rem'})
+                ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px'}),
+                # Hamburger-Menü (rechts)
+                html.Div(children=[
+                    html.Details(children=[
+                        html.Summary(
+                            html.I(className='material-icons', children='menu'),
+                            style={'listStyle': 'none', 'cursor': 'pointer', 'padding': '6px 8px', 'borderRadius': '8px', 'border': '1px solid #e0e0e0'}
+                        ),
+                        html.Div(children=[
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='home'), style={'marginRight': '10px'}),
+                                    html.Span('Start')
+                                ],
+                                href='/',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='analytics'), style={'marginRight': '10px'}),
+                                    html.Span('Statistiken')
+                                ],
+                                href='/stats',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='notifications'), style={'marginRight': '10px'}),
+                                    html.Span('Benachrichtigungen')
+                                ],
+                                href='/notifications',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='description'), style={'marginRight': '10px'}),
+                                    html.Span('Logs')
+                                ],
+                                href='/logs',
+                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            )
+                        ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': '#ffffff', 'border': '1px solid #e0e0e0', 'borderRadius': '10px', 'padding': '8px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.12)', 'minWidth': '220px', 'display': 'grid', 'rowGap': '4px'})
+                    ], style={'position': 'relative'})
+                ], style={'marginLeft': 'auto'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px', 'padding': '8px 12px'}),
             html.Main(children = [
                 html.Div(id='page-container', children=[
                     dcc.Loading(
@@ -256,6 +301,227 @@ def health_check():
             "error": f"Health check failed: {str(e)}"
         }
         return jsonify(error_data), 503
+
+# Unsubscribe endpoint
+@server.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    """Unsubscribe endpoint.
+
+    - Ohne Query-Param entfernt der Endpoint das gesamte Profil (Bestand).
+    - Mit Query-Param u=<hash> wird nur die einzelne Apprise-URL am Hash gelöscht.
+    """
+    try:
+        # Query-Param für per-URL-Opt-Out
+        url_hash = request.args.get('u')
+        
+        # Get profile by token
+        profile = get_profile_by_unsubscribe_token(token)
+        if not profile:
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Ungültiger Link</title></head>
+            <body>
+                <h2>Ungültiger Link</h2>
+                <p>Der von Ihnen aufgerufene Link ist ungültig oder wurde bereits verwendet.</p>
+            </body>
+            </html>
+            ''', 404
+        
+        profile_id, user_id, name, email_notifications, email_address = profile
+
+        # Per-URL-Opt-Out
+        if url_hash:
+            if remove_apprise_url_by_token_and_hash(token, url_hash):
+                return f'''
+                <!DOCTYPE html>
+                <html>
+                <head><title>Kanal abgemeldet</title></head>
+                <body>
+                    <h2>Kanal abgemeldet</h2>
+                    <p>Die ausgewählte Benachrichtigungs‑URL wurde erfolgreich aus dem Profil "{name}" entfernt.</p>
+                    <p>Sie können die übrigen Kanäle in den <a href="/notifications">Benachrichtigungseinstellungen</a> verwalten.</p>
+                </body>
+                </html>
+                ''', 200
+            else:
+                return '''
+                <!DOCTYPE html>
+                <html>
+                <head><title>Nichts zu entfernen</title></head>
+                <body>
+                    <h2>Nichts zu entfernen</h2>
+                    <p>Die angegebene URL konnte nicht gefunden werden. Der Link ist möglicherweise abgelaufen oder bereits verwendet.</p>
+                </body>
+                </html>
+                ''', 404
+
+        # Profil-Opt-Out (Bestand)
+        if delete_profile_by_unsubscribe_token(token):
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Abmeldung erfolgreich</title></head>
+            <body>
+                <h2>Abmeldung erfolgreich</h2>
+                <p>Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.</p>
+                <p>Sie erhalten keine weiteren Benachrichtigungen von diesem Profil.</p>
+            </body>
+            </html>
+            ''', 200
+        else:
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Fehler bei der Abmeldung</title></head>
+            <body>
+                <h2>Fehler bei der Abmeldung</h2>
+                <p>Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.</p>
+            </body>
+            </html>
+            ''', 500
+            
+    except Exception as e:
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head><title>Fehler</title></head>
+        <body>
+            <h2>Fehler</h2>
+            <p>Ein Fehler ist aufgetreten: {str(e)}</p>
+        </body>
+        </html>
+        ''', 500
+
+# API endpoint for requesting OTP
+@server.route('/api/auth/otp/request', methods=['POST'])
+def request_otp():
+    """Request OTP for email"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({'error': 'E-Mail-Adresse ist erforderlich'}), 400
+        
+        # Validate email format
+        if '@' not in email or '.' not in email:
+            return jsonify({'error': 'Ungültige E-Mail-Adresse'}), 400
+        
+        # Check if user exists, create if not
+        user = get_user_by_email(email)
+        if user:
+            user_id = user[0]
+        else:
+            user_id = create_user(email)
+        
+        if not user_id:
+            return jsonify({'error': 'Fehler beim Erstellen des Benutzers'}), 500
+        
+        # Generate OTP
+        otp, otp_id = generate_otp_for_user(user_id, request.remote_addr)
+        
+        if not otp or not otp_id:
+            return jsonify({'error': 'Fehler beim Generieren des OTP-Codes'}), 500
+        
+        # Send OTP via Apprise (using the template from config)
+        config = load_config()
+        otp_template = config.get('core', {}).get('otp_apprise_url_template')
+        
+        if not otp_template:
+            return jsonify({'error': 'OTP-Template nicht konfiguriert'}), 500
+        
+        # Debug: Check values before formatting
+        print(f"Debug: email={email}, otp={otp}, template={otp_template}")
+        
+        # Ensure email and otp are strings
+        if not email or not otp:
+            return jsonify({'error': 'E-Mail oder OTP ist leer'}), 500
+        
+        try:
+            # Format the template with user email and OTP
+            apprise_url = otp_template.format(email=str(email), otp=str(otp))
+            
+            # Send OTP notification
+            apobj = apprise.Apprise()
+            apobj.add(apprise_url)
+            apobj.notify(
+                title='TI-Monitoring OTP-Code',
+                body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                body_format=apprise.NotifyFormat.TEXT
+            )
+        except Exception as e:
+            return jsonify({'error': f'Fehler beim Formatieren der Apprise-URL: {str(e)}'}), 500
+        
+        return jsonify({'message': 'OTP-Code wurde gesendet'}), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Fehler beim Senden des OTP-Codes: {str(e)}'}), 500
+
+# API endpoint for validating OTP
+@server.route('/api/auth/otp/validate', methods=['POST'])
+def validate_otp_api():
+    """Validate OTP code"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        otp_code = data.get('otp')
+        
+        if not email or not otp_code:
+            return jsonify({'error': 'E-Mail und OTP-Code sind erforderlich'}), 400
+        
+        # Get user by email
+        user = get_user_by_email(email)
+        if not user:
+            return jsonify({'error': 'Benutzer nicht gefunden'}), 404
+        
+        user_id = user[0]
+        
+        # Check if account is locked
+        if is_account_locked(user_id):
+            return jsonify({'error': 'Konto ist gesperrt. Bitte versuchen Sie es später erneut.'}), 423
+        
+        # Validate OTP
+        if validate_otp(user_id, otp_code):
+            # Authentication successful
+            return jsonify({
+                'message': 'Authentifizierung erfolgreich',
+                'user_id': user_id,
+                'email': email
+            }), 200
+        else:
+            # OTP validation failed
+            # Check if we should lock the account
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT failed_login_attempts FROM users WHERE id = %s
+                """, (user_id,))
+                failed_attempts = cur.fetchone()[0] if cur.fetchone() else 0
+                
+                if failed_attempts >= 5:
+                    lock_user_account(user_id)
+                    return jsonify({'error': 'Zu viele fehlgeschlagene Versuche. Konto ist jetzt gesperrt.'}), 423
+            
+            return jsonify({'error': 'Ungültiger OTP-Code'}), 401
+            
+    except Exception as e:
+        return jsonify({'error': f'Fehler bei der Verifizierung: {str(e)}'}), 500
+
+# API endpoint for logout
+@server.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """End user session"""
+    # In a session-based implementation, we would clear the session here
+    # For now, we just return a success message
+    return jsonify({'message': 'Erfolgreich abgemeldet'}), 200
+
+# API endpoint for listing user profiles
+@server.route('/api/profiles', methods=['GET'])
+def list_profiles():
+    """List user profiles"""
+    # In a real implementation, we would check authentication here
+    # For now, we'll just return an empty list
+    return jsonify([]), 200
 
 if __name__ == '__main__':
     app.run(debug=False)
