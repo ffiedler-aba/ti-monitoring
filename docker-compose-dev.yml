@@ -37,6 +37,7 @@ services:
     volumes:
       - ./config.yaml:/app/config.yaml
       - appdata:/app/data
+      - ./.env:/app/.env
     environment:
       - PYTHONPATH=/app
       - POSTGRES_HOST=${POSTGRES_HOST:-db}
@@ -44,8 +45,6 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - ./.env:/app/.env
     command: ["python", "-u", "cron.py"]
     restart: unless-stopped
     depends_on:
