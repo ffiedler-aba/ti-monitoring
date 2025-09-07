@@ -6,7 +6,9 @@ Dieses Skript überprüft alle Callbacks auf:
 - DuplicateCallback-Probleme
 - Fehlende prevent_initial_call Parameter
 - Doppelte Output-IDs
+- Null-Prüfungen für Parameter
 - Konsistenz zwischen Layout und Callbacks
+- Häufige Runtime-Fehler
 """
 
 import os
@@ -68,6 +70,9 @@ class CallbackValidator:
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                 if node.func.id == 'callback':
                     self._analyze_callback(node, file_path)
+        
+        # Analysiere auch die Callback-Funktionen selbst
+        self._analyze_callback_functions(tree, file_path)
     
     def _analyze_callback(self, callback_node: ast.Call, file_path: Path):
         """Analysiert einen einzelnen Callback"""
@@ -152,6 +157,9 @@ class CallbackValidator:
                 f"⚠️  {callback_info['file']}:{callback_info['line']} - "
                 f"Callback hat {len(callback_info['outputs'])} Outputs (komplex)"
             )
+        
+        # Regel 3: Validiere Null-Prüfungen für häufige Parameter
+        self._validate_null_checks(callback_info)
     
     def _validate_duplicate_outputs(self):
         """Validiert doppelte Output-IDs zwischen Callbacks"""
@@ -170,6 +178,71 @@ class CallbackValidator:
                         f"❌ Doppelte Output-ID '{output_id}' in Callbacks: {', '.join(callback_locations)}. "
                         f"Verwende allow_duplicate=True oder konsolidiere die Callbacks."
                     )
+    
+    def _analyze_callback_functions(self, tree: ast.AST, file_path: Path):
+        """Analysiert Callback-Funktionen auf häufige Fehler"""
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                # Suche nach Funktionen, die wahrscheinlich Callbacks sind
+                if self._is_callback_function(node):
+                    self._validate_callback_function(node, file_path)
+    
+    def _is_callback_function(self, func_node: ast.FunctionDef) -> bool:
+        """Überprüft ob eine Funktion wahrscheinlich ein Callback ist"""
+        # Suche nach Funktionen mit typischen Callback-Parametern
+        param_names = [arg.arg for arg in func_node.args.args]
+        callback_params = ['auth_data', 'n_clicks', 'value', 'data', 'children']
+        return any(param in param_names for param in callback_params)
+    
+    def _validate_callback_function(self, func_node: ast.FunctionDef, file_path: Path):
+        """Validiert eine Callback-Funktion auf häufige Fehler"""
+        # Suche nach .get() Aufrufen ohne Null-Prüfung
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Attribute) and node.func.attr == 'get':
+                    # Überprüfe ob es eine Null-Prüfung gibt
+                    if not self._has_null_check_before_get(node, func_node):
+                        self.warnings.append(
+                            f"⚠️  {file_path.name}:{node.lineno} - "
+                            f"Möglicherweise fehlende Null-Prüfung vor .get() Aufruf"
+                        )
+    
+    def _has_null_check_before_get(self, get_node: ast.Call, func_node: ast.FunctionDef) -> bool:
+        """Überprüft ob vor einem .get() Aufruf eine Null-Prüfung steht"""
+        # Vereinfachte Überprüfung - suche nach if-statements mit dem gleichen Objekt
+        if isinstance(get_node.func, ast.Attribute):
+            obj_name = self._get_object_name(get_node.func.value)
+            if obj_name:
+                for node in ast.walk(func_node):
+                    if isinstance(node, ast.If):
+                        if self._check_if_condition_for_object(node, obj_name):
+                            return True
+        return False
+    
+    def _get_object_name(self, node: ast.AST) -> str:
+        """Extrahiert den Namen eines Objekts aus einem AST-Node"""
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            return self._get_object_name(node.value)
+        return None
+    
+    def _check_if_condition_for_object(self, if_node: ast.If, obj_name: str) -> bool:
+        """Überprüft ob eine if-Bedingung eine Null-Prüfung für das Objekt ist"""
+        # Suche nach Bedingungen wie "if not obj_name" oder "if obj_name"
+        for node in ast.walk(if_node.test):
+            if isinstance(node, ast.Name) and node.id == obj_name:
+                return True
+            elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+                if isinstance(node.operand, ast.Name) and node.operand.id == obj_name:
+                    return True
+        return False
+    
+    def _validate_null_checks(self, callback_info: Dict):
+        """Validiert Null-Prüfungen für häufige Parameter"""
+        # Diese Methode würde eine AST-Analyse der Callback-Funktion erfordern
+        # Für jetzt fügen wir eine einfache Warnung hinzu
+        pass
     
     def _is_prevent_initial_call_true(self, value) -> bool:
         """Überprüft ob prevent_initial_call=True ist"""

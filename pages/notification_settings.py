@@ -601,6 +601,8 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
 
                 # Send OTP via Apprise (using the template from config)
                 config = load_config()
+                if not config:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update]
                 otp_template = config.get('core', {}).get('otp_apprise_url_template')
 
                 if otp_template:
@@ -673,7 +675,11 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                             ''  # Clear OTP input
                         ]
                     else:
-                        error_msg = response.json().get('error', 'Unbekannter Fehler')
+                        try:
+                            response_data = response.json()
+                            error_msg = response_data.get('error', 'Unbekannter Fehler') if response_data else 'Unbekannter Fehler'
+                        except:
+                            error_msg = 'Unbekannter Fehler'
                         return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
                                f'Fehler beim Senden des OTP-Codes: {error_msg}', no_update, no_update]
                 except Exception as e:
@@ -786,12 +792,15 @@ def load_available_cis(auth_data):
             # Convert to list of dictionaries with ci and name
             ci_list = []
             for _, row in cis_df.iterrows():
-                ci_info = {
-                    'ci': str(row.get('ci', '')),
-                    'name': str(row.get('name', '')),
-                    'organization': str(row.get('organization', '')),
-                    'product': str(row.get('product', ''))
-                }
+                if row is not None:
+                    ci_info = {
+                        'ci': str(row.get('ci', '')),
+                        'name': str(row.get('name', '')),
+                        'organization': str(row.get('organization', '')),
+                        'product': str(row.get('product', ''))
+                    }
+                else:
+                    continue
                 ci_list.append(ci_info)
             return ci_list
         else:
@@ -816,11 +825,18 @@ def render_ci_checkboxes(cis_data, editing_index, filter_text, auth_data):
         # Load existing profile data if editing
         selected_cis = []
         if editing_index is not None:
-            core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file', 'notifications.json')
-            config = get_notification_config(config_file)
-            if 0 <= editing_index < len(config):
-                selected_cis = config[editing_index].get('ci_list', [])
+            # editing_index is now the profile_id from the database
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ci_list FROM notification_profiles WHERE id = %s
+                """, (editing_index,))
+                result = cur.fetchone()
+                if result and result[0] is not None:
+                    selected_cis = result[0]
+                    print(f"DEBUG: render_ci_checkboxes - loaded selected_cis: {selected_cis}, type: {type(selected_cis)}")
+                else:
+                    selected_cis = []  # Ensure it's an empty list if None
+                    print(f"DEBUG: render_ci_checkboxes - no result or None, using empty list")
 
         # Filter CIs based on filter text
         filtered_cis = []
@@ -845,10 +861,13 @@ def render_ci_checkboxes(cis_data, editing_index, filter_text, auth_data):
         # Create checkboxes for each filtered CI
         checkbox_children = []
         for ci_info in filtered_cis:
-            ci_id = ci_info.get('ci', '')
-            ci_name = ci_info.get('name', '')
-            ci_org = ci_info.get('organization', '')
-            ci_product = ci_info.get('product', '')
+            if ci_info is not None:
+                ci_id = ci_info.get('ci', '')
+                ci_name = ci_info.get('name', '')
+                ci_org = ci_info.get('organization', '')
+                ci_product = ci_info.get('product', '')
+            else:
+                continue
 
             # Check if this CI is selected
             is_checked = ci_id in selected_cis
@@ -901,13 +920,17 @@ def reset_selected_cis(form_style, editing_index):
         # Form is closed, reset selection
         return []
     elif editing_index is not None:
-        # Form is opened for editing, load existing selection
+        # Form is opened for editing, load existing selection from database
         try:
-            core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file', 'notifications.json')
-            config = get_notification_config(config_file)
-            if 0 <= editing_index < len(config):
-                return config[editing_index].get('ci_list', [])
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ci_list FROM notification_profiles WHERE id = %s
+                """, (editing_index,))
+                result = cur.fetchone()
+                if result and result[0] is not None:
+                    return result[0]
+                else:
+                    return []  # Ensure it's an empty list if None
         except Exception:
             pass
     return []
@@ -1026,11 +1049,16 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index, filt
         # Load existing profile data if editing
         existing_selected_cis = []
         if editing_index is not None:
-            core_config = load_core_config()
-            config_file = core_config.get('notifications_config_file', 'notifications.json')
-            config = get_notification_config(config_file)
-            if 0 <= editing_index < len(config):
-                existing_selected_cis = config[editing_index].get('ci_list', [])
+            # editing_index is now the profile_id from the database
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    SELECT ci_list FROM notification_profiles WHERE id = %s
+                """, (editing_index,))
+                result = cur.fetchone()
+                if result and result[0] is not None:
+                    existing_selected_cis = result[0]
+                else:
+                    existing_selected_cis = []  # Ensure it's an empty list if None
 
         # Use current selection from store, fallback to existing if editing
         current_selected_cis = selected_cis if selected_cis is not None else existing_selected_cis
@@ -1111,7 +1139,7 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index, filt
      Input('delete-confirm', 'submit_n_clicks')]
 )
 def display_profiles(auth_data, save_clicks, delete_clicks):
-    if not auth_data.get('authenticated', False):
+    if not auth_data or not auth_data.get('authenticated', False):
         return []
 
     user_id = auth_data.get('user_id')
@@ -1172,8 +1200,8 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
                     })
                 ], style={'marginBottom': '20px'}),
                 html.Div([
-                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'profile_id': profile_id}, n_clicks=0, style=get_button_style('secondary')),
-                    html.Button('Löschen', id={'type': 'delete-profile', 'profile_id': profile_id}, n_clicks=0,
+                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'profile_id': str(profile_id)}, n_clicks=0, style=get_button_style('secondary')),
+                    html.Button('Löschen', id={'type': 'delete-profile', 'profile_id': str(profile_id)}, n_clicks=0,
                                style=get_button_style('danger'))
                 ], style={
                     'display': 'flex',
@@ -1208,6 +1236,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 @callback(
     [Output('profile-form-container', 'style'),
      Output('editing-profile-id', 'data'),
+     Output('editing-profile-index', 'data'),
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
@@ -1220,23 +1249,27 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 )
 def show_profile_form(add_clicks, edit_clicks, auth_data):
     if not auth_data or not auth_data.get('authenticated', False):
-        return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
+        return [{'display': 'none'}, None, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
 
     # Check if add button was clicked
     ctx = callback_context
     if not ctx.triggered:
-        return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
+        return [{'display': 'none'}, None, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
 
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if button_id == 'add-profile-button':
         # Show empty form for new profile
-        return [{'display': 'block'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
+        return [{'display': 'block'}, None, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
     else:
         # Show form with existing profile data for editing
         try:
-            button_data = json.loads(button_id.replace("'", '"'))
+            # Parse the button_id which is a string representation of a dict
+            import ast
+            button_data = ast.literal_eval(button_id)
             profile_id = button_data['profile_id']
+
+            print(f"DEBUG: Editing profile with ID: {profile_id}")
 
             # Load profile from database
             with get_db_conn() as conn, conn.cursor() as cur:
@@ -1248,9 +1281,13 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
                 profile = cur.fetchone()
 
                 if profile:
-                    name, notification_type, ci_list, apprise_urls, email_notifications = profile
+                    name, notification_type, ci_list_db, apprise_urls_db, email_notifications = profile
+                    ci_list = ci_list_db if ci_list_db is not None else [] # Ensure ci_list is a list
+                    apprise_urls = apprise_urls_db if apprise_urls_db is not None else [] # Ensure apprise_urls is a list
                     notification_method = 'email' if email_notifications else 'apprise'
                     apprise_urls_text = '\n'.join(apprise_urls) if apprise_urls else ''
+
+                    print(f"DEBUG: Loaded profile - name: {name}, ci_list: {ci_list}, ci_list type: {type(ci_list)}")
 
                     apprise_section_style = {'display': 'block'} if notification_method == 'apprise' else {'display': 'none'}
                     email_section_style = {'display': 'block'} if notification_method == 'email' else {'display': 'none'}
@@ -1258,6 +1295,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
                     return [
                         {'display': 'block'},
                         profile_id,
+                        profile_id,  # Set editing-profile-index to profile_id for consistency
                         name or '',
                         notification_type or 'whitelist',
                         notification_method,
@@ -1268,7 +1306,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
         except Exception:
             pass
 
-    return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
+    return [{'display': 'none'}, None, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
 
 # Callback to toggle between notification methods
 @callback(
@@ -1315,7 +1353,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
     # Handle save button
     if button_id == 'save-profile-button' and save_clicks > 0:
         # Validate inputs
-        if not name:
+        if not name or name.strip() == '':
             return [no_update, 'Profilname ist erforderlich.', get_error_style(visible=True), 0]
 
         user_id = auth_data.get('user_id')
@@ -1418,6 +1456,9 @@ def delete_profile(submit_n_clicks, delete_id, auth_data):
     if submit_n_clicks == 0 or delete_id is None:
         return 0
 
+    if not auth_data:
+        return 0
+
     user_id = auth_data.get('user_id')
     if not user_id:
         return 0
@@ -1464,9 +1505,9 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Br(),
-                html.Span('Häufiges Mattermost-Format: mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'}),
+                html.Span('Für korrekte URL-Formate besuchen Sie:', style={'color': 'blue', 'font-weight': 'bold'}),
                 html.Br(),
-                html.Span('Beispiel: mmost://user:pass@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-size': '0.9em'})
+                html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
             ])
 
         # Send test notification
@@ -1483,7 +1524,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Br(),
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
-                html.Span('Hinweis: Wenn Sie die Nachricht nicht erhalten, überprüfen Sie Ihren Mattermost-Kanal und die Bot-Berechtigungen.', style={'color': 'blue', 'font-size': '0.9em'})
+                html.Span('Hinweis: Wenn Sie die Nachricht nicht erhalten, überprüfen Sie Ihr Benachrichtigungsziel und die entsprechenden Berechtigungen.', style={'color': 'blue', 'font-size': '0.9em'})
             ])
         else:
             return html.Div([
@@ -1493,15 +1534,20 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
                 html.Br(),
                 html.Br(),
+                html.Span('Für weitere Hilfe und Troubleshooting besuchen Sie:', style={'color': 'blue', 'font-weight': 'bold'}),
+                html.Br(),
+                html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'}),
+                html.Br(),
+                html.Br(),
                 html.Span('Häufige Probleme:', style={'color': 'orange', 'font-weight': 'bold'}),
                 html.Br(),
-                html.Span('• Überprüfen Sie, ob der Mattermost-Server erreichbar ist', style={'color': 'orange'}),
+                html.Span('• Überprüfen Sie, ob der Server erreichbar ist', style={'color': 'orange'}),
                 html.Br(),
                 html.Span('• Überprüfen Sie Benutzername/Passwort-Anmeldedaten', style={'color': 'orange'}),
                 html.Br(),
-                html.Span('• Stellen Sie sicher, dass der Bot die Berechtigung hat, im Kanal zu posten', style={'color': 'orange'}),
+                html.Span('• Stellen Sie sicher, dass die Berechtigungen korrekt sind', style={'color': 'orange'}),
                 html.Br(),
-                html.Span('• Überprüfen Sie die Mattermost-Server-Logs auf Fehler', style={'color': 'orange'})
+                html.Span('• Überprüfen Sie die Server-Logs auf Fehler', style={'color': 'orange'})
             ])
 
     except Exception as e:
@@ -1512,7 +1558,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
             html.Span(f'URL: {apprise_url.strip()}', style={'color': 'gray', 'font-size': '0.9em'}),
             html.Br(),
             html.Br(),
-            html.Span('Versuchen Sie stattdessen dieses Format:', style={'color': 'blue', 'font-weight': 'bold'}),
-            html.Br(),
-            html.Span('mmost://username:password@mattermost.medisoftware.org/channel', style={'color': 'blue', 'font-family': 'monospace'})
+                html.Span('Für weitere Hilfe und URL-Beispiele besuchen Sie:', style={'color': 'blue', 'font-weight': 'bold'}),
+                html.Br(),
+                html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
         ])
