@@ -1511,8 +1511,32 @@ def send_db_notifications():
                                 # Hinweis: Profil-weites Opt-Out weiterhin anbieten
                                 message_with_profile_unsub = message + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
                         
-                        # Send via Apprise if Apprise URLs are configured
-                        if apprise_urls and len(apprise_urls) > 0:
+                        # Versand-Strategie: E-Mail (einfach) ist exklusiv; sonst benutzerdefinierte Apprise-URLs
+                        if email_notifications and (email_address or user_email):
+                            # Senden über otp_apprise_url_template (ohne OTP, mit Empfänger-E-Mail)
+                            try:
+                                cfg = load_config()
+                                otp_tpl = (cfg.get('core', {}) or {}).get('otp_apprise_url_template')
+                                recipient = str(email_address or user_email)
+                                if otp_tpl:
+                                    # {otp} ggf. mit leerem String befüllen
+                                    try:
+                                        apprise_url = otp_tpl.format(email=recipient, otp='')
+                                    except Exception:
+                                        # Minimal: nur {email} ersetzen
+                                        apprise_url = otp_tpl.replace('{email}', recipient).replace('{otp}', '')
+                                    apobj = apprise.Apprise()
+                                    apobj.add(apprise_url)
+                                    # Fester Betreff für einfache E-Mail
+                                    simple_subject = 'TI-Monitor Statusänderung'
+                                    body = message_with_profile_unsub if unsubscribe_base_url else message
+                                    apobj.notify(title=simple_subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                else:
+                                    print('otp_apprise_url_template not configured; skipping simple email notification')
+                            except Exception as e:
+                                print(f'Error sending simple email via otp_apprise_url_template for profile {profile_id}: {e}')
+                        elif apprise_urls and len(apprise_urls) > 0:
+                            # Benutzerdefinierte Apprise-URLs verwenden
                             apobj = apprise.Apprise()
                             # Falls Hashes vorhanden sind, pro URL individuellen Opt-Out-Link beilegen
                             if unsubscribe_base_url and apprise_urls_hash and len(apprise_urls_hash) == len(apprise_urls):
@@ -1535,14 +1559,6 @@ def send_db_notifications():
                                     apobj.add(url)
                                     body = message_with_profile_unsub if unsubscribe_base_url else message
                                     apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
-                        
-                        # Send via simple email if email notifications are enabled
-                        if email_notifications and email_address:
-                            apobj = apprise.Apprise()
-                            # Use mailto URL for simple email
-                            email_url = f"mailto://{email_address}"
-                            apobj.add(email_url)
-                            apobj.notify(title=subject, body=message, body_format=apprise.NotifyFormat.HTML)
                         
                         profiles_processed += 1
                         
