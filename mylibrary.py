@@ -1098,6 +1098,9 @@ def load_apprise_config(notifications_config_file):
 
 def send_apprise_notifications(file_name, notifications_config_file, home_url):
     """
+    DEPRECATED: Legacy notification system - use send_db_notifications() instead.
+    This function does NOT include unsubscribe links and should not be used.
+    
     Sends notifications via Apprise for each notification configuration about all
     changes that are relevant for the respective configuration
 
@@ -1109,6 +1112,8 @@ def send_apprise_notifications(file_name, notifications_config_file, home_url):
     Returns:
         None
     """
+    print("WARNING: send_apprise_notifications() is deprecated and does not include unsubscribe links!")
+    print("Use send_db_notifications() instead for the new multi-user system.")
     # Load and potentially convert configuration
     notification_config = load_apprise_config(notifications_config_file)
     
