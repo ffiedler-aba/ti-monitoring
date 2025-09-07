@@ -265,31 +265,55 @@ def unsubscribe(token):
         # Get profile by token
         profile = get_profile_by_unsubscribe_token(token)
         if not profile:
-            return html.Div([
-                html.H2('Ungültiger Link'),
-                html.P('Der von Ihnen aufgerufene Link ist ungültig oder wurde bereits verwendet.')
-            ]), 404
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Ungültiger Link</title></head>
+            <body>
+                <h2>Ungültiger Link</h2>
+                <p>Der von Ihnen aufgerufene Link ist ungültig oder wurde bereits verwendet.</p>
+            </body>
+            </html>
+            ''', 404
         
         profile_id, user_id, name, email_notifications, email_address = profile
         
         # Delete the profile
         if delete_profile_by_unsubscribe_token(token):
-            return html.Div([
-                html.H2('Abmeldung erfolgreich'),
-                html.P(f'Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.'),
-                html.P('Sie erhalten keine weiteren Benachrichtigungen von diesem Profil.')
-            ]), 200
+            return f'''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Abmeldung erfolgreich</title></head>
+            <body>
+                <h2>Abmeldung erfolgreich</h2>
+                <p>Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.</p>
+                <p>Sie erhalten keine weiteren Benachrichtigungen von diesem Profil.</p>
+            </body>
+            </html>
+            ''', 200
         else:
-            return html.Div([
-                html.H2('Fehler bei der Abmeldung'),
-                html.P('Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.')
-            ]), 500
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Fehler bei der Abmeldung</title></head>
+            <body>
+                <h2>Fehler bei der Abmeldung</h2>
+                <p>Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.</p>
+            </body>
+            </html>
+            ''', 500
             
     except Exception as e:
-        return html.Div([
-            html.H2('Fehler'),
-            html.P(f'Ein Fehler ist aufgetreten: {str(e)}')
-        ]), 500
+        return f'''
+        <!DOCTYPE html>
+        <html>
+        <head><title>Fehler</title></head>
+        <body>
+            <h2>Fehler</h2>
+            <p>Ein Fehler ist aufgetreten: {str(e)}</p>
+        </body>
+        </html>
+        ''', 500
 
 # API endpoint for requesting OTP
 @server.route('/api/auth/otp/request', methods=['POST'])
