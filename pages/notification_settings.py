@@ -211,9 +211,6 @@ def serve_layout():
             # Logout button (hidden by default, shown when authenticated)
             html.Button('Abmelden', id='logout-button', n_clicks=0, style={
                 **get_button_style('secondary'),
-                'padding': '5px 10px',
-                'marginLeft': '10px',
-                'fontSize': '12px',
                 'display': 'none'  # Hidden by default
             }),
 
