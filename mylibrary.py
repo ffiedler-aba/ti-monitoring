@@ -220,21 +220,7 @@ def run_db_migrations():
     - Ensure users/otp_codes tables and indexes exist
     """
     with get_db_conn() as conn, conn.cursor() as cur:
-        # Ensure new columns on notification_profiles
-        cur.execute("""
-            ALTER TABLE IF EXISTS notification_profiles
-              ADD COLUMN IF NOT EXISTS apprise_urls_hash TEXT[],
-              ADD COLUMN IF NOT EXISTS apprise_urls_salt TEXT[],
-              ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT FALSE,
-              ADD COLUMN IF NOT EXISTS email_address TEXT,
-              ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT UNIQUE
-        """)
-        cur.execute("""
-            CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token
-              ON notification_profiles(unsubscribe_token)
-        """)
-
-        # Ensure users table
+        # 1) Ensure users table exists (first - referenced by others)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -247,7 +233,8 @@ def run_db_migrations():
                 locked_until TIMESTAMPTZ
             )
         """)
-        # Ensure otp_codes table and indexes
+
+        # 2) Ensure otp_codes table and indexes
         cur.execute("""
             CREATE TABLE IF NOT EXISTS otp_codes (
                 id SERIAL PRIMARY KEY,
@@ -265,6 +252,40 @@ def run_db_migrations():
         """)
         cur.execute("""
             CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON otp_codes(expires_at)
+        """)
+
+        # 3) Ensure notification_profiles table exists (latest schema)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notification_profiles (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL CHECK (type IN ('whitelist', 'blacklist')),
+                ci_list TEXT[] DEFAULT '{}',
+                apprise_urls TEXT[] DEFAULT '{}',
+                apprise_urls_hash TEXT[],
+                apprise_urls_salt TEXT[],
+                email_notifications BOOLEAN DEFAULT FALSE,
+                email_address TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                last_tested_at TIMESTAMPTZ,
+                test_result TEXT,
+                unsubscribe_token TEXT UNIQUE
+            )
+        """)
+        # Ensure new columns on notification_profiles
+        cur.execute("""
+            ALTER TABLE IF EXISTS notification_profiles
+              ADD COLUMN IF NOT EXISTS apprise_urls_hash TEXT[],
+              ADD COLUMN IF NOT EXISTS apprise_urls_salt TEXT[],
+              ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN DEFAULT FALSE,
+              ADD COLUMN IF NOT EXISTS email_address TEXT,
+              ADD COLUMN IF NOT EXISTS unsubscribe_token TEXT UNIQUE
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token
+              ON notification_profiles(unsubscribe_token)
         """)
         conn.commit()
 
