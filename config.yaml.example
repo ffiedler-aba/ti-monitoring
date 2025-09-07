@@ -41,16 +41,9 @@ core:
   # Keep only the last N months of availability datapoints. Default: 6
   retention_months: 6
 
-  # TimescaleDB integration (optional)
-  timescaledb:
-    enabled: false
-    host: "db"
-    port: 5432
-    dbname: "timonitor"
-    user: "timonitor"
-    password: "timonitor"
-    # Retention (Tage) für TimescaleDB (drop_chunks Policy)
-    keep_days: 185
+  # TimescaleDB Konfiguration erfolgt ausschließlich über Umgebungsvariablen (.env):
+  # POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+  # Hinweis: Werte in config.yaml werden nicht mehr gelesen.
   
   # OTP Apprise URL template for sending OTP codes
   # Variables: {email} for user email, {otp} for the OTP code

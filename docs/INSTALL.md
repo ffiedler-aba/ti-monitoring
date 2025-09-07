@@ -62,15 +62,8 @@ core:
   # URL for API (Standard gematik API)
   url: "https://ti-lage.prod.ccs.gematik.solutions/lageapi/v1/tilage/bu/PU"
   
-  # TimescaleDB configuration (primary data storage)
-  timescaledb:
-    enabled: true
-    host: "db"
-    port: 5432
-    dbname: "timonitor"
-    user: "timonitor"
-    password: "timonitor"
-    keep_days: 185
+  # TimescaleDB-Konfiguration erfolgt über Umgebungsvariablen (siehe .env Abschnitt unten)
+  # Die Werte in config.yaml werden nicht mehr gelesen.
   
   # Time frame for statistics in web app (Standardwert für Plots)
   stats_delta_hours: 12
@@ -239,12 +232,12 @@ cat data/cron.log.2025-01-26
 - TimescaleDB ist die primäre und einzige Datenspeicherung für optimale Performance.
 - Konfiguration über `core.timescaledb.enabled: true` in `config.yaml`.
 
-#### PostgreSQL-Konfiguration via .env
+#### PostgreSQL-/TimescaleDB-Konfiguration via .env (Single Source of Truth)
 
 Setzen Sie die Verbindungsdaten in `.env` (wird von allen Compose-Dateien gelesen):
 
 ```env
-# PostgreSQL / TimescaleDB
+# PostgreSQL / TimescaleDB (verbindlich – App liest ausschließlich diese Variablen)
 POSTGRES_HOST=db
 POSTGRES_PORT=5432
 POSTGRES_DB=timonitor

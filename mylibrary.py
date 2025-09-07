@@ -27,17 +27,43 @@ def load_config():
         return {}
 
 def get_db_conn():
-    # Load database configuration from config.yaml
-    config = load_config()
-    tsdb_config = config.get('core', {}).get('timescaledb', {})
-    
-    host = tsdb_config.get('host', 'db')
-    port = tsdb_config.get('port', 5432)
-    db = tsdb_config.get('dbname', 'timonitor')
-    user = tsdb_config.get('user', 'timonitor')
-    pwd = tsdb_config.get('password', 'timonitor')
-    
-    return psycopg2.connect(host=host, port=port, dbname=db, user=user, password=pwd)
+    """Create a DB connection using environment variables only.
+
+    Required env vars (e.g. from .env / Compose):
+      POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+
+    No fallback to config.yaml to avoid conflicting sources.
+    """
+    # Ensure .env is loaded (no-op if already loaded)
+    load_env_file()
+    host = os.getenv('POSTGRES_HOST')
+    port = os.getenv('POSTGRES_PORT')
+    db = os.getenv('POSTGRES_DB')
+    user = os.getenv('POSTGRES_USER')
+    pwd = os.getenv('POSTGRES_PASSWORD')
+
+    missing = [k for k, v in {
+        'POSTGRES_HOST': host,
+        'POSTGRES_PORT': port,
+        'POSTGRES_DB': db,
+        'POSTGRES_USER': user,
+        'POSTGRES_PASSWORD': pwd,
+    }.items() if not v]
+
+    if missing:
+        msg = (
+            f"Missing required DB env vars: {', '.join(missing)}. "
+            "Please set them in .env or environment (POSTGRES_HOST/PORT/DB/USER/PASSWORD). "
+            "Note: config.yaml timescaledb settings are no longer used."
+        )
+        print(msg)
+        raise RuntimeError(msg)
+
+    try:
+        return psycopg2.connect(host=host, port=int(port), dbname=db, user=user, password=pwd)
+    except Exception as e:
+        print(f"Failed to connect to DB at {host}:{port}/{db} as {user}: {e}")
+        raise
 
 def init_timescaledb_schema():
     with get_db_conn() as conn, conn.cursor() as cur:
