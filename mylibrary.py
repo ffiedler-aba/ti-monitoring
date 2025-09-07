@@ -227,11 +227,19 @@ def run_db_migrations():
                 email TEXT UNIQUE NOT NULL,
                 email_hash TEXT NOT NULL,
                 email_salt TEXT NOT NULL,
+                email_encrypted TEXT,
+                email_enc_salt TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 last_login TIMESTAMPTZ,
                 failed_login_attempts INTEGER DEFAULT 0,
                 locked_until TIMESTAMPTZ
             )
+        """)
+        # Add columns for encrypted email if missing
+        cur.execute("""
+            ALTER TABLE IF EXISTS users
+              ADD COLUMN IF NOT EXISTS email_encrypted TEXT,
+              ADD COLUMN IF NOT EXISTS email_enc_salt TEXT
         """)
 
         # 2) Ensure otp_codes table and indexes
@@ -287,6 +295,27 @@ def run_db_migrations():
             CREATE INDEX IF NOT EXISTS idx_notification_profiles_unsubscribe_token
               ON notification_profiles(unsubscribe_token)
         """)
+
+        # Sanitize existing PII: replace plain emails with hashes where detectable
+        try:
+            cur.execute("""
+                UPDATE users
+                SET email = email_hash
+                WHERE email ~ '^[^@]+@[^@]+\.[^@]+$'
+            """)
+            # Null out any stored profile email addresses
+            cur.execute("""
+                ALTER TABLE IF EXISTS notification_profiles
+                  ALTER COLUMN email_address DROP NOT NULL
+            """)
+            cur.execute("""
+                UPDATE notification_profiles
+                SET email_address = NULL
+                WHERE email_address IS NOT NULL
+            """)
+        except Exception as _e:
+            # best-effort; continue
+            pass
         conn.commit()
 
 def get_timescaledb_ci_data() -> pd.DataFrame:
@@ -669,14 +698,21 @@ def create_user(email):
     if not salt:
         raise Exception("Failed to generate salt for user")
     email_hash = hash_with_salt(email.lower(), salt)
+    # Encrypt email for reversible use in notifications
+    encryption_key = os.getenv('ENCRYPTION_KEY')
+    if encryption_key:
+        encryption_key = encryption_key.encode()
+    else:
+        encryption_key = generate_encryption_key()
+    email_encrypted, email_enc_salt = encrypt_data(email.lower(), encryption_key)
     
     with get_db_conn() as conn, conn.cursor() as cur:
         try:
             cur.execute("""
-                INSERT INTO users (email, email_hash, email_salt)
-                VALUES (%s, %s, %s)
+                INSERT INTO users (email, email_hash, email_salt, email_encrypted, email_enc_salt)
+                VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
-            """, (email.lower(), email_hash, salt))
+            """, (email_hash, email_hash, salt, email_encrypted, email_enc_salt))
             user_id = cur.fetchone()[0]
             return user_id
         except psycopg2.IntegrityError:
@@ -692,14 +728,14 @@ def get_user_by_email(email):
     with get_db_conn() as conn, conn.cursor() as cur:
         # We need to check all users to find a match
         cur.execute("""
-            SELECT id, email, email_hash, email_salt, failed_login_attempts, locked_until
+            SELECT id, email, email_hash, email_salt, failed_login_attempts, locked_until, email_encrypted, email_enc_salt
             FROM users
         """)
         users = cur.fetchall()
         
         email_lower = email.lower()
         for user in users:
-            user_id, user_email, email_hash, email_salt, failed_attempts, locked_until = user
+            user_id, user_email, email_hash, email_salt, failed_attempts, locked_until, email_encrypted, email_enc_salt = user
             # Hash the provided email with the user's salt
             provided_email_hash = hash_with_salt(email_lower, email_salt)
             if hmac.compare_digest(email_hash, provided_email_hash):
@@ -1531,8 +1567,8 @@ def send_db_notifications():
             cur.execute("""
                 SELECT np.id, np.user_id, np.name, np.type, np.ci_list,
                        np.apprise_urls, np.apprise_urls_hash, np.apprise_urls_salt,
-                       np.email_notifications, np.email_address,
-                       u.email as user_email
+                       np.email_notifications,
+                       u.email_encrypted, u.email_enc_salt
                 FROM notification_profiles np
                 JOIN users u ON np.user_id = u.id
                 WHERE (np.apprise_urls IS NOT NULL AND array_length(np.apprise_urls, 1) > 0) 
@@ -1554,7 +1590,7 @@ def send_db_notifications():
             # Process each profile
             for profile in profiles:
                 try:
-                    profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, email_notifications, email_address, user_email = profile
+                    profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, email_notifications, email_encrypted, email_enc_salt = profile
                     
                     # Filter relevant changes
                     if profile_type == 'whitelist':
@@ -1588,12 +1624,22 @@ def send_db_notifications():
                                 message_with_profile_unsub = message + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
                         
                         # Versand-Strategie: E-Mail (einfach) ist exklusiv; sonst benutzerdefinierte Apprise-URLs
-                        if email_notifications and (email_address or user_email):
+                        if email_notifications:
                             # Senden über otp_apprise_url_template (ohne OTP, mit Empfänger-E-Mail)
                             try:
                                 cfg = load_config()
                                 otp_tpl = (cfg.get('core', {}) or {}).get('otp_apprise_url_template')
-                                recipient = str(email_address or user_email)
+                                # Empfänger aus verschlüsseltem Benutzerkonto entschlüsseln
+                                encryption_key = os.getenv('ENCRYPTION_KEY')
+                                if encryption_key:
+                                    encryption_key = encryption_key.encode()
+                                else:
+                                    encryption_key = generate_encryption_key()
+                                recipient = ''
+                                if email_encrypted and email_enc_salt:
+                                    decrypted = decrypt_data(email_encrypted, email_enc_salt, encryption_key)
+                                    if decrypted:
+                                        recipient = decrypted
                                 if otp_tpl:
                                     # {otp} ggf. mit leerem String befüllen
                                     try:
