@@ -70,9 +70,6 @@ core:
   # Time frame for statistics in web app
   stats_delta_hours: 12
   
-  # Configuration file for notifications
-  notifications_config_file: "notifications.json"
-  
   # Cron job intervals (in iterations, where each iteration = 5 minutes)
   cron_intervals:
     # Statistics update interval (default: every 2 iterations = 10 minutes)
@@ -102,34 +99,8 @@ core:
 
 ```
 
-#### Benachrichtigungseinstellungen (`notifications.json`)
-```json
-[
-  {
-    "name": "Team Infrastructure",
-    "type": "whitelist",
-    "ci_list": [
-      "CI001",
-      "CI002",
-      "CI003"
-    ],
-    "apprise_urls": [
-      "mmost://<your-mattermost-server>/<channel>/<token>"
-    ]
-  },
-  {
-    "name": "Management",
-    "apprise_urls": [
-      "mailto://user:pass@company.com?to=management@company.com"
-    ],
-    "ci_list": [
-      "CI004",
-      "CI005"
-    ],
-    "type": "whitelist"
-  }
-]
-```
+#### Benachrichtigungseinstellungen (Multi-User UI)
+Das frühere Datei-basierte System `notifications.json` wurde abgelöst. Profile werden über die Web-Oberfläche verwaltet und in der Datenbank gespeichert.
 
 ### 3. Installation als Windows-Service (Empfohlen)
 
@@ -203,7 +174,6 @@ ti-monitoring/
 ├── app.py                    # Hauptanwendung (Streamlit)
 ├── cron.py                   # Cron-Job für Überwachung
 ├── config.yaml              # Hauptkonfiguration
-├── notifications.json       # Benachrichtigungseinstellungen
 ├── install-service.cmd      # Service-Installation
 ├── .venv/                   # Python virtuelle Umgebung
 │   └── Scripts/
@@ -309,7 +279,7 @@ ti-monitoring/
 Bei Problemen:
 
 1. **Logs sammeln**: `logs/` Verzeichnis
-2. **Konfiguration prüfen**: `config.yaml` und `notifications.json`
+2. **Konfiguration prüfen**: `config.yaml`
 3. **Service-Status dokumentieren**: `tools\nssm.exe status <service-name>`
 
 ## 📝 Changelog

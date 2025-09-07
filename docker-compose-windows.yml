@@ -23,7 +23,6 @@ services:
       - ti-monitoring-data:/app/data
       - ti-monitoring-logs:/app/logs
       - ./config.yaml:/app/config.yaml
-      - ./notifications.json:/app/notifications.json
       - ./.env:/app/.env
     environment:
       - PYTHONPATH=/app
@@ -45,7 +44,6 @@ services:
       - ti-monitoring-data:/app/data
       - ti-monitoring-logs:/app/logs
       - ./config.yaml:/app/config.yaml
-      - ./notifications.json:/app/notifications.json
     environment:
       - PYTHONPATH=/app
       - TZ=Europe/Berlin

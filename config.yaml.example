@@ -34,9 +34,6 @@ core:
   # Time frame for statistics in web app
   stats_delta_hours: 12
   
-  # Configuration file for notifications
-  notifications_config_file: "notifications.json"
-  
   # Enable/disable notifications globally
   notifications_enabled: false
   

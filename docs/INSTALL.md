@@ -477,7 +477,7 @@ cat data/cron.log.2025-01-26
 
 Nach erfolgreicher Installation:
 
-1. **Benachrichtigungen konfigurieren**: Passen Sie `notifications.json` an
+1. **Benachrichtigungen konfigurieren**: Öffnen Sie die Web-Oberfläche und richten Sie Ihre Profile ein
 2. **Monitoring einrichten**: Überwachen Sie die Logs und Performance
 3. **Backup-Strategie**: Planen Sie regelmäßige Backups der TimescaleDB-Datenbank
 4. **Log-Monitoring**: Überwachen Sie die Cron-Logs für Fehler und Performance
