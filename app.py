@@ -258,6 +258,17 @@ def health_check():
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
         
+        # Database health
+        db_status = "healthy"
+        db_error = None
+        try:
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                _ = cur.fetchone()
+        except Exception as e:
+            db_status = "unhealthy"
+            db_error = str(e)
+        
         # Overall health status
         overall_status = "healthy"
         if config_status == "unhealthy" or layout_status == "unhealthy":
@@ -281,6 +292,10 @@ def health_check():
                     "error": layout_error,
                     "cache_age": time.time() - _layout_cache_timestamp if _layout_cache_timestamp > 0 else None,
                     "cache_ttl": _layout_cache_ttl
+                },
+                "database": {
+                    "status": db_status,
+                    "error": db_error
                 }
             },
             "system": {
