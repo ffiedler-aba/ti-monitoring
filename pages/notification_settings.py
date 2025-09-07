@@ -117,9 +117,6 @@ def load_core_config():
 
 dash.register_page(__name__, path='/notifications')
 
-# Store for authenticated user
-auth_status = {'authenticated': False, 'user_id': None, 'email': None}
-
 def serve_layout():
     layout = html.Div([
         html.H2('Benachrichtigungseinstellungen', style={
@@ -130,7 +127,8 @@ def serve_layout():
             'paddingBottom': '10px'
         }),
         # Store for authentication status (persistent in browser)
-        dcc.Store(id='auth-status', storage_type='session', data=auth_status),
+        # Don't set initial data - let the browser's localStorage handle persistence
+        dcc.Store(id='auth-status', storage_type='local'),
 
         # OTP Login form (shown when not authenticated)
         html.Div(id='otp-login-container', children=[
@@ -470,6 +468,54 @@ def serve_layout():
     return layout
 
 layout = serve_layout
+
+# Callback to check authentication status on page load
+@callback(
+    [Output('otp-login-container', 'style'),
+     Output('settings-container', 'style'),
+     Output('otp-code-container', 'style'),
+     Output('user-info', 'children')],
+    [Input('auth-status', 'data')],
+    prevent_initial_call=False
+)
+def check_auth_status_on_load(auth_data):
+    """Check authentication status when page loads"""
+    if not auth_data:
+        # No auth data - show login form
+        return [
+            {'display': 'block'},  # Show login container
+            {'display': 'none'},   # Hide settings container
+            {'display': 'none'},   # Hide OTP code container
+            ''  # No user info
+        ]
+
+    if auth_data.get('authenticated', False):
+        # User is authenticated - show settings
+        email = auth_data.get('email', 'Unbekannt')
+        user_info = html.Div([
+            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+            html.Button('Abmelden', id='logout-button', n_clicks=0, style={
+                **get_button_style('secondary'),
+                'padding': '5px 10px',
+                'marginLeft': '10px',
+                'fontSize': '12px'
+            })
+        ], style={'textAlign': 'right', 'marginBottom': '20px'})
+
+        return [
+            {'display': 'none'},  # Hide login container
+            {'display': 'block'}, # Show settings container
+            {'display': 'none'},  # Hide OTP code container
+            user_info
+        ]
+    else:
+        # User is not authenticated - show login form
+        return [
+            {'display': 'block'},  # Show login container
+            {'display': 'none'},   # Hide settings container
+            {'display': 'none'},   # Hide OTP code container
+            ''  # No user info
+        ]
 
 # Callback to handle OTP request
 @callback(
