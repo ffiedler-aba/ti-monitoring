@@ -538,15 +538,28 @@ import hmac
 
 def generate_salt():
     """Generate a random salt for hashing"""
-    return secrets.token_hex(32)
+    import random
+    import string
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(64))
 
 def hash_with_salt(data, salt):
     """Hash data with salt using SHA-256"""
-    return hashlib.sha256((data + salt).encode()).hexdigest()
+    import random
+    import string
+    
+    if not data or not salt or data == "" or salt == "":
+        # Generate a fallback salt if none provided
+        if not salt:
+            salt = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(64))
+        if not data:
+            raise ValueError("Data cannot be empty")
+    return hashlib.sha256((str(data) + str(salt)).encode()).hexdigest()
 
 def generate_otp():
     """Generate a 6-digit numeric OTP"""
-    return str(secrets.randbelow(1000000)).zfill(6)
+    import random
+    return str(random.randint(100000, 999999))
 
 def generate_encryption_key():
     """Generate a encryption key for sensitive data"""
@@ -577,6 +590,8 @@ def decrypt_data(encrypted_data, salt, key):
 def create_user(email):
     """Create a new user with hashed email"""
     salt = generate_salt()
+    if not salt:
+        raise Exception("Failed to generate salt for user")
     email_hash = hash_with_salt(email.lower(), salt)
     
     with get_db_conn() as conn, conn.cursor() as cur:
@@ -618,19 +633,34 @@ def get_user_by_email(email):
 
 def generate_otp_for_user(user_id, ip_address=None):
     """Generate and store OTP for user"""
-    otp = generate_otp()
-    salt = generate_salt()
-    otp_hash = hash_with_salt(otp, salt)
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
-    
-    with get_db_conn() as conn, conn.cursor() as cur:
-        cur.execute("""
-            INSERT INTO otp_codes (user_id, otp_hash, salt, expires_at, ip_address)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id
-        """, (user_id, otp_hash, salt, expires_at, ip_address))
-        otp_id = cur.fetchone()[0]
-        return otp, otp_id
+    try:
+        otp = generate_otp()
+        salt = generate_salt()
+        
+        # Debug: Check if otp and salt are valid
+        print(f"Debug: otp={otp}, salt={salt}")
+        
+        if not otp or not salt:
+            raise Exception(f"OTP or salt generation failed: otp={otp}, salt={salt}")
+        
+        otp_hash = hash_with_salt(otp, salt)
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+        
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO otp_codes (user_id, otp_hash, salt, expires_at, ip_address)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """, (user_id, otp_hash, salt, expires_at, ip_address))
+            result = cur.fetchone()
+            if result:
+                otp_id = result[0]
+                return otp, otp_id
+            else:
+                raise Exception("Failed to insert OTP into database")
+    except Exception as e:
+        print(f"Error in generate_otp_for_user: {e}")
+        return None, None
 
 def validate_otp(user_id, otp):
     """Validate OTP for user"""

@@ -319,13 +319,26 @@ def request_otp():
         # Generate OTP
         otp, otp_id = generate_otp_for_user(user_id, request.remote_addr)
         
+        if not otp or not otp_id:
+            return jsonify({'error': 'Fehler beim Generieren des OTP-Codes'}), 500
+        
         # Send OTP via Apprise (using the template from config)
         config = load_config()
         otp_template = config.get('core', {}).get('otp_apprise_url_template')
         
-        if otp_template:
+        if not otp_template:
+            return jsonify({'error': 'OTP-Template nicht konfiguriert'}), 500
+        
+        # Debug: Check values before formatting
+        print(f"Debug: email={email}, otp={otp}, template={otp_template}")
+        
+        # Ensure email and otp are strings
+        if not email or not otp:
+            return jsonify({'error': 'E-Mail oder OTP ist leer'}), 500
+        
+        try:
             # Format the template with user email and OTP
-            apprise_url = otp_template.format(email=email, otp=otp)
+            apprise_url = otp_template.format(email=str(email), otp=str(otp))
             
             # Send OTP notification
             apobj = apprise.Apprise()
@@ -335,6 +348,8 @@ def request_otp():
                 body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
                 body_format=apprise.NotifyFormat.TEXT
             )
+        except Exception as e:
+            return jsonify({'error': f'Fehler beim Formatieren der Apprise-URL: {str(e)}'}), 500
         
         return jsonify({'message': 'OTP-Code wurde gesendet'}), 200
         
