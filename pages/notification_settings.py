@@ -511,7 +511,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
-                {'display': 'none'},  # Hide logout button
+                {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -560,7 +560,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
                     user_info,  # Show user info
-                    {'display': 'block'}, # Show logout button
+                    {**get_button_style('secondary'), 'display': 'block'}, # Show logout button with proper styling
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
@@ -663,7 +663,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                             {'display': 'none'},  # Hide settings container
                             {'display': 'block'}, # Show OTP code container
                             '',  # No user info
-                            {'display': 'none'},  # Hide logout button
+                            {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
                             '',  # Clear request error
                             f'OTP-Code wurde an {email} gesendet. Bitte geben Sie den Code ein.',
                             '',  # Clear verify error
@@ -695,7 +695,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
             '',  # No user info
-            {'display': 'none'},  # Hide logout button
+            {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
@@ -731,7 +731,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
             '',  # No user info
-            {'display': 'none'},  # Hide logout button
+            {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
