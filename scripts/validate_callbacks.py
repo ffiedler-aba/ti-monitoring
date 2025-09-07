@@ -22,6 +22,7 @@ class CallbackValidator:
         self.pages_dir = self.project_root / "pages"
         self.callbacks = []
         self.layout_elements = set()
+        self.output_ids = {}  # Track output IDs across callbacks
         self.errors = []
         self.warnings = []
     
@@ -37,6 +38,9 @@ class CallbackValidator:
                 continue
             print(f"📄 Überprüfe {file_path.name}...")
             self._validate_file(file_path)
+        
+        # Validiere doppelte Outputs
+        self._validate_duplicate_outputs()
         
         # Zeige Ergebnisse
         self._print_results()
@@ -98,6 +102,15 @@ class CallbackValidator:
         # Validiere Callback
         self._validate_callback_rules(callback_info)
         
+        # Track output IDs for duplicate detection
+        for output_id in callback_info['outputs']:
+            if output_id not in self.output_ids:
+                self.output_ids[output_id] = []
+            self.output_ids[output_id].append({
+                'file': callback_info['file'],
+                'line': callback_info['line']
+            })
+        
         self.callbacks.append(callback_info)
     
     def _extract_output_id(self, output_node: ast.Call) -> str:
@@ -139,6 +152,24 @@ class CallbackValidator:
                 f"⚠️  {callback_info['file']}:{callback_info['line']} - "
                 f"Callback hat {len(callback_info['outputs'])} Outputs (komplex)"
             )
+    
+    def _validate_duplicate_outputs(self):
+        """Validiert doppelte Output-IDs zwischen Callbacks"""
+        for output_id, callbacks in self.output_ids.items():
+            if len(callbacks) > 1:
+                # Check if any callback has allow_duplicate=True
+                has_allow_duplicate = False
+                for callback in self.callbacks:
+                    if output_id in callback['outputs'] and callback['has_allow_duplicate']:
+                        has_allow_duplicate = True
+                        break
+                
+                if not has_allow_duplicate:
+                    callback_locations = [f"{cb['file']}:{cb['line']}" for cb in callbacks]
+                    self.errors.append(
+                        f"❌ Doppelte Output-ID '{output_id}' in Callbacks: {', '.join(callback_locations)}. "
+                        f"Verwende allow_duplicate=True oder konsolidiere die Callbacks."
+                    )
     
     def _is_prevent_initial_call_true(self, value) -> bool:
         """Überprüft ob prevent_initial_call=True ist"""

@@ -208,6 +208,15 @@ def serve_layout():
                 'alignItems': 'center'
             }),
 
+            # Logout button (hidden by default, shown when authenticated)
+            html.Button('Abmelden', id='logout-button', n_clicks=0, style={
+                **get_button_style('secondary'),
+                'padding': '5px 10px',
+                'marginLeft': '10px',
+                'fontSize': '12px',
+                'display': 'none'  # Hidden by default
+            }),
+
             html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.', style={
                 'color': '#7f8c8d',
                 'fontSize': '16px',
@@ -455,7 +464,7 @@ def serve_layout():
                 'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.05)'
             })
         ], style={'display': 'none'})
-            ], style={
+        ], style={
             'width': '100%',
             'maxWidth': '900px',
             'minWidth': '320px',
@@ -469,44 +478,248 @@ def serve_layout():
 
 layout = serve_layout
 
-# Callback to check authentication status on page load
+# Consolidated callback for authentication state management
 @callback(
     [Output('otp-login-container', 'style'),
      Output('settings-container', 'style'),
      Output('otp-code-container', 'style'),
-     Output('user-info', 'children')],
-    [Input('auth-status', 'data')],
-    prevent_initial_call=False
+     Output('user-info', 'children'),
+     Output('logout-button', 'style'),
+     Output('otp-request-error', 'children'),
+     Output('otp-instructions', 'children'),
+     Output('otp-verify-error', 'children'),
+     Output('auth-status', 'data', allow_duplicate=True),
+     Output('email-input', 'value'),
+     Output('otp-code-input', 'value')],
+    [Input('auth-status', 'data'),
+     Input('request-otp-button', 'n_clicks'),
+     Input('verify-otp-button', 'n_clicks'),
+     Input('resend-otp-button', 'n_clicks'),
+     Input('logout-button', 'n_clicks')],
+    [State('email-input', 'value'),
+     State('otp-code-input', 'value')],
+    prevent_initial_call='initial_duplicate'
 )
-def check_auth_status_on_load(auth_data):
-    """Check authentication status when page loads"""
+def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_clicks, logout_clicks, email, otp_code):
+    """Consolidated callback for authentication state management"""
+    ctx = dash.callback_context
+
+    # Handle logout
+    if ctx.triggered and 'logout-button' in ctx.triggered[0]['prop_id']:
+        if logout_clicks and logout_clicks > 0:
+            # Reset authentication status
+            auth_data = {'authenticated': False, 'user_id': None, 'email': None}
+            return [
+                {'display': 'block'},  # Show login container
+                {'display': 'none'},   # Hide settings container
+                {'display': 'none'},   # Hide OTP code container
+                '',  # No user info
+                {'display': 'none'},  # Hide logout button
+                '',  # Clear request error
+                '',  # Clear instructions
+                '',  # Clear verify error
+                auth_data,  # Reset auth data
+                '',  # Clear email input
+                ''   # Clear OTP input
+            ]
+
+    # Handle OTP verification
+    if ctx.triggered and 'verify-otp-button' in ctx.triggered[0]['prop_id']:
+        if verify_clicks and verify_clicks > 0:
+            if not email or not otp_code:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Bitte geben Sie E-Mail und OTP-Code ein.', no_update, no_update]
+
+        try:
+            # Get user by email
+            user = get_user_by_email(email)
+            if not user:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Benutzer nicht gefunden.', no_update, no_update]
+
+            user_id = user[0]
+
+            # Check if account is locked
+            if is_account_locked(user_id):
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Konto ist gesperrt. Bitte versuchen Sie es später erneut.', no_update, no_update]
+
+            # Validate OTP
+            if validate_otp(user_id, otp_code):
+                # Authentication successful
+                if not auth_data:
+                    auth_data = {}
+                auth_data['authenticated'] = True
+                auth_data['user_id'] = user_id
+                auth_data['email'] = email
+
+                # Create user info
+                user_info = html.Div([
+                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
+                ], style={'textAlign': 'right', 'marginBottom': '20px'})
+
+                return [
+                    {'display': 'none'},  # Hide login container
+                    {'display': 'block'}, # Show settings container
+                    {'display': 'none'},  # Hide OTP code container
+                    user_info,  # Show user info
+                    {'display': 'block'}, # Show logout button
+                    '',  # Clear request error
+                    '',  # Clear instructions
+                    '',  # Clear verify error
+                    auth_data,  # Update auth data
+                    email,  # Keep email
+                    ''  # Clear OTP input
+                ]
+            else:
+                # OTP validation failed
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.', no_update, no_update]
+
+        except Exception as e:
+            return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                   f'Fehler bei der OTP-Verifikation: {str(e)}', no_update, no_update]
+
+    # Handle resend OTP
+    if ctx.triggered and 'resend-otp-button' in ctx.triggered[0]['prop_id']:
+        if resend_clicks and resend_clicks > 0:
+            if not email:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Bitte geben Sie eine E-Mail-Adresse ein.', no_update, no_update]
+
+            try:
+                # Get user by email
+                user = get_user_by_email(email)
+                if not user:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                           'Benutzer nicht gefunden.', no_update, no_update]
+
+                user_id = user[0]
+
+                # Generate new OTP
+                otp, otp_id = generate_otp_for_user(user_id, None)
+
+                # Send OTP via Apprise (using the template from config)
+                config = load_config()
+                otp_template = config.get('core', {}).get('otp_apprise_url_template')
+
+                if otp_template:
+                    # Format the template with user email and OTP
+                    apprise_url = otp_template.format(email=email, otp=otp)
+
+                    # Send OTP notification
+                    apobj = apprise.Apprise()
+                    apobj.add(apprise_url)
+                    apobj.notify(
+                        title='TI-Monitoring OTP-Code (erneut gesendet)',
+                        body=f'Ihr neuer OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                        body_format=apprise.NotifyFormat.TEXT
+                    )
+
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       f'Neuer OTP-Code wurde an {email} gesendet.', no_update, no_update]
+
+            except Exception as e:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       f'Fehler beim erneuten Senden des OTP-Codes: {str(e)}', no_update, no_update]
+
+    # Handle OTP request
+    if ctx.triggered and 'request-otp-button' in ctx.triggered[0]['prop_id']:
+        if otp_clicks and otp_clicks > 0:
+            if not email:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       'Bitte geben Sie eine E-Mail-Adresse ein.', no_update, no_update]
+
+            try:
+                # Validate email format
+                if '@' not in email or '.' not in email:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                           'Bitte geben Sie eine gültige E-Mail-Adresse ein.', no_update, no_update]
+
+                # Check if user exists, create if not
+                user = get_user_by_email(email)
+                if user:
+                    user_id = user[0]
+                else:
+                    user_id = create_user(email)
+
+                if not user_id:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                           'Fehler beim Erstellen des Benutzers.', no_update, no_update]
+
+                # Generate OTP
+                otp, otp_id = generate_otp_for_user(user_id, None)
+                if not otp or not otp_id:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                           'Fehler beim Generieren des OTP-Codes.', no_update, no_update]
+
+                # Send OTP via Apprise
+                try:
+                    import requests
+                    response = requests.post('http://localhost:8050/api/auth/otp/request',
+                                           json={'email': email}, timeout=10)
+                    if response.status_code == 200:
+                        return [
+                            {'display': 'none'},  # Hide login container
+                            {'display': 'none'},  # Hide settings container
+                            {'display': 'block'}, # Show OTP code container
+                            '',  # No user info
+                            {'display': 'none'},  # Hide logout button
+                            '',  # Clear request error
+                            f'OTP-Code wurde an {email} gesendet. Bitte geben Sie den Code ein.',
+                            '',  # Clear verify error
+                            no_update,  # Keep auth data
+                            email,  # Keep email
+                            ''  # Clear OTP input
+                        ]
+                    else:
+                        error_msg = response.json().get('error', 'Unbekannter Fehler')
+                        return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                               f'Fehler beim Senden des OTP-Codes: {error_msg}', no_update, no_update]
+                except Exception as e:
+                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                           f'Fehler beim Senden des OTP-Codes: {str(e)}', no_update, no_update]
+
+            except Exception as e:
+                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
+                       f'Fehler: {str(e)}', no_update, no_update]
+
+    # Handle initial load or auth status change
     if not auth_data:
         # No auth data - show login form
         return [
             {'display': 'block'},  # Show login container
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
-            ''  # No user info
+            '',  # No user info
+            {'display': 'none'},  # Hide logout button
+            '',  # Clear request error
+            '',  # Clear instructions
+            '',  # Clear verify error
+            no_update,  # Keep auth data
+            no_update,  # Keep email
+            no_update   # Keep OTP
         ]
 
     if auth_data.get('authenticated', False):
         # User is authenticated - show settings
         email = auth_data.get('email', 'Unbekannt')
         user_info = html.Div([
-            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
-            html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                **get_button_style('secondary'),
-                'padding': '5px 10px',
-                'marginLeft': '10px',
-                'fontSize': '12px'
-            })
+            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
         ], style={'textAlign': 'right', 'marginBottom': '20px'})
 
         return [
             {'display': 'none'},  # Hide login container
             {'display': 'block'}, # Show settings container
             {'display': 'none'},  # Hide OTP code container
-            user_info
+            user_info,  # Show user info
+            {'display': 'block'}, # Show logout button
+            '',  # Clear request error
+            '',  # Clear instructions
+            '',  # Clear verify error
+            no_update,  # Keep auth data
+            no_update,  # Keep email
+            no_update   # Keep OTP
         ]
     else:
         # User is not authenticated - show login form
@@ -514,180 +727,23 @@ def check_auth_status_on_load(auth_data):
             {'display': 'block'},  # Show login container
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
-            ''  # No user info
+            '',  # No user info
+            {'display': 'none'},  # Hide logout button
+            '',  # Clear request error
+            '',  # Clear instructions
+            '',  # Clear verify error
+            no_update,  # Keep auth data
+            no_update,  # Keep email
+            no_update   # Keep OTP
         ]
 
-# Callback to handle OTP request
-@callback(
-    [Output('otp-login-container', 'style'),
-     Output('otp-code-container', 'style'),
-     Output('otp-request-error', 'children'),
-     Output('otp-instructions', 'children')],
-    [Input('request-otp-button', 'n_clicks')],
-    [State('email-input', 'value')]
-)
-def handle_otp_request(n_clicks, email):
-    if n_clicks and n_clicks > 0:
-        if not email:
-            return [no_update, no_update, 'Bitte geben Sie eine E-Mail-Adresse ein.', no_update]
+# Initial load callback removed - consolidated into manage_authentication_state
 
-        try:
-            # Validate email format
-            if '@' not in email or '.' not in email:
-                return [no_update, no_update, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.', no_update]
+# OTP request callback removed - consolidated into manage_authentication_state
 
-            # Check if user exists, create if not
-            user = get_user_by_email(email)
-            if user:
-                user_id = user[0]
-            else:
-                user_id = create_user(email)
+# OTP verification callback removed - consolidated into manage_authentication_state
 
-            if not user_id:
-                return [no_update, no_update, 'Fehler beim Erstellen des Benutzers.', no_update]
-
-            # Generate OTP
-            otp, otp_id = generate_otp_for_user(user_id)
-
-            # Send OTP via Apprise (using the template from config)
-            config = load_config()
-            otp_template = config.get('core', {}).get('otp_apprise_url_template')
-
-            if otp_template:
-                # Format the template with user email and OTP
-                apprise_url = otp_template.format(email=email, otp=otp)
-
-                # Send OTP notification
-                apobj = apprise.Apprise()
-                apobj.add(apprise_url)
-                apobj.notify(
-                    title='TI-Monitoring OTP-Code',
-                    body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
-                    body_format=apprise.NotifyFormat.TEXT
-                )
-
-            instructions = f'Bitte geben Sie den 6-stelligen Code ein, den Sie per E-Mail an {email} erhalten haben.'
-            return [{'display': 'none'}, {'display': 'block'}, '', instructions]
-
-        except Exception as e:
-            return [no_update, no_update, f'Fehler beim Senden des OTP-Codes: {str(e)}', no_update]
-
-    return [no_update, no_update, '', no_update]
-
-# Callback to handle OTP verification
-@callback(
-    [Output('otp-code-container', 'style', allow_duplicate=True),
-     Output('settings-container', 'style'),
-     Output('otp-verify-error', 'children'),
-     Output('auth-status', 'data'),
-     Output('user-info', 'children')],
-    [Input('verify-otp-button', 'n_clicks')],
-    [State('email-input', 'value'),
-     State('otp-code-input', 'value'),
-     State('auth-status', 'data')],
-    prevent_initial_call=True
-)
-def handle_otp_verification(n_clicks, email, otp_code, auth_data):
-    if n_clicks and n_clicks > 0:
-        if not email or not otp_code:
-            return [no_update, no_update, 'Bitte geben Sie E-Mail und OTP-Code ein.', no_update, no_update]
-
-        try:
-            # Get user by email
-            user = get_user_by_email(email)
-            if not user:
-                return [no_update, no_update, 'Benutzer nicht gefunden.', no_update, no_update]
-
-            user_id = user[0]
-
-            # Check if account is locked
-            if is_account_locked(user_id):
-                return [no_update, no_update, 'Konto ist gesperrt. Bitte versuchen Sie es später erneut.', no_update, no_update]
-
-            # Validate OTP
-            if validate_otp(user_id, otp_code):
-                # Authentication successful
-                auth_data['authenticated'] = True
-                auth_data['user_id'] = user_id
-                auth_data['email'] = email
-
-                user_info = html.Div([
-                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
-                    html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                        **get_button_style('secondary'),
-                        'padding': '5px 10px',
-                        'fontSize': '12px',
-                        'marginLeft': '15px'
-                    })
-                ])
-
-                return [{'display': 'none'}, {'display': 'block'}, '', auth_data, user_info]
-            else:
-                # OTP validation failed
-                # Check if we should lock the account
-                with get_db_conn() as conn, conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT failed_login_attempts FROM users WHERE id = %s
-                    """, (user_id,))
-                    failed_attempts = cur.fetchone()[0] if cur.fetchone() else 0
-
-                    if failed_attempts >= 5:
-                        lock_user_account(user_id)
-                        return [no_update, no_update, 'Zu viele fehlgeschlagene Versuche. Konto ist jetzt gesperrt.', no_update, no_update]
-
-                return [no_update, no_update, 'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.', no_update, no_update]
-
-        except Exception as e:
-            return [no_update, no_update, f'Fehler bei der Verifizierung: {str(e)}', no_update, no_update]
-
-    return [no_update, no_update, '', no_update, no_update]
-
-# Callback to resend OTP
-@callback(
-    Output('otp-request-error', 'children', allow_duplicate=True),
-    [Input('resend-otp-button', 'n_clicks')],
-    [State('email-input', 'value')],
-    prevent_initial_call=True
-)
-def handle_resend_otp(n_clicks, email):
-    if n_clicks and n_clicks > 0:
-        if not email:
-            return 'Bitte geben Sie eine E-Mail-Adresse ein.'
-
-        try:
-            # Get user by email
-            user = get_user_by_email(email)
-            if not user:
-                return 'Benutzer nicht gefunden.'
-
-            user_id = user[0]
-
-            # Generate new OTP
-            otp, otp_id = generate_otp_for_user(user_id)
-
-            # Send OTP via Apprise (using the template from config)
-            config = load_config()
-            otp_template = config.get('core', {}).get('otp_apprise_url_template')
-
-            if otp_template:
-                # Format the template with user email and OTP
-                apprise_url = otp_template.format(email=email, otp=otp)
-
-                # Send OTP notification
-                apobj = apprise.Apprise()
-                apobj.add(apprise_url)
-                apobj.notify(
-                    title='TI-Monitoring OTP-Code (Neu)',
-                    body=f'Ihr neuer OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
-                    body_format=apprise.NotifyFormat.TEXT
-                )
-
-            return 'Neuer OTP-Code wurde gesendet.'
-
-        except Exception as e:
-            return f'Fehler beim Senden des OTP-Codes: {str(e)}'
-
-    return ''
+# Resend OTP callback removed - consolidated into manage_authentication_state
 
 # Callback to handle Enter key in password input
 @callback(
@@ -1045,36 +1101,7 @@ def update_checkbox_states(selected_cis, available_cis_data, editing_index, filt
     except Exception as e:
         return html.P(f'Error updating checkboxes: {str(e)}', style={'color': '#e74c3c', 'textAlign': 'center'})
 
-# Callback to handle logout
-@callback(
-    [Output('otp-login-container', 'style', allow_duplicate=True),
-     Output('settings-container', 'style', allow_duplicate=True),
-     Output('otp-code-container', 'style', allow_duplicate=True),
-     Output('auth-status', 'data', allow_duplicate=True),
-     Output('email-input', 'value'),
-     Output('otp-code-input', 'value')],
-    [Input('logout-button', 'n_clicks')],
-    [State('auth-status', 'data')],
-    prevent_initial_call=True
-)
-def handle_logout(n_clicks, auth_data):
-    if n_clicks and n_clicks > 0:
-        # Reset authentication status
-        auth_data['authenticated'] = False
-        auth_data['user_id'] = None
-        auth_data['email'] = None
-
-        # Reset form inputs
-        return [
-            {'display': 'block'},  # Show login container
-            {'display': 'none'},   # Hide settings container
-            {'display': 'none'},   # Hide OTP code container
-            auth_data,             # Reset auth data
-            '',                    # Clear email input
-            ''                     # Clear OTP input
-        ]
-
-    return [no_update, no_update, no_update, no_update, no_update, no_update]
+# Logout callback removed - consolidated into manage_authentication_state
 
 # Callback to load and display profiles from database
 @callback(
@@ -1192,7 +1219,7 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
     [State('auth-status', 'data')]
 )
 def show_profile_form(add_clicks, edit_clicks, auth_data):
-    if not auth_data.get('authenticated', False):
+    if not auth_data or not auth_data.get('authenticated', False):
         return [{'display': 'none'}, None, '', 'whitelist', 'apprise', '', {'display': 'block'}, {'display': 'none'}]
 
     # Check if add button was clicked
