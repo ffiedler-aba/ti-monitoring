@@ -260,8 +260,15 @@ def health_check():
 # Unsubscribe endpoint
 @server.route('/unsubscribe/<token>')
 def unsubscribe(token):
-    """Unsubscribe endpoint for deleting notification profiles via token"""
+    """Unsubscribe endpoint.
+
+    - Ohne Query-Param entfernt der Endpoint das gesamte Profil (Bestand).
+    - Mit Query-Param u=<hash> wird nur die einzelne Apprise-URL am Hash gelöscht.
+    """
     try:
+        # Query-Param für per-URL-Opt-Out
+        url_hash = request.args.get('u')
+        
         # Get profile by token
         profile = get_profile_by_unsubscribe_token(token)
         if not profile:
@@ -277,8 +284,34 @@ def unsubscribe(token):
             ''', 404
         
         profile_id, user_id, name, email_notifications, email_address = profile
-        
-        # Delete the profile
+
+        # Per-URL-Opt-Out
+        if url_hash:
+            if remove_apprise_url_by_token_and_hash(token, url_hash):
+                return f'''
+                <!DOCTYPE html>
+                <html>
+                <head><title>Kanal abgemeldet</title></head>
+                <body>
+                    <h2>Kanal abgemeldet</h2>
+                    <p>Die ausgewählte Benachrichtigungs‑URL wurde erfolgreich aus dem Profil "{name}" entfernt.</p>
+                    <p>Sie können die übrigen Kanäle in den <a href="/notifications">Benachrichtigungseinstellungen</a> verwalten.</p>
+                </body>
+                </html>
+                ''', 200
+            else:
+                return '''
+                <!DOCTYPE html>
+                <html>
+                <head><title>Nichts zu entfernen</title></head>
+                <body>
+                    <h2>Nichts zu entfernen</h2>
+                    <p>Die angegebene URL konnte nicht gefunden werden. Der Link ist möglicherweise abgelaufen oder bereits verwendet.</p>
+                </body>
+                </html>
+                ''', 404
+
+        # Profil-Opt-Out (Bestand)
         if delete_profile_by_unsubscribe_token(token):
             return f'''
             <!DOCTYPE html>

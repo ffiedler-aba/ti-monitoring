@@ -1395,6 +1395,53 @@ def delete_profile_by_unsubscribe_token(token):
         """, (token,))
         return cur.rowcount > 0
 
+def remove_apprise_url_by_token_and_hash(token: str, url_hash: str) -> bool:
+    """Remove a single apprise URL from a profile identified by unsubscribe token using stored url hash.
+
+    Returns True if an URL was removed and profile updated; False otherwise.
+    """
+    if not token or not url_hash:
+        return False
+    with get_db_conn() as conn, conn.cursor() as cur:
+        # Load arrays
+        cur.execute(
+            """
+            SELECT id, apprise_urls, apprise_urls_hash, apprise_urls_salt
+            FROM notification_profiles
+            WHERE unsubscribe_token = %s
+            """,
+            (token,)
+        )
+        row = cur.fetchone()
+        if not row:
+            return False
+        profile_id, urls, hashes, salts = row
+        urls = list(urls or [])
+        hashes = list(hashes or [])
+        salts = list(salts or [])
+        if not hashes or len(hashes) != len(urls):
+            return False
+        # Find index by hash
+        try:
+            idx = hashes.index(url_hash)
+        except ValueError:
+            return False
+        # Remove the corresponding entries
+        del urls[idx]
+        del hashes[idx]
+        if salts and len(salts) > idx:
+            del salts[idx]
+        # Update DB
+        cur.execute(
+            """
+            UPDATE notification_profiles
+            SET apprise_urls = %s, apprise_urls_hash = %s, apprise_urls_salt = %s, updated_at = NOW()
+            WHERE id = %s
+            """,
+            (urls, hashes, salts, profile_id)
+        )
+        return cur.rowcount > 0
+
 def send_db_notifications():
     """
     Send notifications to all users using the new multi-user system.
@@ -1406,8 +1453,9 @@ def send_db_notifications():
         # Get all notification profiles from the database
         with get_db_conn() as conn, conn.cursor() as cur:
             cur.execute("""
-                SELECT np.id, np.user_id, np.name, np.type, np.ci_list, 
-                       np.apprise_urls, np.email_notifications, np.email_address,
+                SELECT np.id, np.user_id, np.name, np.type, np.ci_list,
+                       np.apprise_urls, np.apprise_urls_hash, np.apprise_urls_salt,
+                       np.email_notifications, np.email_address,
                        u.email as user_email
                 FROM notification_profiles np
                 JOIN users u ON np.user_id = u.id
@@ -1430,7 +1478,7 @@ def send_db_notifications():
             # Process each profile
             for profile in profiles:
                 try:
-                    profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, email_notifications, email_address, user_email = profile
+                    profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, email_notifications, email_address, user_email = profile
                     
                     # Filter relevant changes
                     if profile_type == 'whitelist':
@@ -1447,7 +1495,7 @@ def send_db_notifications():
                         message = create_notification_message(relevant_changes, profile_name, '')
                         subject = f'TI-Monitoring: {number_of_relevant_changes} Änderungen der Verfügbarkeit'
                         
-                        # Add unsubscribe link to the message
+                        # Prepare base unsubscribe token/link (profile-level)
                         config = load_config()
                         unsubscribe_base_url = config.get('core', {}).get('unsubscribe_base_url', '')
                         
@@ -1459,15 +1507,34 @@ def send_db_notifications():
                             token_result = cur.fetchone()
                             if token_result:
                                 unsubscribe_token = token_result[0]
-                                unsubscribe_link = f"{unsubscribe_base_url}/{unsubscribe_token}"
-                                message += f'<p><a href="{unsubscribe_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
+                                profile_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}"
+                                # Hinweis: Profil-weites Opt-Out weiterhin anbieten
+                                message_with_profile_unsub = message + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
                         
                         # Send via Apprise if Apprise URLs are configured
                         if apprise_urls and len(apprise_urls) > 0:
                             apobj = apprise.Apprise()
-                            for url in apprise_urls:
-                                apobj.add(url)
-                            apobj.notify(title=subject, body=message, body_format=apprise.NotifyFormat.HTML)
+                            # Falls Hashes vorhanden sind, pro URL individuellen Opt-Out-Link beilegen
+                            if unsubscribe_base_url and apprise_urls_hash and len(apprise_urls_hash) == len(apprise_urls):
+                                for idx, url in enumerate(apprise_urls):
+                                    try:
+                                        url_hash = apprise_urls_hash[idx]
+                                        per_url_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}?u={url_hash}"
+                                        body = message + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
+                                        # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
+                                        body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
+                                        apobj = apprise.Apprise()
+                                        apobj.add(url)
+                                        apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                    except Exception as e:
+                                        print(f"Error sending per-URL notification for profile {profile_id}: {e}")
+                            else:
+                                # Fallback: eine Nachricht an alle URLs mit Profil-Opt-Out-Link
+                                for url in apprise_urls:
+                                    apobj = apprise.Apprise()
+                                    apobj.add(url)
+                                    body = message_with_profile_unsub if unsubscribe_base_url else message
+                                    apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
                         
                         # Send via simple email if email notifications are enabled
                         if email_notifications and email_address:
