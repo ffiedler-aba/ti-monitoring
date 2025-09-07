@@ -45,6 +45,24 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
+def get_button_style(variant='primary'):
+    base = {
+        'border': 'none',
+        'borderRadius': '8px',
+        'padding': '8px 14px',
+        'cursor': 'pointer',
+        'fontWeight': 600,
+        'boxShadow': '0 2px 6px rgba(0,0,0,0.08)',
+        'transition': 'background 0.2s ease',
+        'marginRight': '8px'
+    }
+    if variant == 'secondary':
+        return {**base, 'background': '#eceff1', 'color': '#2c3e50'}
+    if variant == 'danger':
+        return {**base, 'background': '#e74c3c', 'color': '#ffffff'}
+    # primary
+    return {**base, 'background': '#1976d2', 'color': '#ffffff'}
+
 def get_log_file_path():
     """Get the path to the cron log file"""
     return os.path.join(os.path.dirname(__file__), '..', 'data', 'cron.log')
@@ -258,12 +276,12 @@ def serve_layout():
                         {'label': 'Alle Zeilen', 'value': 0}
                     ],
                     value=100,
-                    style={'width': '200px'}
+                    style={'width': '220px'}
                 )
             ]),
             html.Div(className='control-group', children=[
-                html.Button('🔄 Aktualisieren', id='refresh-logs-btn', n_clicks=0, className='btn btn-primary'),
-                html.Button('📄 Vollständige Logs', id='full-logs-btn', n_clicks=0, className='btn btn-secondary')
+                html.Button('🔄 Aktualisieren', id='refresh-logs-btn', n_clicks=0, style=get_button_style('primary')),
+                html.Button('📄 Vollständige Logs', id='full-logs-btn', n_clicks=0, style=get_button_style('secondary'))
             ])
         ]),
 
