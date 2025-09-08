@@ -221,7 +221,10 @@ def serve_layout():
                 **get_button_style('danger'),
                 'marginLeft': '10px'
             }),
-            dcc.ConfirmDialog(id='confirm-delete-own-profile', message='Soll Ihr Profil (alle Benachrichtigungen) endgültig gelöscht werden?'),
+            dcc.ConfirmDialog(id='confirm-delete-user-profile', message='Soll Ihr Profil (alle Benachrichtigungen) endgültig gelöscht werden?'),
+
+            # Status message for delete operations
+            html.Div(id='delete-status-message', style={'color': '#e74c3c', 'marginTop': '15px', 'fontWeight': '500'}),
 
             html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.', style={
                 'color': '#7f8c8d',
@@ -483,6 +486,57 @@ def serve_layout():
     return layout
 
 layout = serve_layout
+
+# Callback: Confirm-Dialog für Profil-Löschung anzeigen
+@callback(
+    Output('confirm-delete-user-profile', 'displayed'),
+    [Input('delete-own-profile-button', 'n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def show_delete_confirm_dialog(n_clicks, auth_data):
+    if not n_clicks:
+        return no_update
+    if not auth_data or not auth_data.get('authenticated'):
+        return no_update
+    return True
+
+# Callback: Profil löschen nach Bestätigung
+@callback(
+    [Output('delete-status-message', 'children'),
+     Output('auth-status', 'data', allow_duplicate=True)],
+    [Input('confirm-delete-user-profile', 'submit_n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def delete_user_profile(confirm_clicks, auth_data):
+    if not confirm_clicks:
+        return no_update, no_update
+    try:
+        if not auth_data or not auth_data.get('authenticated'):
+            return no_update, no_update
+        user_email = auth_data.get('email')
+        if not user_email:
+            return no_update, no_update
+
+        # Use get_user_by_email which handles encryption correctly
+        user_data = get_user_by_email(user_email)
+        if user_data:
+            user_id = user_data[0]
+            with get_db_conn() as conn, conn.cursor() as cur:
+                # Delete all related data first
+                cur.execute("DELETE FROM notification_profiles WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM sessions WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM user_otps WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM otp_codes WHERE user_id=%s", (user_id,))
+                # Delete user completely
+                cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+                conn.commit()
+
+        # Return success message and reset auth
+        return 'Ihr Profil wurde vollständig gelöscht.', {'authenticated': False, 'user_id': None, 'email': None}
+    except Exception as e:
+        return f'Fehler beim Löschen: {str(e)}', no_update
 
 # Consolidated callback for authentication state management
 @callback(
@@ -1646,51 +1700,3 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Br(),
                 html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
         ])
-
-# Callback: eigenen Profil-Löschdialog anzeigen
-@callback(
-    Output('confirm-delete-own-profile', 'displayed'),
-    [Input('delete-own-profile-button', 'n_clicks')],
-    [State('auth-status', 'data')],
-    prevent_initial_call=True
-)
-def show_confirm_delete_own_profile(n_clicks, auth_data):
-    if not n_clicks:
-        return no_update
-    if not auth_data or not auth_data.get('authenticated'):
-        return no_update
-    return True
-
-# Callback: eigenes Profil löschen nach Bestätigung (setzt nur auth-status)
-@callback(
-    Output('auth-status', 'data'),
-    [Input('confirm-delete-own-profile', 'submit_n_clicks')],
-    [State('auth-status', 'data')],
-    prevent_initial_call=True
-)
-def delete_own_profile(confirm_clicks, auth_data):
-    if not confirm_clicks:
-        return no_update
-    try:
-        if not auth_data or not auth_data.get('authenticated'):
-            return no_update
-        user_email = auth_data.get('email')
-        if not user_email:
-            return no_update
-        with get_db_conn() as conn, conn.cursor() as cur:
-            cur.execute("SELECT id FROM users WHERE email=%s", (user_email,))
-            row = cur.fetchone()
-            if row:
-                user_id = row[0]
-                # Delete all related data first (if no CASCADE)
-                cur.execute("DELETE FROM notification_profiles WHERE user_id=%s", (user_id,))
-                cur.execute("DELETE FROM sessions WHERE user_id=%s", (user_id,))
-                cur.execute("DELETE FROM user_otps WHERE user_id=%s", (user_id,))
-                cur.execute("DELETE FROM otp_codes WHERE user_id=%s", (user_id,))
-                # Delete user completely
-                cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
-                conn.commit()
-        # Auth zurücksetzen; manage_authentication_state übernimmt UI-Reset
-        return {'authenticated': False, 'user_id': None, 'email': None}
-    except Exception:
-        return no_update
