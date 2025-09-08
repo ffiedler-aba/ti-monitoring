@@ -1151,7 +1151,7 @@ def create_html_list_item_for_change(change, home_url):
         str: html list item element
     """
     if home_url:
-        href = home_url + '/plot?ci=' + str(change['ci'])
+        href = str(home_url) + '/plot?ci=' + str(change['ci'])
     else:
         href = ''
     # Emoji je nach Änderungstyp bestimmen
@@ -1168,7 +1168,7 @@ def create_html_list_item_for_change(change, home_url):
         html_str += '<span style=color:red> *ist nicht mehr verfügbar*</span>'
     else:
         html_str += ' keine Veränderung'
-    html_str += + emoji + ' '
+    html_str += emoji + ' '
     html_str += '- Stand: ' + str(pretty_timestamp(change['time'])) + '</li>'
     return html_str
 
@@ -1199,7 +1199,9 @@ def create_notification_message(changes, recipient_name, home_url):
     message += '<ul>'
     
     for index, change in changes.iterrows():
-        message += create_html_list_item_for_change(change, home_url)
+        list_item = create_html_list_item_for_change(change, home_url)
+        if list_item:
+            message += str(list_item)
         
     if home_url:    
         message += f'</ul><p>Den aktuellen Status aller Komponenten können Sie unter <a href="{home_url}">{home_url}</a> einsehen.</p>'
@@ -1569,7 +1571,7 @@ def send_db_notifications():
                     if number_of_relevant_changes > 0:
                         # Create notification message
                         message = create_notification_message(relevant_changes, profile_name, '')
-                        subject = f'TI-Monitoring: {number_of_relevant_changes} Änderungen der Verfügbarkeit'
+                        subject = f'TI-Monitoring: {str(number_of_relevant_changes)} Änderungen der Verfügbarkeit'
                         
                         # Prepare base unsubscribe token/link (profile-level)
                         config = load_config()
@@ -1585,7 +1587,7 @@ def send_db_notifications():
                                 unsubscribe_token = token_result[0]
                                 profile_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}"
                                 # Hinweis: Profil-weites Opt-Out weiterhin anbieten
-                                message_with_profile_unsub = message + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
+                                message_with_profile_unsub = str(message) + f'<p><a href="{profile_unsub_link}">Abmelden von diesem Benachrichtigungsprofil</a></p>'
                         
                         # Versand-Strategie: E-Mail (einfach) ist exklusiv; sonst benutzerdefinierte Apprise-URLs
                         if email_notifications:
@@ -1630,7 +1632,7 @@ def send_db_notifications():
                                     try:
                                         url_hash = apprise_urls_hash[idx]
                                         per_url_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}?u={url_hash}"
-                                        body = message + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
+                                        body = str(message) + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
                                         # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
                                         body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
                                         apobj = apprise.Apprise()
@@ -1650,6 +1652,8 @@ def send_db_notifications():
                         
                 except Exception as e:
                     print(f'Error sending notification for profile {profile_id}: {e}')
+                    import traceback
+                    traceback.print_exc()
                     continue
                     
     except Exception as e:

@@ -129,6 +129,8 @@ def serve_layout():
         # Store for authentication status (persistent in browser)
         # Don't set initial data - let the browser's localStorage handle persistence
         dcc.Store(id='auth-status', storage_type='local'),
+        # UI state store (single source of truth for styles/content)
+        dcc.Store(id='ui-state-store'),
 
         # OTP Login form (shown when not authenticated)
         html.Div(id='otp-login-container', children=[
@@ -213,6 +215,13 @@ def serve_layout():
                 **get_button_style('secondary'),
                 'display': 'none'  # Hidden by default
             }),
+
+            # Delete profile button + confirm dialog
+            html.Button('Profil vollständig löschen', id='delete-own-profile-button', n_clicks=0, style={
+                **get_button_style('danger'),
+                'marginLeft': '10px'
+            }),
+            dcc.ConfirmDialog(id='confirm-delete-own-profile', message='Soll Ihr Profil (alle Benachrichtigungen) endgültig gelöscht werden?'),
 
             html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.', style={
                 'color': '#7f8c8d',
@@ -807,6 +816,29 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
 # Initial load callback removed - consolidated into manage_authentication_state
 
 # OTP request callback removed - consolidated into manage_authentication_state
+
+# Derive minimal UI state into dcc.Store for future refactor (non-invasive)
+@callback(
+    Output('ui-state-store', 'data'),
+    [Input('auth-status', 'data')],
+    [State('email-input', 'value')],
+    prevent_initial_call=False
+)
+def derive_ui_state(auth_data, email):
+    state = {
+        'showLogin': True,
+        'showSettings': False,
+        'showOtp': False,
+        'email': email or ''
+    }
+    try:
+        if auth_data and auth_data.get('authenticated'):
+            state['showLogin'] = False
+            state['showSettings'] = True
+            state['email'] = auth_data.get('email', state['email'])
+    except Exception:
+        pass
+    return state
 
 # OTP verification callback removed - consolidated into manage_authentication_state
 
@@ -1438,26 +1470,17 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
                 return [no_update, 'Eine oder mehrere Apprise-URLs sind ungültig.', get_error_style(visible=True), 0]
 
         try:
-            # Save profile to database
-            with get_db_conn() as conn, conn.cursor() as cur:
-                if edit_id:
-                    # Update existing profile
-                    cur.execute("""
-                        UPDATE notification_profiles
-                        SET name = %s, type = %s, ci_list = %s, apprise_urls = %s,
-                            email_notifications = %s, email_address = %s, updated_at = NOW()
-                        WHERE id = %s AND user_id = %s
-                    """, (name, notification_type, ci_items, url_items, email_notifications, email_address, edit_id, user_id))
-                else:
-                    # Generate unsubscribe token
-                    unsubscribe_token = secrets.token_urlsafe(32)
-
-                    # Add new profile
-                    cur.execute("""
-                        INSERT INTO notification_profiles
-                        (user_id, name, type, ci_list, apprise_urls, email_notifications, email_address, unsubscribe_token)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (user_id, name, notification_type, ci_items, url_items, email_notifications, email_address, unsubscribe_token))
+            # Save profile to database using encryption functions
+            if edit_id:
+                # Update existing profile
+                success = update_notification_profile(edit_id, user_id, name, notification_type, ci_items, url_items, email_notifications, email_address)
+                if not success:
+                    return [no_update, 'Fehler beim Aktualisieren des Profils.', get_error_style(visible=True), 0]
+            else:
+                # Add new profile
+                profile_id = create_notification_profile(user_id, name, notification_type, ci_items, url_items, email_notifications, email_address)
+                if not profile_id:
+                    return [no_update, 'Fehler beim Erstellen des Profils.', get_error_style(visible=True), 0]
 
             return [{'display': 'none'}, '', get_error_style(visible=False), 0]  # Hide form and reset clicks
         except Exception as e:
@@ -1623,3 +1646,51 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Br(),
                 html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
         ])
+
+# Callback: eigenen Profil-Löschdialog anzeigen
+@callback(
+    Output('confirm-delete-own-profile', 'displayed'),
+    [Input('delete-own-profile-button', 'n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def show_confirm_delete_own_profile(n_clicks, auth_data):
+    if not n_clicks:
+        return no_update
+    if not auth_data or not auth_data.get('authenticated'):
+        return no_update
+    return True
+
+# Callback: eigenes Profil löschen nach Bestätigung (setzt nur auth-status)
+@callback(
+    Output('auth-status', 'data'),
+    [Input('confirm-delete-own-profile', 'submit_n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def delete_own_profile(confirm_clicks, auth_data):
+    if not confirm_clicks:
+        return no_update
+    try:
+        if not auth_data or not auth_data.get('authenticated'):
+            return no_update
+        user_email = auth_data.get('email')
+        if not user_email:
+            return no_update
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE email=%s", (user_email,))
+            row = cur.fetchone()
+            if row:
+                user_id = row[0]
+                # Delete all related data first (if no CASCADE)
+                cur.execute("DELETE FROM notification_profiles WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM sessions WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM user_otps WHERE user_id=%s", (user_id,))
+                cur.execute("DELETE FROM otp_codes WHERE user_id=%s", (user_id,))
+                # Delete user completely
+                cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+                conn.commit()
+        # Auth zurücksetzen; manage_authentication_state übernimmt UI-Reset
+        return {'authenticated': False, 'user_id': None, 'email': None}
+    except Exception:
+        return no_update
