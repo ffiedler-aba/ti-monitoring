@@ -52,6 +52,9 @@ core:
   # Base URL for unsubscribe links
   unsubscribe_base_url: "https://ti-monitoring.example.com/unsubscribe"
 
+  # Admin email address (user with this email gets admin privileges)
+  admin_email: "admin@example.com"
+
   # Cron job intervals (in iterations, where each iteration = 5 minutes)
   cron_intervals:
     # Statistics update interval (default: every 2 iterations = 10 minutes)

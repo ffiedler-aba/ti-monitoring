@@ -189,6 +189,13 @@ def format_file_size(size_bytes):
 
 dash.register_page(__name__, path='/logs')
 
+def redirect_to_admin():
+    """Redirect to admin logs page"""
+    return html.Div([
+        html.Script('window.location.href = "/admin/logs";'),
+        html.P('Weiterleitung zu Admin-Logs...', style={'textAlign': 'center'})
+    ])
+
 def create_log_info_display(log_info):
     """Create the log file information display"""
     if not log_info['exists']:
@@ -363,4 +370,4 @@ def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_li
 
     return display, lines
 
-layout = serve_layout
+layout = redirect_to_admin

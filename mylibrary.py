@@ -1381,6 +1381,15 @@ def get_user_notification_profiles(user_id):
         """, (user_id,))
         return cur.fetchall()
 
+def is_admin_user(email):
+    """Check if user has admin privileges based on config.yaml"""
+    try:
+        config = load_config()
+        admin_email = config.get('core', {}).get('admin_email', '')
+        return email == admin_email
+    except Exception:
+        return False
+
 def get_notification_profile(profile_id, user_id):
     """Get a specific notification profile for a user"""
     with get_db_conn() as conn, conn.cursor() as cur:
