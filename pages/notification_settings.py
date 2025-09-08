@@ -495,7 +495,7 @@ layout = serve_layout
      Input('logout-button', 'n_clicks')],
     [State('email-input', 'value'),
      State('otp-code-input', 'value')],
-    prevent_initial_call='initial_duplicate'
+    prevent_initial_call=True
 )
 def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_clicks, logout_clicks, email, otp_code):
     """Consolidated callback for authentication state management"""
@@ -1231,15 +1231,15 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 
 # Callback to show profile form
 @callback(
-    [Output('profile-form-container', 'style'),
+    [Output('profile-form-container', 'style', allow_duplicate=True),
      Output('editing-profile-id', 'data'),
      Output('editing-profile-index', 'data'),
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
      Output('apprise-urls-textarea', 'value'),
-     Output('apprise-section', 'style'),
-     Output('email-section', 'style')],
+     Output('apprise-section', 'style', allow_duplicate=True),
+     Output('email-section', 'style', allow_duplicate=True)],
     [Input('add-profile-button', 'n_clicks'),
      Input({'type': 'edit-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     [State('auth-status', 'data')]
@@ -1321,8 +1321,8 @@ def toggle_notification_method(method):
 # Callback to save profile
 @callback(
     [Output('profile-form-container', 'style', allow_duplicate=True),
-     Output('form-error', 'children'),
-     Output('form-error', 'style'),
+     Output('form-error', 'children', allow_duplicate=True),
+     Output('form-error', 'style', allow_duplicate=True),
      Output('save-profile-button', 'n_clicks')],
     [Input('save-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
@@ -1403,8 +1403,8 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
 
 # Callback to handle delete confirmation
 @callback(
-    [Output('delete-confirm', 'displayed'),
-     Output('delete-confirm', 'message'),
+    [Output('delete-confirm', 'displayed', allow_duplicate=True),
+     Output('delete-confirm', 'message', allow_duplicate=True),
      Output('delete-index-store', 'data')],
     [Input({'type': 'delete-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     prevent_initial_call=True

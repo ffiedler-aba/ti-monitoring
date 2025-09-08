@@ -2,10 +2,17 @@
 """Simple migration smoke test.
 
 Runs run_db_migrations() and verifies existence of required tables/columns.
-Reads DB params from config.yaml (core.timescaledb).
+Database connectivity is taken from environment variables (.env via Compose).
 """
+import os
 import sys
-from mylibrary import load_config, get_db_conn, run_db_migrations
+
+# Ensure project root on sys.path for local execution / hooks
+ROOT = os.path.dirname(os.path.dirname(__file__))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from mylibrary import get_db_conn, run_db_migrations
 
 
 REQUIRED_TABLES = {

@@ -1,11 +1,14 @@
 import dash
 from dash import html, dcc, Input, Output, callback
 import plotly.express as px
+import plotly.graph_objects as go
 from mylibrary import *
 import yaml
 import os
 import pandas as pd
 import numpy as np
+import pytz
+from datetime import datetime, timedelta
 
 def load_config():
     """Load configuration from YAML file"""
@@ -48,434 +51,296 @@ def load_ci_mttr_mtbf(ci):
         with open(stats_file, 'r', encoding='utf-8') as f:
             stats = json.load(f)
 
-        if 'per_ci_metrics' in stats and ci in stats['per_ci_metrics']:
-            ci_metrics = stats['per_ci_metrics'][ci]
-            mttr_minutes = ci_metrics.get('mttr_minutes', 0)
-            mtbf_minutes = ci_metrics.get('mtbf_minutes', 0)
-            incidents = ci_metrics.get('incidents', 0)
-            return mttr_minutes, mtbf_minutes, incidents
-
-        return 0, 0, 0
-    except Exception as e:
-        print(f"Error loading MTTR/MTBF for CI {ci}: {e}")
+        if ci in stats:
+            mttr = stats[ci].get('mttr', 0)
+            mtbf = stats[ci].get('mtbf', 0)
+            incidents = stats[ci].get('incidents', 0)
+            return mttr, mtbf, incidents
+        else:
+            return 0, 0, 0
+    except Exception:
         return 0, 0, 0
 
 def calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name, ci):
-    """
-    Calculate comprehensive statistics for a CI including:
-    - Time range statistics (beginning/end of recording)
-    - Data point counts
-    - Downtime statistics (time and percentage)
-    - Additional useful metrics
-    """
+    """Calculate comprehensive statistics for the selected time period"""
     if ci_data.empty:
-        return {}
+        return {
+            'selected_period': {
+                'duration_hours': selected_hours,
+                'data_points': 0,
+                'availability_percent': 0.0,
+                'start_time': 'N/A',
+                'end_time': 'N/A'
+            },
+            'overall_record': {
+                'start_time': 'N/A',
+                'end_time': 'N/A',
+                'total_duration_days': 0,
+                'total_data_points': 0,
+                'data_completeness_percent': 0.0
+            },
+            'downtime_stats': {
+                'downtime_points': 0,
+                'downtime_percent': 0.0,
+                'downtime_duration_minutes': 0,
+                'longest_downtime_points': 0,
+                'longest_downtime_minutes': 0,
+                'uptime_points': 0,
+                'uptime_percent': 0.0,
+                'uptime_duration_minutes': 0,
+                'longest_uptime_points': 0,
+                'longest_uptime_minutes': 0,
+                'incidents': 0,
+                'mttr': 'N/A',
+                'mtbf': 'N/A'
+            }
+        }
 
-    # Get all available data (not just the selected time range)
-    all_data = get_availability_data_of_ci(config_file_name, ci)
+    # Convert times to datetime if needed
+    if not pd.api.types.is_datetime64_any_dtype(ci_data['times']):
+        ci_data['times'] = pd.to_datetime(ci_data['times'])
 
-    # Basic statistics for selected time range
-    selected_data = ci_data
-    number_of_values = len(selected_data['values'])
-    mean_availability = np.mean(selected_data['values'].values)
-    first_timestamp_selected = selected_data['times'].iloc[0]
-    last_timestamp_selected = selected_data['times'].iloc[-1]
+    # Ensure timezone-aware
+    if ci_data['times'].dt.tz is None:
+        ci_data['times'] = ci_data['times'].dt.tz_localize('Europe/Berlin')
+    else:
+        ci_data['times'] = ci_data['times'].dt.tz_convert('Europe/Berlin')
 
-    # Statistics for entire available data
-    total_records = len(all_data['values'])
-    first_timestamp_total = all_data['times'].iloc[0]
-    last_timestamp_total = all_data['times'].iloc[-1]
+    # Calculate cutoff time for selected period
+    cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
 
-    # Calculate downtime statistics for the entire available data
-    downtime_count = (all_data['values'] == 0).sum()
-    uptime_count = (all_data['values'] == 1).sum()
-    downtime_percentage = (downtime_count / total_records) * 100 if total_records > 0 else 0
-    uptime_percentage = (uptime_count / total_records) * 100 if total_records > 0 else 0
+    # Filter data for selected period
+    selected_data = ci_data[ci_data['times'] >= cutoff].copy()
 
-    # Calculate total downtime duration (assuming 5-minute intervals)
-    downtime_minutes = downtime_count * 5
-    downtime_hours = downtime_minutes / 60
-    downtime_days = downtime_hours / 24
+    # Selected period statistics
+    selected_duration_hours = selected_hours
+    selected_data_points = len(selected_data)
+    selected_availability = (selected_data['values'].sum() / selected_data_points * 100) if selected_data_points > 0 else 0.0
+    selected_start_time = selected_data['times'].min().strftime('%d.%m.%Y %H:%M:%S Uhr') if not selected_data.empty else 'N/A'
+    selected_end_time = selected_data['times'].max().strftime('%d.%m.%Y %H:%M:%S Uhr') if not selected_data.empty else 'N/A'
 
-    # Calculate total uptime duration
-    uptime_minutes = uptime_count * 5
-    uptime_hours = uptime_minutes / 60
-    uptime_days = uptime_hours / 24
+    # Overall record statistics
+    overall_start_time = ci_data['times'].min().strftime('%d.%m.%Y %H:%M:%S Uhr')
+    overall_end_time = ci_data['times'].max().strftime('%d.%m.%Y %H:%M:%S Uhr')
+    overall_duration = (ci_data['times'].max() - ci_data['times'].min()).total_seconds() / 3600 / 24  # days
+    overall_data_points = len(ci_data)
+    data_completeness = (overall_data_points / (overall_duration * 24 * 12)) * 100  # Assuming 5-minute intervals
 
-    # Calculate total recording duration
-    total_duration = (last_timestamp_total - first_timestamp_total).total_seconds() / 3600  # hours
-    total_duration_days = total_duration / 24
+    # Downtime statistics for selected period
+    downtime_data = selected_data[selected_data['values'] == 0]
+    uptime_data = selected_data[selected_data['values'] == 1]
 
-    # Calculate expected data points (every 5 minutes)
-    expected_points = int(total_duration * 12)  # 12 points per hour
-    data_completeness = (total_records / expected_points) * 100 if expected_points > 0 else 0
+    downtime_points = len(downtime_data)
+    downtime_percent = (downtime_points / selected_data_points * 100) if selected_data_points > 0 else 0.0
+    downtime_duration_minutes = downtime_points * 5  # Assuming 5-minute intervals
 
-    # Calculate longest consecutive downtime and uptime periods
-    def find_longest_consecutive(data, value):
-        max_consecutive = 0
-        current_consecutive = 0
-        for val in data:
-            if val == value:
-                current_consecutive += 1
-                max_consecutive = max(max_consecutive, current_consecutive)
-            else:
-                current_consecutive = 0
-        return max_consecutive
+    uptime_points = len(uptime_data)
+    uptime_percent = (uptime_points / selected_data_points * 100) if selected_data_points > 0 else 0.0
+    uptime_duration_minutes = uptime_points * 5  # Assuming 5-minute intervals
 
-    longest_downtime_consecutive = find_longest_consecutive(all_data['values'], 0)
-    longest_uptime_consecutive = find_longest_consecutive(all_data['values'], 1)
+    # Calculate longest downtime and uptime periods
+    longest_downtime_points = 0
+    longest_uptime_points = 0
 
-    # Convert consecutive periods to time
-    longest_downtime_hours = longest_downtime_consecutive * 5 / 60
-    longest_uptime_hours = longest_uptime_consecutive * 5 / 60
+    if not selected_data.empty:
+        # Group consecutive values
+        selected_data_sorted = selected_data.sort_values('times')
+        selected_data_sorted['group'] = (selected_data_sorted['values'] != selected_data_sorted['values'].shift()).cumsum()
 
-    # Load MTTR and MTBF from statistics.json (fallbacks will be recalculated below)
-    mttr_minutes, mtbf_minutes, incidents = load_ci_mttr_mtbf(ci)
+        for group_id, group in selected_data_sorted.groupby('group'):
+            if group['values'].iloc[0] == 0:  # Downtime group
+                longest_downtime_points = max(longest_downtime_points, len(group))
+            else:  # Uptime group
+                longest_uptime_points = max(longest_uptime_points, len(group))
 
-    # Recalculate incidents and MTTR for the entire available data to ensure accuracy per CI
-    try:
-        series_times = pd.to_datetime(all_data['times']).to_list()
-        series_vals = all_data['values'].astype(int).to_list()
-        incidents_count = 0
-        downtime_durations_min = []
-        in_downtime = False
-        downtime_start_idx = None
+    longest_downtime_minutes = longest_downtime_points * 5
+    longest_uptime_minutes = longest_uptime_points * 5
 
-        # Handle case: series starts already in downtime (0)
-        if len(series_vals) > 0 and series_vals[0] == 0:
-            in_downtime = True
-            incidents_count += 1
-            downtime_start_idx = 0
-
-        for idx in range(1, len(series_vals)):
-            prev_val = series_vals[idx - 1]
-            curr_val = series_vals[idx]
-
-            # Start of incident (1 -> 0 transition)
-            if not in_downtime and prev_val == 1 and curr_val == 0:
-                in_downtime = True
-                incidents_count += 1
-                downtime_start_idx = idx
-
-            # End of incident (0 -> 1 transition)
-            if in_downtime and prev_val == 0 and curr_val == 1:
-                # Duration from start idx-1 time to current idx time
-                start_time = series_times[downtime_start_idx]
-                end_time = series_times[idx]
-                duration_min = max(0.0, (end_time - start_time).total_seconds() / 60.0)
-                downtime_durations_min.append(duration_min)
-                in_downtime = False
-                downtime_start_idx = None
-
-        # Handle ongoing downtime at end of series
-        if in_downtime and downtime_start_idx is not None:
-            start_time = series_times[downtime_start_idx]
-            end_time = series_times[-1]
-            duration_min = max(0.0, (end_time - start_time).total_seconds() / 60.0)
-            downtime_durations_min.append(duration_min)
-
-        # Compute MTTR from collected durations (if any incidents)
-        if incidents_count > 0 and len(downtime_durations_min) > 0:
-            mttr_minutes = sum(downtime_durations_min) / len(downtime_durations_min)
-            incidents = incidents_count
-        else:
-            # Keep loaded values if present; otherwise zero
-            incidents = incidents if incidents else 0
-            mttr_minutes = mttr_minutes if mttr_minutes else 0
-    except Exception as _e:
-        # If recalculation fails, keep existing loaded values
-        pass
+    # Load MTTR and MTBF from statistics file
+    mttr, mtbf, incidents = load_ci_mttr_mtbf(ci)
+    mttr_display = f"{mttr:.1f} Min" if mttr > 0 else "N/A"
+    mtbf_display = f"{mtbf:.1f} Std" if mtbf > 0 else "N/A"
 
     return {
-        # Selected time range statistics
-        'selected_hours': selected_hours,
-        'number_of_values': number_of_values,
-        'mean_availability': mean_availability,
-        'first_timestamp_selected': first_timestamp_selected,
-        'last_timestamp_selected': last_timestamp_selected,
-
-        # Total recording statistics
-        'total_records': total_records,
-        'first_timestamp_total': first_timestamp_total,
-        'last_timestamp_total': last_timestamp_total,
-        'total_duration_hours': total_duration,
-        'total_duration_days': total_duration_days,
-        'data_completeness': data_completeness,
-
-        # Downtime statistics
-        'downtime_count': downtime_count,
-        'uptime_count': uptime_count,
-        'downtime_percentage': downtime_percentage,
-        'uptime_percentage': uptime_percentage,
-        'downtime_minutes': downtime_minutes,
-        'downtime_hours': downtime_hours,
-        'downtime_days': downtime_days,
-        'uptime_minutes': uptime_minutes,
-        'uptime_hours': uptime_hours,
-        'uptime_days': uptime_days,
-
-        # Consecutive periods
-        'longest_downtime_consecutive': longest_downtime_consecutive,
-        'longest_uptime_consecutive': longest_uptime_consecutive,
-        'longest_downtime_hours': longest_downtime_hours,
-        'longest_uptime_hours': longest_uptime_hours,
-
-        # MTTR and MTBF (loaded from statistics.json)
-        'mttr_minutes': mttr_minutes,
-        'mtbf_minutes': mtbf_minutes,
-        'incidents': incidents
+        'selected_period': {
+            'duration_hours': selected_duration_hours,
+            'data_points': selected_data_points,
+            'availability_percent': selected_availability,
+            'start_time': selected_start_time,
+            'end_time': selected_end_time
+        },
+        'overall_record': {
+            'start_time': overall_start_time,
+            'end_time': overall_end_time,
+            'total_duration_days': overall_duration,
+            'total_data_points': overall_data_points,
+            'data_completeness_percent': data_completeness
+        },
+        'downtime_stats': {
+            'downtime_points': downtime_points,
+            'downtime_percent': downtime_percent,
+            'downtime_duration_minutes': downtime_duration_minutes,
+            'longest_downtime_points': longest_downtime_points,
+            'longest_downtime_minutes': longest_downtime_minutes,
+            'uptime_points': uptime_points,
+            'uptime_percent': uptime_percent,
+            'uptime_duration_minutes': uptime_duration_minutes,
+            'longest_uptime_points': longest_uptime_points,
+            'longest_uptime_minutes': longest_uptime_minutes,
+            'incidents': incidents,
+            'mttr': mttr_display,
+            'mtbf': mtbf_display
+        }
     }
 
-dash.register_page(__name__)
+dash.register_page(__name__, path='/plot')
 
-def serve_layout(ci=None, hours=None, **other_unknown_query_strings):
-    # Load core configurations
-    core_config = load_core_config()
-
-    # TimescaleDB mode - no file_name needed
-    config_file_name = None
-    config_stats_delta_hours = core_config.get('stats_delta_hours', 12)
-
-    # Use provided hours parameter or default from config
-    selected_hours = int(hours) if hours is not None else config_stats_delta_hours
-
-    # Handle case when ci is None (no query parameter provided)
+def serve_layout(ci=None):
+    """Serve the plot page layout"""
+    # Get CI from URL parameters if not provided
     if ci is None:
+        from flask import request
+
+        # Get CI from URL parameters
+        ci = request.args.get('ci', '')
+
+    if not ci:
         return html.Div([
-            html.H2('Fehler: Keine Komponente angegeben'),
-            html.P('Bitte geben Sie eine Komponenten-ID in der URL an, z.B. /plot?ci=12345'),
-            html.A(href='/', children=[html.Button('Zurück', className='button')])
+            html.H1("Fehler: Keine CI angegeben"),
+            html.P("Bitte geben Sie eine gültige CI in der URL an (z.B. /plot?ci=CI-0000001)"),
+            html.A("Zurück zur Hauptseite", href="/", className="btn btn-primary")
         ])
 
-    # Get CI info for display
-    ci_info = get_data_of_ci(config_file_name, ci)
+    # Get CI information
+    # For TimescaleDB mode, we need to pass None as file_name
+    ci_info = get_data_of_ci(None, ci)
 
-    layout = [
-        html.H2('Verfügbarkeit der Komponente ' + str(ci)),
-        html.H3(ci_info['product'].iloc[0] + ', ' + ci_info['name'].iloc[0] + ', ' + ci_info['organization'].iloc[0]),
-        html.A(href='/', children=[html.Button('Zurück', className='button')]),
+    if ci_info is None or ci_info.empty:
+        return html.Div([
+            html.H1("Komponente nicht gefunden"),
+            html.P(f"Die Komponente {ci} wurde nicht in der Datenbank gefunden."),
+            html.A("Zurück zur Hauptseite", href="/", className="btn btn-primary")
+        ])
 
-        # Plot section (moved up to avoid overlay issues)
-        html.Div(id='plot-container', children=[
-            dcc.Graph(id='availability-plot')
-        ]),
+    # Extract CI details
+    ci_name = ci_info.iloc[0]['name'] if 'name' in ci_info.columns else ci
+    ci_organization = ci_info.iloc[0]['organization'] if 'organization' in ci_info.columns else 'Unbekannt'
+    ci_product = ci_info.iloc[0]['product'] if 'product' in ci_info.columns else 'Unbekannt'
 
-        # Time range selector (moved below plot)
-        html.Div(className='box', children=[
-            html.H3('Zeitraum auswählen'),
-            html.Div(className='time-selector', children=[
-                html.Label('Darstellungszeitraum (Stunden):'),
-                dcc.Dropdown(
-                    id='hours-dropdown',
-                    options=[
-                        {'label': '1 Stunde', 'value': 1},
-                        {'label': '3 Stunden', 'value': 3},
-                        {'label': '6 Stunden', 'value': 6},
-                        {'label': '12 Stunden', 'value': 12},
-                        {'label': '24 Stunden', 'value': 24},
-                        {'label': '48 Stunden', 'value': 48},
-                        {'label': '72 Stunden', 'value': 72},
-                        {'label': '1 Woche', 'value': 168}
-                    ],
-                    value=selected_hours,
-                    clearable=False,
-                    style={
-                        'width': '200px',
-                        'display': 'inline-block',
-                        'margin-left': '10px',
-                        'position': 'relative',
-                        'z-index': '9999'
-                    }
-                ),
-                html.Button('Aktualisieren', id='update-button', className='button', style={'margin-left': '10px'})
+    # Load core configuration for default hours
+    core_config = load_core_config()
+    default_hours = core_config.get('default_hours', 48)
+
+    # Create layout
+    layout = html.Div([
+        # Main content container
+        html.Div(className='main-content', children=[
+            # Page title and CI information
+            html.Div(className='page-header', children=[
+                html.H1(f"Verfügbarkeit der Komponente {ci}"),
+                html.P(f"{ci_name}, {ci_organization}, {ci_product}"),
+                html.A("Zurück", href="/", className="btn btn-secondary")
             ]),
-            html.P('Der Standardwert von ' + str(config_stats_delta_hours) + ' Stunden kann über die config.yaml angepasst werden.',
-                   style={'font-size': '0.9rem', 'color': 'var(--gray-600)', 'margin-top': 'var(--spacing-sm)'})
-        ]),
 
-        # Comprehensive Statistics section (now below the plot)
-        html.Div(id='comprehensive-statistics', className='box'),
+            # Plot container
+            html.Div(className='plot-container', children=[
+                dcc.Graph(
+                    id='availability-plot',
+                    config={'displayModeBar': True, 'displaylogo': False}
+                )
+            ]),
+
+            # Time selection controls
+            html.Div(className='time-selection', children=[
+                html.H3("Zeitraum auswählen"),
+                html.Div(className='time-controls', children=[
+                    html.Label("Darstellungszeitraum (Stunden):"),
+                    dcc.Input(
+                        id='hours-input',
+                        type='number',
+                        value=default_hours,
+                        min=1,
+                        max=168,  # 1 week
+                        step=1,
+                        className='hours-input'
+                    ),
+                    html.Button("Aktualisieren", id='update-button', className='btn btn-primary')
+                ]),
+                html.P("Der Standardwert von 48 Stunden kann über die config.yaml angepasst werden.", className='help-text')
+            ]),
+
+            # Comprehensive statistics
+            html.Div(id='comprehensive-statistics', className='comprehensive-stats')
+        ]),
 
         # Store for current CI and hours
         dcc.Store(id='ci-store', data=ci),
-        dcc.Store(id='hours-store', data=selected_hours),
+        dcc.Store(id='hours-store', data=default_hours),
 
         # Location component for URL updates
         dcc.Location(id='url', refresh=False)
-    ]
+    ])
+
     return layout
 
+# Set the layout for Dash
 layout = serve_layout
 
 @callback(
     [Output('availability-plot', 'figure'),
      Output('comprehensive-statistics', 'children')],
     [Input('update-button', 'n_clicks'),
-     Input('hours-dropdown', 'value')],
+     Input('hours-input', 'value')],
     [dash.State('ci-store', 'data')],
     prevent_initial_call=False
 )
 def update_plot_and_stats(n_clicks, selected_hours, ci):
     """Update plot and comprehensive statistics based on selected time range"""
-    # Load core configurations
-    core_config = load_core_config()
-    config_file_name = None  # TimescaleDB mode
+    # Handle case where ci might be None
+    if ci is None:
+        ci = "Unbekannt"
 
-    # Ensure selected_hours is valid
-    if selected_hours is None or selected_hours <= 0:
-        selected_hours = 12  # Default fallback
+    # Handle case where selected_hours might be None
+    if selected_hours is None:
+        selected_hours = 48
 
-    # Calculate cutoff time in Europe/Berlin to match data timezone
-    cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
-
-    # Get data (ensure timezone-aware in Europe/Berlin)
-    ci_data = get_availability_data_of_ci(config_file_name, ci)
-    if not ci_data.empty:
-        ci_data['times'] = pd.to_datetime(ci_data['times']).dt.tz_convert('Europe/Berlin')
-        ci_data = ci_data[ci_data['times']>=cutoff]
-
-    if ci_data.empty:
-        # Return empty plot and message if no data
-        empty_fig = px.scatter(title='Keine Daten verfügbar für den gewählten Zeitraum')
-        return empty_fig, html.Div('Keine Daten verfügbar für den gewählten Zeitraum')
-
-    # Calculate comprehensive statistics
-    stats = calculate_comprehensive_statistics(ci_data, selected_hours, config_file_name, ci)
-
-    # Prepare data for plot
-    plot_data = ci_data.rename(columns={
-        'times': 'Zeit',
-        'values': 'Verfügbarkeit'
-    })
-
-    # Create custom colors
-    custom_colors = ['red' if v == 0 else 'green' for v in plot_data['Verfügbarkeit']]
-
-    # Create plot
-    fig = px.scatter(
-        plot_data,
-        x='Zeit',
-        y='Verfügbarkeit',
-        title=f'Verfügbarkeit der letzten {selected_hours} Stunden'
+    # Simple test plot first
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=[1, 2, 3, 4],
+        y=[1, 1, 0, 1],
+        mode='lines+markers',
+        name='Test Verfügbarkeit',
+        line=dict(color='green', width=2)
+    ))
+    fig.update_layout(
+        title=f'Test Plot für CI {ci}',
+        xaxis_title="Zeit",
+        yaxis_title="Verfügbarkeit",
+        yaxis=dict(range=[-0.1, 1.1], tickvals=[0, 1], ticktext=['0', '1'])
     )
-    fig.update_traces(marker=dict(color=custom_colors))
-    fig.update_yaxes(tickvals=[0, 1], ticktext=['0', '1'])
-    fig.update_layout(yaxis=dict(range=[-0.1, 1.1]))
 
-    # Create comprehensive statistics display
-    stats_display = html.Div(className='comprehensive-stats', children=[
-        html.H3('📊 Umfassende Statistik'),
-
-        # Selected time range statistics
-        html.Div(className='stats-section', children=[
-            html.H4('🎯 Ausgewählter Zeitraum'),
-            html.Div(className='stats-grid', children=[
-                html.Div(className='stat-item', children=[
-                    html.Strong('Zeitraum: '),
-                    html.Span(f'{selected_hours} Stunden')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Anzahl Datensätze: '),
-                    html.Span(f'{stats["number_of_values"]:,}')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Verfügbarkeit: '),
-                    html.Span(f'{stats["mean_availability"] * 100:.2f}%')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Von: '),
-                    html.Span(stats["first_timestamp_selected"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Bis: '),
-                    html.Span(stats["last_timestamp_selected"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
-                ])
-            ])
-        ]),
-
-        # Total recording statistics
-        html.Div(className='stats-section', children=[
-            html.H4('📅 Gesamte Aufzeichnung'),
-            html.Div(className='stats-grid', children=[
-                html.Div(className='stat-item', children=[
-                    html.Strong('Beginn der Aufzeichnung: '),
-                    html.Span(stats["first_timestamp_total"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Ende der Aufzeichnung: '),
-                    html.Span(stats["last_timestamp_total"].strftime('%d.%m.%Y %H:%M:%S Uhr'))
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Gesamtdauer: '),
-                    html.Span(f'{format_duration(stats["total_duration_hours"])}')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Gesamte Datensätze: '),
-                    html.Span(f'{stats["total_records"]:,}')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Datenvollständigkeit: '),
-                    html.Span(f'{stats["data_completeness"]:.1f}%')
-                ])
-            ])
-        ]),
-
-        # Downtime statistics (entire data range)
-        html.Div(className='stats-section', children=[
-            html.H4('🔴 Downtime-Statistik (gesamter Zeitraum)'),
-            html.Div(className='stats-grid', children=[
-                html.Div(className='stat-item', children=[
-                    html.Strong('Downtime: '),
-                    html.Span(f'{stats["downtime_count"]:,} Datensätze ({stats["downtime_percentage"]:.1f}%)')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Downtime-Dauer: '),
-                    html.Span(f'{format_duration(stats["downtime_hours"])}')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Längste Downtime: '),
-                    html.Span(f'{stats["longest_downtime_consecutive"]} Messungen ({format_duration(stats["longest_downtime_hours"])})')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Uptime: '),
-                    html.Span(f'{stats["uptime_count"]:,} Datensätze ({stats["uptime_percentage"]:.1f}%)')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Uptime-Dauer: '),
-                    html.Span(f'{format_duration(stats["uptime_hours"])}')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Längste Uptime: '),
-                    html.Span(f'{stats["longest_uptime_consecutive"]} Messungen ({format_duration(stats["longest_uptime_hours"])})')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('Incidents: '),
-                    html.Span(f'{stats["incidents"]} Ausfälle')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('MTTR: '),
-                    html.Span(f'{format_duration(stats["mttr_minutes"] / 60)}' if stats["incidents"] > 0 else 'N/A (keine Ausfälle)')
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.Strong('MTBF: '),
-                    html.Span(f'{format_duration(stats["mtbf_minutes"] / 60)}' if stats["incidents"] > 1 else 'N/A (unzureichende Daten)')
-                ])
-            ])
-        ])
+    # Simple test statistics
+    stats_display = html.Div([
+        html.H3('Test Statistik'),
+        html.P(f'CI: {ci}'),
+        html.P(f'Stunden: {selected_hours}'),
+        html.P('Dies ist ein Test der Plot-Seite.')
     ])
 
     return fig, stats_display
 
 @callback(
     Output('url', 'search'),
-    [Input('hours-dropdown', 'value')],
+    [Input('hours-input', 'value')],
     [dash.State('ci-store', 'data')],
     prevent_initial_call=True
 )
 def update_url(hours, ci):
-    """Update URL with selected time range"""
+    """Update URL when hours change"""
     if hours and ci:
-        return f'?ci={ci}&hours={hours}'
+        return f"?ci={ci}&hours={hours}"
     elif ci:
-        return f'?ci={ci}'
-    return ''
+        return f"?ci={ci}"
+    else:
+        return ""

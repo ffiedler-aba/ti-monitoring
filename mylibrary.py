@@ -1027,64 +1027,61 @@ def get_data_of_all_cis_from_timescaledb():
 
 def get_data_of_ci(file_name, ci):
     """
-    Gets general data for a specific configuration item from hdf5 file or TimescaleDB
+    Gets general data for a specific configuration item from TimescaleDB.
+
+    Note: Database connectivity is configured exclusively via environment
+    variables (e.g. provided by Docker Compose .env). The file_name argument
+    is retained for backwards compatibility but is ignored.
 
     Args:
-        file_name (str): Path to hdf5 file (used for fallback)
-        ci (str): ID of the desired confirguration item
+        file_name (str): Unused. Kept for backwards compatibility.
+        ci (str): ID of the desired configuration item
 
     Returns:
         DataFrame: General data of the desired configuration item
     """
-    # Check if TimescaleDB is enabled
-    config = load_config()
-    use_timescaledb = config.get('core', {}).get('timescaledb', {}).get('enabled', False)
-    
-    if use_timescaledb:
-        try:
-            # Try to get data from TimescaleDB first
-            with get_db_conn() as conn:
-                query = """
-                SELECT 
-                    cm.ci,
-                    cm.name,
-                    cm.organization,
-                    cm.product,
-                    cm.bu,
-                    cm.tid,
-                    cm.pdt,
-                    cm.comment,
-                    ls.status as current_availability,
-                    ls.ts as time,
-                    CASE 
-                        WHEN ls.status = 1 AND ls.prev_status = 0 THEN 1 
-                        ELSE 0 
-                    END as availability_difference
-                FROM ci_metadata cm
-                LEFT JOIN (
-                    SELECT DISTINCT ON (ci) 
-                        ci, 
-                        ts, 
-                        status,
-                        LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
-                    FROM measurements 
-                    WHERE ci = %s
-                    ORDER BY ci, ts DESC
-                ) ls ON cm.ci = ls.ci
-                WHERE cm.ci = %s
-                """
-                with conn.cursor() as cur:
-                    cur.execute(query, [ci, ci])
-                    results = cur.fetchall()
-                    df = pd.DataFrame(results, columns=[
-                        'ci', 'name', 'organization', 'product', 'bu', 'tid', 'pdt', 'comment',
-                        'current_availability', 'time', 'availability_difference'
-                    ])
-                if not df.empty:
-                    return df
-        except Exception as e:
-            print(f"Error reading CI {ci} from TimescaleDB: {e}")
-            return pd.DataFrame()
+    try:
+        with get_db_conn() as conn:
+            query = """
+            SELECT 
+                cm.ci,
+                cm.name,
+                cm.organization,
+                cm.product,
+                cm.bu,
+                cm.tid,
+                cm.pdt,
+                cm.comment,
+                ls.status as current_availability,
+                ls.ts as time,
+                CASE 
+                    WHEN ls.status = 1 AND ls.prev_status = 0 THEN 1 
+                    ELSE 0 
+                END as availability_difference
+            FROM ci_metadata cm
+            LEFT JOIN (
+                SELECT DISTINCT ON (ci) 
+                    ci, 
+                    ts, 
+                    status,
+                    LAG(status) OVER (PARTITION BY ci ORDER BY ts) as prev_status
+                FROM measurements 
+                WHERE ci = %s
+                ORDER BY ci, ts DESC
+            ) ls ON cm.ci = ls.ci
+            WHERE cm.ci = %s
+            """
+            with conn.cursor() as cur:
+                cur.execute(query, [ci, ci])
+                results = cur.fetchall()
+                df = pd.DataFrame(results, columns=[
+                    'ci', 'name', 'organization', 'product', 'bu', 'tid', 'pdt', 'comment',
+                    'current_availability', 'time', 'availability_difference'
+                ])
+            return df
+    except Exception as e:
+        print(f"Error reading CI {ci} from TimescaleDB: {e}")
+        return pd.DataFrame()
 
 def pretty_timestamp(timestamp):
     """
