@@ -67,10 +67,10 @@ def check_admin_access(auth_data):
             html.Hr(),
             html.H4('Navigation'),
             html.Ul([
-                html.Li(html.A('Logs anzeigen', href='/admin/logs')),
-                html.Li(html.A('Benutzer verwalten', href='/admin/users')),
-                html.Li('Statistiken (in Entwicklung)')
-            ])
+                html.Li(html.A('System-Logs anzeigen', href='/admin/logs', style={'color': '#3498db'})),
+                html.Li(html.A('Benutzer verwalten', href='/admin/users', style={'color': '#3498db'})),
+                html.Li('Erweiterte Statistiken (in Entwicklung)')
+            ], style={'listStyle': 'none', 'padding': '0'})
         ])
         return admin_content, {'display': 'none'}, {'admin': True, 'email': user_email}
     else:
