@@ -1099,9 +1099,26 @@ def pretty_timestamp(timestamp):
         if utc_time.tzinfo is None:
             utc_time = utc_time.replace(tzinfo=pytz.UTC)
     else:
-        # Handle string timestamps
-        utc_time = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-        utc_time = utc_time.replace(tzinfo=pytz.UTC)
+        # Handle string timestamps - try multiple formats
+        formats = [
+            '%Y-%m-%dT%H:%M:%S.%fZ',
+            '%Y-%m-%d %H:%M:%S.%f%z',
+            '%Y-%m-%d %H:%M:%S%z',
+            '%Y-%m-%dT%H:%M:%S%z'
+        ]
+        utc_time = None
+        for fmt in formats:
+            try:
+                utc_time = datetime.strptime(timestamp, fmt)
+                if utc_time.tzinfo is None:
+                    utc_time = utc_time.replace(tzinfo=pytz.UTC)
+                break
+            except ValueError:
+                continue
+        
+        if utc_time is None:
+            # Fallback: return timestamp as-is
+            return str(timestamp)
     
     berlin_time = utc_time.astimezone(pytz.timezone('Europe/Berlin'))
     formatted_time = berlin_time.strftime('%d.%m.%Y %H:%M:%S Uhr')
