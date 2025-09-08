@@ -524,22 +524,34 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
     if ctx.triggered and 'verify-otp-button' in ctx.triggered[0]['prop_id']:
         if verify_clicks and verify_clicks > 0:
             if not email or not otp_code:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Bitte geben Sie E-Mail und OTP-Code ein.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update,
+                    'Bitte geben Sie E-Mail und OTP-Code ein.',
+                    no_update, no_update, no_update
+                ]
 
         try:
             # Get user by email
             user = get_user_by_email(email)
             if not user:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Benutzer nicht gefunden.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update,
+                    'Benutzer nicht gefunden.',
+                    no_update, no_update, no_update
+                ]
 
             user_id = user[0]
 
             # Check if account is locked
             if is_account_locked(user_id):
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Konto ist gesperrt. Bitte versuchen Sie es später erneut.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update,
+                    'Konto ist gesperrt. Bitte versuchen Sie es später erneut.',
+                    no_update, no_update, no_update
+                ]
 
             # Validate OTP
             if validate_otp(user_id, otp_code):
@@ -570,26 +582,42 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 ]
             else:
                 # OTP validation failed
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update,
+                    'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.',
+                    no_update, no_update, no_update
+                ]
 
         except Exception as e:
-            return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                   f'Fehler bei der OTP-Verifikation: {str(e)}', no_update, no_update]
+            return [
+                no_update, no_update, no_update, no_update, no_update,
+                no_update, no_update,
+                f'Fehler bei der OTP-Verifikation: {str(e)}',
+                no_update, no_update, no_update
+            ]
 
     # Handle resend OTP
     if ctx.triggered and 'resend-otp-button' in ctx.triggered[0]['prop_id']:
         if resend_clicks and resend_clicks > 0:
             if not email:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Bitte geben Sie eine E-Mail-Adresse ein.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    'Bitte geben Sie eine E-Mail-Adresse ein.',
+                    no_update, no_update,
+                    no_update, no_update, no_update
+                ]
 
             try:
                 # Get user by email
                 user = get_user_by_email(email)
                 if not user:
-                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                           'Benutzer nicht gefunden.', no_update, no_update]
+                    return [
+                        no_update, no_update, no_update, no_update, no_update,
+                        'Benutzer nicht gefunden.',
+                        no_update, no_update,
+                        no_update, no_update, no_update
+                    ]
 
                 user_id = user[0]
 
@@ -615,25 +643,41 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                         body_format=apprise.NotifyFormat.TEXT
                     )
 
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       f'Neuer OTP-Code wurde an {email} gesendet.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    f'Neuer OTP-Code wurde an {email} gesendet.',
+                    no_update, no_update,
+                    no_update, no_update, no_update
+                ]
 
             except Exception as e:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       f'Fehler beim erneuten Senden des OTP-Codes: {str(e)}', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    f'Fehler beim erneuten Senden des OTP-Codes: {str(e)}',
+                    no_update, no_update,
+                    no_update, no_update, no_update
+                ]
 
     # Handle OTP request
     if ctx.triggered and 'request-otp-button' in ctx.triggered[0]['prop_id']:
         if otp_clicks and otp_clicks > 0:
             if not email:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       'Bitte geben Sie eine E-Mail-Adresse ein.', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    'Bitte geben Sie eine E-Mail-Adresse ein.',
+                    no_update, no_update,
+                    no_update, no_update, no_update
+                ]
 
             try:
                 # Validate email format
                 if '@' not in email or '.' not in email:
-                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                           'Bitte geben Sie eine gültige E-Mail-Adresse ein.', no_update, no_update]
+                    return [
+                        no_update, no_update, no_update, no_update, no_update,
+                        'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+                        no_update, no_update,
+                        no_update, no_update, no_update
+                    ]
 
                 # Check if user exists, create if not
                 user = get_user_by_email(email)
@@ -643,14 +687,22 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                     user_id = create_user(email)
 
                 if not user_id:
-                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                           'Fehler beim Erstellen des Benutzers.', no_update, no_update]
+                    return [
+                        no_update, no_update, no_update, no_update, no_update,
+                        'Fehler beim Erstellen des Benutzers.',
+                        no_update, no_update,
+                        no_update, no_update, no_update
+                    ]
 
                 # Generate OTP
                 otp, otp_id = generate_otp_for_user(user_id, None)
                 if not otp or not otp_id:
-                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                           'Fehler beim Generieren des OTP-Codes.', no_update, no_update]
+                    return [
+                        no_update, no_update, no_update, no_update, no_update,
+                        'Fehler beim Generieren des OTP-Codes.',
+                        no_update, no_update,
+                        no_update, no_update, no_update
+                    ]
 
                 # Send OTP via Apprise
                 try:
@@ -677,15 +729,27 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                             error_msg = response_data.get('error', 'Unbekannter Fehler') if response_data else 'Unbekannter Fehler'
                         except:
                             error_msg = 'Unbekannter Fehler'
-                        return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                               f'Fehler beim Senden des OTP-Codes: {error_msg}', no_update, no_update]
+                        return [
+                            no_update, no_update, no_update, no_update, no_update,
+                            f'Fehler beim Senden des OTP-Codes: {error_msg}',
+                            no_update, no_update,
+                            no_update, no_update, no_update
+                        ]
                 except Exception as e:
-                    return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                           f'Fehler beim Senden des OTP-Codes: {str(e)}', no_update, no_update]
+                    return [
+                        no_update, no_update, no_update, no_update, no_update,
+                        f'Fehler beim Senden des OTP-Codes: {str(e)}',
+                        no_update, no_update,
+                        no_update, no_update, no_update
+                    ]
 
             except Exception as e:
-                return [no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update, no_update,
-                       f'Fehler: {str(e)}', no_update, no_update]
+                return [
+                    no_update, no_update, no_update, no_update, no_update,
+                    f'Fehler: {str(e)}',
+                    no_update, no_update,
+                    no_update, no_update, no_update
+                ]
 
     # Handle initial load or auth status change
     if not auth_data:

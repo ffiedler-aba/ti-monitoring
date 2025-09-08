@@ -126,6 +126,24 @@ Hinweis: Das frühere Datei-basierte System `notifications.json` ist vollständi
 
 Alle Konfigurationsdateien basieren auf den entsprechenden `.example` Dateien, die Sie kopieren und anpassen müssen.
 
+### ENCRYPTION_KEY generieren (Fernet)
+
+Sie können den Schlüssel entweder mit Python oder OpenSSL erzeugen:
+
+- Python:
+  ```bash
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  ```
+- OpenSSL (bevorzugt, überall verfügbar):
+  ```bash
+  openssl rand -base64 32 | tr '+/' '-_' | tr -d '='
+  ```
+
+Den erzeugten Wert in `.env` eintragen:
+```env
+ENCRYPTION_KEY=...hier-ihren-schluessel-einfuegen...
+```
+
 ### Neue Konfigurationsoptionen für das Multi-User-System
 
 In der `config.yaml` wurden folgende neue Optionen hinzugefügt:

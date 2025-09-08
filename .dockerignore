@@ -10,3 +10,27 @@ __pycache__/
 portable-build/
 windows-setup-src/build/
 dist/
+
+# Additional dev/build/CI artifacts to keep images slim
+.venv/
+**/__pycache__/
+**/*.pyc
+*.ipynb
+*.coverage
+.coverage*
+.cache/
+pytest_cache/
+
+.github/
+.gitattributes
+.gitignore
+.pre-commit-config.yaml
+
+docker-compose*.yml
+Dockerfile
+CLOC_REPORT.md
+
+build/
+docs/
+scripts/test_*.py
+scripts/*.sh
