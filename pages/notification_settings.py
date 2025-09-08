@@ -1231,15 +1231,15 @@ def display_profiles(auth_data, save_clicks, delete_clicks):
 
 # Callback to show profile form
 @callback(
-    [Output('profile-form-container', 'style', allow_duplicate=True),
+    [Output('profile-form-container', 'style'),
      Output('editing-profile-id', 'data'),
      Output('editing-profile-index', 'data'),
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
      Output('apprise-urls-textarea', 'value'),
-     Output('apprise-section', 'style', allow_duplicate=True),
-     Output('email-section', 'style', allow_duplicate=True)],
+     Output('apprise-section', 'style'),
+     Output('email-section', 'style')],
     [Input('add-profile-button', 'n_clicks'),
      Input({'type': 'edit-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     [State('auth-status', 'data')]
