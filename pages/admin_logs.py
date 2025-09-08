@@ -1,6 +1,7 @@
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update
 from mylibrary import is_admin_user
+from pages.admin import create_admin_header
 import yaml
 import os
 import time
@@ -86,20 +87,16 @@ dash.register_page(__name__, path='/admin/logs')
 def serve_layout():
     """Admin logs page layout"""
     layout = html.Div([
-        # Admin header
-        html.Div([
-            html.H2('Admin: System-Logs', style={
-                'color': '#2c3e50',
-                'fontWeight': '600',
-                'marginBottom': '20px'
-            }),
-            html.A('← Zurück zum Admin-Dashboard', href='/admin', style={
-                'color': '#3498db',
-                'textDecoration': 'none',
-                'marginBottom': '20px',
-                'display': 'block'
-            })
-        ]),
+        # Admin header with logo
+        create_admin_header('Admin: System-Logs'),
+        
+        # Back link
+        html.A('← Zurück zum Admin-Dashboard', href='/admin', style={
+            'color': '#3498db',
+            'textDecoration': 'none',
+            'marginBottom': '20px',
+            'display': 'block'
+        }),
         
         # Auth check
         html.Div(id='admin-logs-content', children=[

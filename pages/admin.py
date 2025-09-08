@@ -2,18 +2,36 @@ import dash
 from dash import html, dcc, Input, Output, callback, no_update
 from mylibrary import is_admin_user
 
+def create_admin_header(title):
+    """Create consistent admin header with logo"""
+    return html.Header([
+        html.Div([
+            html.Div(id='logo-wrapper', children=[
+                html.A(href='/', children=[
+                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Monitoring Logo', height=50, width=50)
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+            html.H1(title, style={
+                'margin': '0', 
+                'fontSize': '1.6rem',
+                'color': '#2c3e50'
+            })
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px'})
+    ], style={
+        'display': 'flex',
+        'alignItems': 'center',
+        'marginBottom': '30px',
+        'borderBottom': '2px solid #e74c3c',
+        'paddingBottom': '10px'
+    })
+
 dash.register_page(__name__, path='/admin')
 
 def serve_layout():
     """Admin dashboard layout"""
     layout = html.Div([
-        html.H1('Admin Dashboard', style={
-            'color': '#2c3e50',
-            'fontWeight': '600',
-            'marginBottom': '30px',
-            'borderBottom': '2px solid #e74c3c',
-            'paddingBottom': '10px'
-        }),
+        # Header with logo
+        create_admin_header('Admin Dashboard'),
         
         # Admin content (hidden until auth verified)
         html.Div(id='admin-content', children=[
@@ -69,7 +87,7 @@ def check_admin_access(auth_data):
             html.Ul([
                 html.Li(html.A('System-Logs anzeigen', href='/admin/logs', style={'color': '#3498db'})),
                 html.Li(html.A('Benutzer verwalten', href='/admin/users', style={'color': '#3498db'})),
-                html.Li('Erweiterte Statistiken (in Entwicklung)')
+                html.Li(html.A('Erweiterte Statistiken', href='/admin/stats', style={'color': '#3498db'}))
             ], style={'listStyle': 'none', 'padding': '0'})
         ])
         return admin_content, {'display': 'none'}, {'admin': True, 'email': user_email}

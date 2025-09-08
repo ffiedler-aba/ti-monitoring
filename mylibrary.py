@@ -322,6 +322,35 @@ def run_db_migrations():
               ON notification_profiles(unsubscribe_token)
         """)
 
+        # 5) Ensure notification_logs table for extended statistics
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notification_logs (
+                id SERIAL PRIMARY KEY,
+                profile_id INTEGER REFERENCES notification_profiles(id) ON DELETE CASCADE,
+                ci TEXT NOT NULL,
+                notification_type TEXT NOT NULL CHECK (notification_type IN ('incident', 'recovery')),
+                sent_at TIMESTAMPTZ DEFAULT NOW(),
+                delivery_status TEXT DEFAULT 'sent' CHECK (delivery_status IN ('sent', 'failed', 'pending')),
+                error_message TEXT,
+                recipient_type TEXT CHECK (recipient_type IN ('email', 'apprise')),
+                recipient_count INTEGER DEFAULT 1
+            )
+        """)
+        
+        # Indexes for performance
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_logs_sent_at 
+              ON notification_logs(sent_at)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_logs_profile_ci 
+              ON notification_logs(profile_id, ci)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notification_logs_type_status 
+              ON notification_logs(notification_type, delivery_status)
+        """)
+
         # Sanitize existing PII: replace plain emails with hashes where detectable
         try:
             cur.execute("""
@@ -1390,6 +1419,19 @@ def is_admin_user(email):
     except Exception:
         return False
 
+def log_notification(profile_id, ci, notification_type, delivery_status, recipient_type, error_message=None):
+    """Log notification attempt for statistics"""
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO notification_logs 
+                (profile_id, ci, notification_type, delivery_status, recipient_type, error_message)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (profile_id, ci, notification_type, delivery_status, recipient_type, error_message))
+            conn.commit()
+    except Exception as e:
+        print(f"Error logging notification: {e}")
+
 def get_notification_profile(profile_id, user_id):
     """Get a specific notification profile for a user"""
     with get_db_conn() as conn, conn.cursor() as cur:
@@ -1663,9 +1705,19 @@ def send_db_notifications():
                                         body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
                                         apobj = apprise.Apprise()
                                         apobj.add(url)
-                                        apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                        success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                        
+                                        # Log notification attempt
+                                        for ci in relevant_changes['ci']:
+                                            notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                            log_notification(profile_id, ci, notification_type, 'sent' if success else 'failed', 'apprise', None if success else 'Apprise notify returned False')
+                                            
                                     except Exception as e:
                                         print(f"Error sending per-URL notification for profile {profile_id}: {e}")
+                                        # Log failed notification
+                                        for ci in relevant_changes['ci']:
+                                            notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                            log_notification(profile_id, ci, notification_type, 'failed', 'apprise', str(e))
                             else:
                                 # Fallback: eine Nachricht an alle URLs mit Profil-Opt-Out-Link
                                 for url in apprise_urls:
