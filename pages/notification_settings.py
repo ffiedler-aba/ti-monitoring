@@ -438,6 +438,10 @@ def serve_layout():
 
             # Store for delete index
             dcc.Store(id='delete-index-store', data=None),
+
+            # Stores for select/deselect all triggers
+            dcc.Store(id='select-all-trigger', data=None),
+            dcc.Store(id='deselect-all-trigger', data=None),
             # Test Apprise notification button
             html.Div([
                 html.H3('Apprise-Benachrichtigung testen', style={
@@ -1161,28 +1165,50 @@ def update_filter_info(filter_text, available_cis_data):
 
     return f'Filter: "{filter_text}" - {filtered_count} von {total_cis} CIs angezeigt'
 
-# Callback to collect selected CIs from checkboxes
+# Callback to handle select/deselect all triggers
 @callback(
     Output('selected-cis-data', 'data'),
-    [Input({'type': 'ci-checkbox', 'ci': dash.ALL}, 'value')],
-    [State('available-cis-data', 'data')],
+    [Input({'type': 'ci-checkbox', 'ci': dash.ALL}, 'value'),
+     Input('select-all-trigger', 'data'),
+     Input('deselect-all-trigger', 'data')],
+    [State('available-cis-data', 'data'),
+     State('selected-cis-data', 'data')],
     prevent_initial_call=True
 )
-def update_selected_cis(checkbox_values, available_cis_data):
-    """Update the selected CIs when checkboxes change"""
+def update_selected_cis(checkbox_values, select_all_trigger, deselect_all_trigger, available_cis_data, current_selected):
+    """Update the selected CIs when checkboxes change or when select/deselect all is triggered"""
     if not available_cis_data:
         return []
 
-    # Collect all selected CIs from the checkbox values
-    selected_cis = []
-    for checkbox_value in checkbox_values:
-        if checkbox_value:  # If checkbox has a value (is checked)
-            selected_cis.extend(checkbox_value)
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_selected or []
 
-    # Remove duplicates
-    selected_cis = list(set(selected_cis))
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    return selected_cis
+    # Handle select all trigger
+    if trigger_id == 'select-all-trigger' and select_all_trigger:
+        # Select all available CIs
+        return [ci['ci'] for ci in available_cis_data if ci and ci.get('ci')]
+
+    # Handle deselect all trigger
+    if trigger_id == 'deselect-all-trigger' and deselect_all_trigger:
+        # Deselect all CIs
+        return []
+
+    # Handle individual checkbox changes
+    if 'ci-checkbox' in trigger_id:
+        # Collect all selected CIs from the checkbox values
+        selected_cis = []
+        for checkbox_value in checkbox_values:
+            if checkbox_value:  # If checkbox has a value (is checked)
+                selected_cis.extend(checkbox_value)
+
+        # Remove duplicates
+        selected_cis = list(set(selected_cis))
+        return selected_cis
+
+    return current_selected or []
 
 # Note: update_checkbox_states logic consolidated into render_ci_checkboxes
 
