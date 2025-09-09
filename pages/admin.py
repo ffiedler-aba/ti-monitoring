@@ -86,16 +86,15 @@ def _admin_check_access_callback(auth_data):
         return html.Div(), {'display': 'block'}, {'admin': False}
 
 
-# Register the callback only if an identical output set is not already registered
+# Register callbacks separately to avoid duplicate output sets
 try:
     app = dash.get_app()
 
-    def _admin_callback_already_registered() -> bool:
+    def _remove_existing_callbacks(target_outputs):
         try:
             cmap = getattr(app, 'callback_map', {}) or {}
-            target = ['admin-root-content.children', 'admin-root-denied.style', 'admin-root-auth-status.data']
-            for _k, meta in cmap.items():
-                # Case 1: Dash >=2 provides outputs_list (list of dicts)
+            keys_to_delete = []
+            for k, meta in list(cmap.items()):
                 outputs = meta.get('outputs_list') or meta.get('outputs')
                 names = []
                 if isinstance(outputs, list):
@@ -104,57 +103,38 @@ try:
                             names.append(f"{out['id']}.{out['property']}")
                 elif isinstance(outputs, dict):
                     names.append(f"{outputs.get('id')}.{outputs.get('property')}")
-                if set(names) == set(target):
-                    return True
-                # Case 2: Some Dash versions expose a single 'output' string
-                out_str = meta.get('output')
-                if isinstance(out_str, str):
-                    # Normalize by splitting on commas and trimming
-                    parts = [p.strip() for p in out_str.split(',')]
-                    if set(parts) == set(target):
-                        return True
+                match = (set(names) == set(target_outputs))
+                if not match:
+                    out_str = meta.get('output')
+                    if isinstance(out_str, str):
+                        parts = [p.strip() for p in out_str.split(',')]
+                        match = (set(parts) == set(target_outputs))
+                if match:
+                    keys_to_delete.append(k)
+            for k in keys_to_delete:
+                try:
+                    del app.callback_map[k]
+                except Exception:
+                    pass
         except Exception:
-            return False
-        return False
+            pass
 
-    # Ensure no duplicates by pruning existing identical registrations first
-    try:
-        cmap = getattr(app, 'callback_map', {}) or {}
-        target = ['admin-root-content.children', 'admin-root-denied.style', 'admin-root-auth-status.data']
-        keys_to_delete = []
-        for k, meta in list(cmap.items()):
-            outputs = meta.get('outputs_list') or meta.get('outputs')
-            names = []
-            if isinstance(outputs, list):
-                for out in outputs:
-                    if isinstance(out, dict) and 'id' in out and 'property' in out:
-                        names.append(f"{out['id']}.{out['property']}")
-            elif isinstance(outputs, dict):
-                names.append(f"{outputs.get('id')}.{outputs.get('property')}")
-            match = (set(names) == set(target))
-            if not match:
-                out_str = meta.get('output')
-                if isinstance(out_str, str):
-                    parts = [p.strip() for p in out_str.split(',')]
-                    match = (set(parts) == set(target))
-            if match:
-                keys_to_delete.append(k)
-        for k in keys_to_delete:
-            try:
-                del app.callback_map[k]
-            except Exception:
-                pass
-    except Exception:
-        pass
+    # 1) Store-only callback
+    _remove_existing_callbacks(['admin-root-auth-status.data'])
+    app.callback(
+        Output('admin-root-auth-status', 'data'),
+        Input('auth-status', 'data'),
+        prevent_initial_call=False
+    )(_admin_compute_auth_status)
 
-    if not _admin_callback_already_registered():
-        app.callback(
-            [Output('admin-root-content', 'children'),
-             Output('admin-root-denied', 'style'),
-             Output('admin-root-auth-status', 'data')],
-            [Input('auth-status', 'data')],
-            prevent_initial_call=False
-        )(_admin_check_access_callback)
+    # 2) UI callback based on store
+    _remove_existing_callbacks(['admin-root-content.children', 'admin-root-denied.style'])
+    app.callback(
+        [Output('admin-root-content', 'children'),
+         Output('admin-root-denied', 'style')],
+        Input('admin-root-auth-status', 'data'),
+        prevent_initial_call=False
+    )(_admin_build_ui)
 except Exception:
     # Fallback: do nothing if app not ready at import time
     pass
