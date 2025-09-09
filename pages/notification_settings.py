@@ -116,8 +116,6 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
-dash.register_page(__name__, path='/notifications')
-
 def serve_layout():
     layout = html.Div([
         html.H2('Benachrichtigungseinstellungen', style={
@@ -1599,5 +1597,11 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
         ])
 
-# Register the layout
+# Register the page and layout
+try:
+    dash.register_page(__name__, path='/notifications')
+except:
+    # App not ready yet, will be registered when imported by app
+    pass
+
 layout = serve_layout
