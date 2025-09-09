@@ -843,7 +843,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'block'}, # Show settings container
             {'display': 'none'},  # Hide OTP code container
             user_info,  # Show user info
-            {'display': 'block'}, # Show logout button
+            {**get_button_style('secondary'), 'display': 'block'}, # Show logout button with proper styling
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
