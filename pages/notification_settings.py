@@ -472,7 +472,7 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
 # 10. Load Available CIs
 @callback(
     Output('available-cis-data', 'data'),
-    [Input('auth-state-store', 'data')]
+    [Input('auth-status', 'data')]
 )
 def load_available_cis(auth_state):
     """Load available CIs when authenticated"""
@@ -638,7 +638,7 @@ def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks,
 # 15. Load and Display Profiles
 @callback(
     Output('profiles-container', 'children'),
-    [Input('auth-state-store', 'data'),
+    [Input('auth-status', 'data'),
      Input('save-profile-button', 'n_clicks')],  # Trigger refresh after save
     prevent_initial_call=False
 )
