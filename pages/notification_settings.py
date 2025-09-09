@@ -189,12 +189,12 @@ def update_ui_visibility(ui_state):
 def handle_otp_request(n_clicks, email, otp_state, ui_state):
     """Handle OTP request (single responsibility)"""
     if not n_clicks or not email:
-        return [no_update, no_update, no_update]
+        return [no_update, no_update]
 
     try:
         # Validate email
         if '@' not in email or '.' not in email:
-            return [no_update, no_update, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.']
+            return [no_update, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.']
 
         # Call API
         import requests
