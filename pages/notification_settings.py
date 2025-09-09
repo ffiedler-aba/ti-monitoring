@@ -1598,3 +1598,6 @@ def test_apprise_notification(n_clicks, apprise_url, auth_data):
                 html.Br(),
                 html.A('https://github.com/caronc/apprise/wiki', href='https://github.com/caronc/apprise/wiki', target='_blank', style={'color': 'blue', 'text-decoration': 'underline'})
         ])
+
+# Register the layout
+layout = serve_layout
