@@ -212,20 +212,7 @@ def serve_layout():
 
 # === SEPARATED CALLBACKS (One responsibility each) ===
 
-# 1. Initial Auth State Loader (from persistent storage)
-@callback(
-    Output('auth-state-store', 'data'),
-    [Input('auth-status', 'data')],
-    prevent_initial_call=False
-)
-def load_initial_auth_state(auth_status):
-    """Load auth state from persistent storage on page load"""
-    if auth_status and auth_status.get('authenticated'):
-        return auth_status
-    else:
-        return {'authenticated': False, 'user_id': None, 'email': None}
-
-# 2. UI State Management (based on auth store)
+# 1. UI State Management (based on auth store)
 @callback(
     [Output('otp-login-container', 'style'),
      Output('otp-code-container', 'style'),
@@ -280,7 +267,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 
 # 3. OTP Verification Handler
 @callback(
-    [Output('auth-state-store', 'data', allow_duplicate=True),
+    [Output('auth-state-store', 'data'),
      Output('otp-verify-error', 'children'),
      Output('otp-code-input', 'value')],
     [Input('verify-otp-button', 'n_clicks')],
@@ -317,24 +304,28 @@ def handle_otp_verification(n_clicks, email, otp_code):
     [Output('ui-state-store', 'data'),
      Output('user-info', 'children'),
      Output('auth-status', 'data')],
-    [Input('auth-state-store', 'data')],
-    prevent_initial_call=True
+    [Input('auth-state-store', 'data'),
+     Input('auth-status', 'data')],  # Also listen to persistent storage
+    prevent_initial_call=False
 )
-def update_ui_from_auth(auth_state):
+def update_ui_from_auth(auth_state, auth_status):
     """Update UI state when auth state changes"""
-    if not auth_state or not auth_state.get('authenticated'):
+    # Use auth_status (persistent) if auth_state is not available
+    current_auth = auth_state if (auth_state and auth_state.get('authenticated')) else auth_status
+
+    if not current_auth or not current_auth.get('authenticated'):
         ui_state = {'show_login': True, 'show_otp': False, 'show_settings': False}
         return [ui_state, '', {'authenticated': False}]
 
     # Authenticated - show settings
-    email = auth_state.get('email', 'Unbekannt')
+    email = current_auth.get('email', 'Unbekannt')
     ui_state = {'show_login': False, 'show_otp': False, 'show_settings': True}
     user_info = html.Div([
         html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
         html.Button('Abmelden', id='logout-button-integrated', n_clicks=0, style=get_button_style('secondary'))
     ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
-    return [ui_state, user_info, auth_state]
+    return [ui_state, user_info, current_auth]
 
 # 5. OTP State to UI State Bridge
 @callback(
