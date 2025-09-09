@@ -56,45 +56,67 @@ def serve_layout():
 
 layout = serve_layout
 
-# Prevent duplicate callback registration if the module is imported twice
-if not globals().get('_admin_callbacks_registered'):
-    # Callback: Check admin status based on auth data from notifications
-    @callback(
-        [Output('admin-root-content', 'children'),
-         Output('admin-root-denied', 'style'),
-         Output('admin-root-auth-status', 'data')],
-        [Input('auth-status', 'data')],
-        prevent_initial_call=False
-    )
-    def check_admin_access(auth_data):
-        """Check if user has admin access"""
-        if not auth_data or not auth_data.get('authenticated'):
-            # Not authenticated - redirect to notifications
-            return [
-                html.Div([
-                    html.H3('Authentifizierung erforderlich'),
-                    html.P('Bitte melden Sie sich zuerst über die Notifications-Seite an.'),
-                    html.A('Zur Anmeldung', href='/notifications', className='btn btn-primary')
-                ])
-            ], {'display': 'none'}, {'admin': False}
-
-        user_email = auth_data.get('email', '')
-        if is_admin_user(user_email):
-            # User is admin - show admin content
-            admin_content = html.Div([
-                html.H3(f'Willkommen, Admin ({user_email})'),
-                html.P('Admin-Dashboard wird geladen...'),
-                html.Hr(),
-                html.H4('Navigation'),
-                html.Ul([
-                    html.Li(html.A('System-Logs anzeigen', href='/admin/logs', style={'color': '#3498db'})),
-                    html.Li(html.A('Benutzer verwalten', href='/admin/users', style={'color': '#3498db'})),
-                    html.Li(html.A('Erweiterte Statistiken', href='/admin/stats', style={'color': '#3498db'}))
-                ], style={'listStyle': 'none', 'padding': '0'})
+# Define the callback logic without registering it yet
+def _admin_check_access_callback(auth_data):
+    """Check if user has admin access"""
+    if not auth_data or not auth_data.get('authenticated'):
+        return [
+            html.Div([
+                html.H3('Authentifizierung erforderlich'),
+                html.P('Bitte melden Sie sich zuerst über die Notifications-Seite an.'),
+                html.A('Zur Anmeldung', href='/notifications', className='btn btn-primary')
             ])
-            return admin_content, {'display': 'none'}, {'admin': True, 'email': user_email}
-        else:
-            # User is not admin
-            return html.Div(), {'display': 'block'}, {'admin': False}
+        ], {'display': 'none'}, {'admin': False}
 
-    _admin_callbacks_registered = True
+    user_email = auth_data.get('email', '')
+    if is_admin_user(user_email):
+        admin_content = html.Div([
+            html.H3(f'Willkommen, Admin ({user_email})'),
+            html.P('Admin-Dashboard wird geladen...'),
+            html.Hr(),
+            html.H4('Navigation'),
+            html.Ul([
+                html.Li(html.A('System-Logs anzeigen', href='/admin/logs', style={'color': '#3498db'})),
+                html.Li(html.A('Benutzer verwalten', href='/admin/users', style={'color': '#3498db'})),
+                html.Li(html.A('Erweiterte Statistiken', href='/admin/stats', style={'color': '#3498db'}))
+            ], style={'listStyle': 'none', 'padding': '0'})
+        ])
+        return admin_content, {'display': 'none'}, {'admin': True, 'email': user_email}
+    else:
+        return html.Div(), {'display': 'block'}, {'admin': False}
+
+
+# Register the callback only if an identical output set is not already registered
+try:
+    app = dash.get_app()
+
+    def _admin_callback_already_registered() -> bool:
+        try:
+            cmap = getattr(app, 'callback_map', {}) or {}
+            target = ['admin-root-content.children', 'admin-root-denied.style', 'admin-root-auth-status.data']
+            for _k, meta in cmap.items():
+                outputs = meta.get('outputs_list') or meta.get('outputs')
+                names = []
+                if isinstance(outputs, list):
+                    for out in outputs:
+                        if isinstance(out, dict) and 'id' in out and 'property' in out:
+                            names.append(f"{out['id']}.{out['property']}")
+                elif isinstance(outputs, dict):
+                    names.append(f"{outputs.get('id')}.{outputs.get('property')}")
+                if names == target:
+                    return True
+        except Exception:
+            return False
+        return False
+
+    if not _admin_callback_already_registered():
+        app.callback(
+            [Output('admin-root-content', 'children'),
+             Output('admin-root-denied', 'style'),
+             Output('admin-root-auth-status', 'data')],
+            [Input('auth-status', 'data')],
+            prevent_initial_call=False
+        )(_admin_check_access_callback)
+except Exception:
+    # Fallback: do nothing if app not ready at import time
+    pass
