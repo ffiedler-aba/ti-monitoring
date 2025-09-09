@@ -648,7 +648,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             else:
                 # OTP validation failed
                 return [
-                    no_update, no_update, no_update, no_update,
+                    no_update, no_update, no_update, no_update, no_update,
                     no_update, no_update,
                     'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.',
                     no_update, no_update, no_update
