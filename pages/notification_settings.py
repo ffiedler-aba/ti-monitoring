@@ -270,6 +270,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 @callback(
     [Output('auth-state-store', 'data'),
      Output('auth-status', 'data'),
+     Output('ui-state-store', 'data'),
      Output('otp-verify-error', 'children'),
      Output('otp-code-input', 'value')],
     [Input('verify-otp-button', 'n_clicks')],
@@ -277,65 +278,57 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
      State('otp-code-input', 'value')]
 )
 def handle_otp_verification(n_clicks, email, otp_code):
-    """Handle OTP verification (single responsibility)"""
+    """Handle OTP verification with direct UI update"""
     if not n_clicks or not email or not otp_code:
-        return [no_update, no_update, no_update, no_update]
+        return [no_update, no_update, no_update, no_update, no_update]
 
     try:
         user = get_user_by_email(email)
         if not user:
-            return [no_update, no_update, 'Benutzer nicht gefunden.', no_update]
+            return [no_update, no_update, no_update, 'Benutzer nicht gefunden.', no_update]
 
         user_id = user[0]
 
         if is_account_locked(user_id):
-            return [no_update, no_update, 'Konto ist gesperrt.', no_update]
+            return [no_update, no_update, no_update, 'Konto ist gesperrt.', no_update]
 
         if validate_otp(user_id, otp_code):
-            # Success - set both auth states for immediate and persistent storage
+            # Success - set auth states AND ui state directly (avoid race condition)
             auth_state = {'authenticated': True, 'user_id': user_id, 'email': email}
-            print(f"DEBUG: OTP verification successful, setting auth_state: {auth_state}")
-            return [auth_state, auth_state, '', '']  # Set both stores and clear OTP input
+            ui_state = {'show_login': False, 'show_otp': False, 'show_settings': True}
+            print(f"DEBUG: OTP verification successful, setting auth_state: {auth_state}, ui_state: {ui_state}")
+            return [auth_state, auth_state, ui_state, '', '']  # Direct UI update
         else:
-            return [no_update, no_update, 'Ungültiger OTP-Code.', no_update]
+            return [no_update, no_update, no_update, 'Ungültiger OTP-Code.', no_update]
 
     except Exception as e:
-        return [no_update, no_update, f'Fehler: {str(e)}', no_update]
+        return [no_update, no_update, no_update, f'Fehler: {str(e)}', no_update]
 
-# 4. Auth State to UI State Bridge
+# 4. Auth State to UI State Bridge (for initial load only)
 @callback(
-    [Output('ui-state-store', 'data'),
-     Output('user-info', 'children')],
+    Output('user-info', 'children'),
     [Input('auth-state-store', 'data'),
-     Input('auth-status', 'data'),
-     Input('otp-state-store', 'data')],  # Also listen to OTP state for UI updates
+     Input('auth-status', 'data')],
     prevent_initial_call=False
 )
-def update_ui_from_auth(auth_state, auth_status, otp_state):
-    """Update UI state when auth state changes"""
+def update_ui_from_auth(auth_state, auth_status):
+    """Update user info when auth state changes (UI state handled separately)"""
     print(f"DEBUG: update_ui_from_auth called with auth_state: {auth_state}, auth_status: {auth_status}")
     # Use auth_status (persistent) if auth_state is not available
     current_auth = auth_state if (auth_state and auth_state.get('authenticated')) else auth_status
     print(f"DEBUG: current_auth: {current_auth}")
 
-    # Handle OTP state for UI transitions
-    if otp_state and otp_state.get('step') == 'verify':
-        ui_state = {'show_login': False, 'show_otp': True, 'show_settings': False}
-        return [ui_state, '']
-
     if not current_auth or not current_auth.get('authenticated'):
-        ui_state = {'show_login': True, 'show_otp': False, 'show_settings': False}
-        return [ui_state, '']
+        return ''
 
-    # Authenticated - show settings
+    # Authenticated - show user info with logout
     email = current_auth.get('email', 'Unbekannt')
-    ui_state = {'show_login': False, 'show_otp': False, 'show_settings': True}
     user_info = html.Div([
         html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
         html.Button('Abmelden', id='logout-button-integrated', n_clicks=0, style=get_button_style('secondary'))
     ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
-    return [ui_state, user_info]
+    return user_info
 
 
 # 7. Logout Handler
