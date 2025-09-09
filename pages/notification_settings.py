@@ -476,12 +476,16 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
 )
 def load_available_cis(auth_state):
     """Load available CIs when authenticated"""
+    print(f"DEBUG: load_available_cis called with auth_state: {auth_state}")
+
     if not auth_state or not auth_state.get('authenticated'):
+        print("DEBUG: Not authenticated, returning empty list")
         return []
 
     try:
         from mylibrary import get_data_of_all_cis
         cis_df = get_data_of_all_cis('')
+        print(f"DEBUG: Loaded {len(cis_df)} CIs from database")
 
         if not cis_df.empty:
             ci_list = []
@@ -493,11 +497,13 @@ def load_available_cis(auth_state):
                     'product': str(row.get('product', ''))
                 }
                 ci_list.append(ci_info)
+            print(f"DEBUG: Returning {len(ci_list)} CI items")
             return ci_list
         else:
+            print("DEBUG: CIs DataFrame is empty")
             return []
     except Exception as e:
-        print(f"Error loading CIs: {e}")
+        print(f"ERROR loading CIs: {e}")
         return []
 
 # 11. CI Filter Handler
