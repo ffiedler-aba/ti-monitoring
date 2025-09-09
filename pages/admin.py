@@ -104,14 +104,14 @@ try:
                             names.append(f"{out['id']}.{out['property']}")
                 elif isinstance(outputs, dict):
                     names.append(f"{outputs.get('id')}.{outputs.get('property')}")
-                if names == target:
+                if set(names) == set(target):
                     return True
                 # Case 2: Some Dash versions expose a single 'output' string
                 out_str = meta.get('output')
                 if isinstance(out_str, str):
                     # Normalize by splitting on commas and trimming
                     parts = [p.strip() for p in out_str.split(',')]
-                    if parts == target:
+                    if set(parts) == set(target):
                         return True
         except Exception:
             return False
@@ -131,12 +131,12 @@ try:
                         names.append(f"{out['id']}.{out['property']}")
             elif isinstance(outputs, dict):
                 names.append(f"{outputs.get('id')}.{outputs.get('property')}")
-            match = (names == target)
+            match = (set(names) == set(target))
             if not match:
                 out_str = meta.get('output')
                 if isinstance(out_str, str):
                     parts = [p.strip() for p in out_str.split(',')]
-                    match = (parts == target)
+                    match = (set(parts) == set(target))
             if match:
                 keys_to_delete.append(k)
         for k in keys_to_delete:
