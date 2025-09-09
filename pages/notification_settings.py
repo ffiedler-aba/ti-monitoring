@@ -702,17 +702,17 @@ try:
 except:
     pass
 
-# Clientside callback for logout redirect
+# Clientside callback for logout redirect (using separate dummy output)
 dash.clientside_callback(
     """
     function(redirect_data) {
         if (redirect_data && redirect_data.redirect) {
             window.location.href = '/';
         }
-        return window.dash_clientside.no_update;
+        return '';
     }
     """,
-    Output('redirect-trigger', 'data'),
+    Output('user-info', 'title'),  # Use harmless attribute as dummy output
     [Input('redirect-trigger', 'data')],
     prevent_initial_call=True
 )
