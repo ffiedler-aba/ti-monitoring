@@ -212,7 +212,20 @@ def serve_layout():
 
 # === SEPARATED CALLBACKS (One responsibility each) ===
 
-# 1. UI State Management (based on auth store)
+# 1. Initial Auth State Loader (from persistent storage)
+@callback(
+    Output('auth-state-store', 'data'),
+    [Input('auth-status', 'data')],
+    prevent_initial_call=False
+)
+def load_initial_auth_state(auth_status):
+    """Load auth state from persistent storage on page load"""
+    if auth_status and auth_status.get('authenticated'):
+        return auth_status
+    else:
+        return {'authenticated': False, 'user_id': None, 'email': None}
+
+# 2. UI State Management (based on auth store)
 @callback(
     [Output('otp-login-container', 'style'),
      Output('otp-code-container', 'style'),
@@ -267,7 +280,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 
 # 3. OTP Verification Handler
 @callback(
-    [Output('auth-state-store', 'data'),
+    [Output('auth-state-store', 'data', allow_duplicate=True),
      Output('otp-verify-error', 'children'),
      Output('otp-code-input', 'value')],
     [Input('verify-otp-button', 'n_clicks')],
@@ -339,7 +352,7 @@ def update_ui_from_otp(otp_state):
 
     return {'show_login': True, 'show_otp': False, 'show_settings': False}
 
-# 6. Logout Handler
+# 7. Logout Handler
 @callback(
     Output('auth-state-store', 'data', allow_duplicate=True),
     [Input('logout-button', 'n_clicks'),
@@ -630,6 +643,70 @@ def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks,
         return list(set(selected_cis))  # Remove duplicates
 
     return []
+
+# 15. Load and Display Profiles
+@callback(
+    Output('profiles-container', 'children'),
+    [Input('auth-state-store', 'data'),
+     Input('save-profile-button', 'n_clicks')],  # Trigger refresh after save
+    prevent_initial_call=False
+)
+def display_profiles(auth_state, save_clicks):
+    """Load and display user profiles"""
+    if not auth_state or not auth_state.get('authenticated'):
+        return []
+
+    user_id = auth_state.get('user_id')
+    if not user_id:
+        return html.P('Fehler: Benutzer nicht authentifiziert.')
+
+    try:
+        # Load profiles from database
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, name, type, ci_list, apprise_urls, email_notifications
+                FROM notification_profiles
+                WHERE user_id = %s
+                ORDER BY created_at DESC
+            """, (user_id,))
+            profiles = cur.fetchall()
+
+        if not profiles:
+            return html.P('Keine Benachrichtigungsprofile gefunden. Fügen Sie ein neues Profil hinzu, um zu beginnen.')
+
+        profile_cards = []
+        for profile in profiles:
+            profile_id, name, notification_type, ci_list, apprise_urls, email_notifications = profile
+
+            # Count items
+            ci_count = len(ci_list) if ci_list else 0
+            url_count = len(apprise_urls) if apprise_urls else 0
+            notification_method = 'E-Mail' if email_notifications else 'Apprise'
+
+            card = html.Div([
+                html.H4(name or 'Unbenanntes Profil', style={'color': '#2c3e50', 'marginBottom': '15px'}),
+                html.P(f"Typ: {notification_type.title() if notification_type else 'Whitelist'}", style={'margin': '5px 0'}),
+                html.P(f"Methode: {notification_method}", style={'margin': '5px 0'}),
+                html.P(f"CIs: {ci_count}", style={'margin': '5px 0'}),
+                html.P(f"URLs: {url_count}", style={'margin': '5px 0'}),
+                html.Div([
+                    html.Button('Bearbeiten', id={'type': 'edit-profile', 'profile_id': str(profile_id)},
+                              n_clicks=0, style=get_button_style('secondary')),
+                    html.Button('Löschen', id={'type': 'delete-profile', 'profile_id': str(profile_id)},
+                              n_clicks=0, style=get_button_style('danger'))
+                ], style={'display': 'flex', 'gap': '10px', 'justifyContent': 'flex-end'})
+            ], style={
+                'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '12px',
+                'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)', 'marginBottom': '15px',
+                'border': '1px solid #e9ecef'
+            })
+
+            profile_cards.append(card)
+
+        return profile_cards
+
+    except Exception as e:
+        return html.P(f'Fehler beim Laden der Profile: {str(e)}', style={'color': '#e74c3c'})
 
 # Register page at the end
 try:
