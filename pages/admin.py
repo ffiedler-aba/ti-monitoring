@@ -86,55 +86,37 @@ def _admin_check_access_callback(auth_data):
         return html.Div(), {'display': 'block'}, {'admin': False}
 
 
-# Register callbacks separately to avoid duplicate output sets
-try:
-    app = dash.get_app()
+# Register a simple single callback for the main admin page only
+@callback(
+    [Output('admin-root-content', 'children'),
+     Output('admin-root-denied', 'style')],
+    [Input('auth-status', 'data')],
+    prevent_initial_call=False
+)
+def check_admin_access(auth_data):
+    """Check if user has admin access"""
+    if not auth_data or not auth_data.get('authenticated'):
+        # Not authenticated
+        return [
+            html.Div([
+                html.H3('Authentifizierung erforderlich'),
+                html.P('Bitte melden Sie sich zuerst über die Notifications-Seite an.'),
+                html.A('Zur Anmeldung', href='/notifications', className='btn btn-primary')
+            ])
+        ], {'display': 'none'}
 
-    def _remove_existing_callbacks(target_outputs):
-        try:
-            cmap = getattr(app, 'callback_map', {}) or {}
-            keys_to_delete = []
-            for k, meta in list(cmap.items()):
-                outputs = meta.get('outputs_list') or meta.get('outputs')
-                names = []
-                if isinstance(outputs, list):
-                    for out in outputs:
-                        if isinstance(out, dict) and 'id' in out and 'property' in out:
-                            names.append(f"{out['id']}.{out['property']}")
-                elif isinstance(outputs, dict):
-                    names.append(f"{outputs.get('id')}.{outputs.get('property')}")
-                match = (set(names) == set(target_outputs))
-                if not match:
-                    out_str = meta.get('output')
-                    if isinstance(out_str, str):
-                        parts = [p.strip() for p in out_str.split(',')]
-                        match = (set(parts) == set(target_outputs))
-                if match:
-                    keys_to_delete.append(k)
-            for k in keys_to_delete:
-                try:
-                    del app.callback_map[k]
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    # 1) Store-only callback
-    _remove_existing_callbacks(['admin-root-auth-status.data'])
-    app.callback(
-        Output('admin-root-auth-status', 'data'),
-        Input('auth-status', 'data'),
-        prevent_initial_call=False
-    )(_admin_compute_auth_status)
-
-    # 2) UI callback based on store
-    _remove_existing_callbacks(['admin-root-content.children', 'admin-root-denied.style'])
-    app.callback(
-        [Output('admin-root-content', 'children'),
-         Output('admin-root-denied', 'style')],
-        Input('admin-root-auth-status', 'data'),
-        prevent_initial_call=False
-    )(_admin_build_ui)
-except Exception:
-    # Fallback: do nothing if app not ready at import time
-    pass
+    user_email = auth_data.get('email', '')
+    if is_admin_user(user_email):
+        # User is admin - show admin content
+        admin_content = html.Div([
+            html.H3(f'Willkommen, Admin ({user_email})'),
+            html.P('Admin-Dashboard ist verfügbar.'),
+            html.Hr(),
+            html.H4('Hinweis'),
+            html.P('Die Admin-Unterseiten (Logs, Benutzer, Statistiken) sind temporär deaktiviert, um Callback-Konflikte zu beheben.'),
+            html.P('Die Hauptfunktionalität der Anwendung (Monitoring, Benachrichtigungen, Statistiken) ist verfügbar.')
+        ])
+        return admin_content, {'display': 'none'}
+    else:
+        # User is not admin
+        return html.Div(), {'display': 'block'}
