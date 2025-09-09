@@ -110,11 +110,14 @@ def check_admin_access(auth_data):
         # User is admin - show admin content
         admin_content = html.Div([
             html.H3(f'Willkommen, Admin ({user_email})'),
-            html.P('Admin-Dashboard ist verfügbar.'),
+            html.P('Admin-Dashboard wird geladen...'),
             html.Hr(),
-            html.H4('Hinweis'),
-            html.P('Die Admin-Unterseiten (Logs, Benutzer, Statistiken) sind temporär deaktiviert, um Callback-Konflikte zu beheben.'),
-            html.P('Die Hauptfunktionalität der Anwendung (Monitoring, Benachrichtigungen, Statistiken) ist verfügbar.')
+            html.H4('Navigation'),
+            html.Ul([
+                html.Li(html.A('System-Logs anzeigen', href='/admin/logs', style={'color': '#3498db'})),
+                html.Li(html.A('Benutzer verwalten', href='/admin/users', style={'color': '#3498db'})),
+                html.Li(html.A('Erweiterte Statistiken', href='/admin/stats', style={'color': '#3498db'}))
+            ], style={'listStyle': 'none', 'padding': '0'})
         ])
         return admin_content, {'display': 'none'}
     else:
