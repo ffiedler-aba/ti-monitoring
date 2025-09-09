@@ -211,13 +211,6 @@ def serve_layout():
                 'alignItems': 'center'
             }),
 
-            # Logout button (separate element with fixed ID for callback)
-            html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                **get_button_style('secondary'),
-                'display': 'none',  # Hidden by default
-                'marginBottom': '20px'
-            }),
-
 
             # Delete profile button + confirm dialog
             html.Button('Profil vollständig löschen', id='delete-own-profile-button', n_clicks=0, style={
@@ -550,7 +543,6 @@ def delete_user_profile(confirm_clicks, auth_data):
      Output('settings-container', 'style'),
      Output('otp-code-container', 'style'),
      Output('user-info', 'children'),
-     Output('logout-button', 'style'),
      Output('otp-request-error', 'children'),
      Output('otp-instructions', 'children'),
      Output('otp-verify-error', 'children'),
@@ -580,7 +572,6 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
-                {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -631,15 +622,17 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 auth_data['user_id'] = user_id
                 auth_data['email'] = email
 
-                # Create user info (without logout button, as it's separate)
-                user_info = html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
+                # Create user info with integrated logout button
+                user_info = html.Div([
+                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+                    html.Button('Abmelden', id='logout-button', n_clicks=0, style=get_button_style('secondary'))
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
                 return [
                     {'display': 'none'},  # Hide login container
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
-                    user_info,  # Show user info
-                    {**get_button_style('secondary'), 'display': 'block'},  # Show logout button
+                    user_info,  # Show user info with integrated logout button
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
@@ -838,14 +831,16 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
     if auth_data.get('authenticated', False):
         # User is authenticated - show settings
         email = auth_data.get('email', 'Unbekannt')
-        user_info = html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
+        user_info = html.Div([
+            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+            html.Button('Abmelden', id='logout-button', n_clicks=0, style=get_button_style('secondary'))
+        ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
         return [
             {'display': 'none'},  # Hide login container
             {'display': 'block'}, # Show settings container
             {'display': 'none'},  # Hide OTP code container
-            user_info,  # Show user info
-            {**get_button_style('secondary'), 'display': 'block'},  # Show logout button
+            user_info,  # Show user info with integrated logout button
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
@@ -860,7 +855,6 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
             '',  # No user info
-            {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
