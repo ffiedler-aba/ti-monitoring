@@ -269,6 +269,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 # 3. OTP Verification Handler
 @callback(
     [Output('auth-state-store', 'data'),
+     Output('auth-status', 'data'),
      Output('otp-verify-error', 'children'),
      Output('otp-code-input', 'value')],
     [Input('verify-otp-button', 'n_clicks')],
@@ -278,27 +279,27 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 def handle_otp_verification(n_clicks, email, otp_code):
     """Handle OTP verification (single responsibility)"""
     if not n_clicks or not email or not otp_code:
-        return [no_update, no_update, no_update]
+        return [no_update, no_update, no_update, no_update]
 
     try:
         user = get_user_by_email(email)
         if not user:
-            return [no_update, 'Benutzer nicht gefunden.', no_update]
+            return [no_update, no_update, 'Benutzer nicht gefunden.', no_update]
 
         user_id = user[0]
 
         if is_account_locked(user_id):
-            return [no_update, 'Konto ist gesperrt.', no_update]
+            return [no_update, no_update, 'Konto ist gesperrt.', no_update]
 
         if validate_otp(user_id, otp_code):
-            # Success - set auth state
+            # Success - set both auth states for immediate and persistent storage
             auth_state = {'authenticated': True, 'user_id': user_id, 'email': email}
-            return [auth_state, '', '']  # Clear OTP input
+            return [auth_state, auth_state, '', '']  # Set both stores and clear OTP input
         else:
-            return [no_update, 'Ungültiger OTP-Code.', no_update]
+            return [no_update, no_update, 'Ungültiger OTP-Code.', no_update]
 
     except Exception as e:
-        return [no_update, f'Fehler: {str(e)}', no_update]
+        return [no_update, no_update, f'Fehler: {str(e)}', no_update]
 
 # 4. Auth State to UI State Bridge
 @callback(
@@ -336,18 +337,17 @@ def update_ui_from_auth(auth_state, auth_status, otp_state):
 
 # 7. Logout Handler
 @callback(
-    [Output('auth-status', 'data'),
-     Output('redirect-trigger', 'data')],
+    Output('redirect-trigger', 'data'),
     [Input('logout-button-integrated', 'n_clicks')],
     prevent_initial_call=True
 )
 def handle_logout(logout_integrated_clicks):
     """Handle logout (single responsibility)"""
     if not logout_integrated_clicks:
-        return [no_update, no_update]
+        return no_update
 
-    # Reset auth status and trigger redirect
-    return [{'authenticated': False, 'user_id': None, 'email': None}, {'redirect': True, 'timestamp': str(datetime.now())}]
+    # Trigger redirect (auth reset will be handled by clientside)
+    return {'redirect': True, 'timestamp': str(datetime.now())}
 
 # 7. Apprise Test Handler
 @callback(
@@ -702,11 +702,13 @@ try:
 except:
     pass
 
-# Clientside callback for logout redirect (using separate dummy output)
+# Clientside callback for logout redirect and auth reset
 dash.clientside_callback(
     """
     function(redirect_data) {
         if (redirect_data && redirect_data.redirect) {
+            // Reset auth in localStorage and redirect
+            localStorage.setItem('auth-status', JSON.stringify({'authenticated': false}));
             window.location.href = '/';
         }
         return '';
