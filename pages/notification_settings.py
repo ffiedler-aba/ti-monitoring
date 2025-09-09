@@ -1356,18 +1356,35 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
             # Load profile from database
             with get_db_conn() as conn, conn.cursor() as cur:
                 cur.execute("""
-                    SELECT name, type, ci_list, apprise_urls, email_notifications
+                    SELECT name, type, ci_list, apprise_urls, apprise_urls_salt, email_notifications
                     FROM notification_profiles
                     WHERE id = %s
                 """, (profile_id,))
                 profile = cur.fetchone()
 
                 if profile:
-                    name, notification_type, ci_list_db, apprise_urls_db, email_notifications = profile
+                    name, notification_type, ci_list_db, apprise_urls_db, apprise_urls_salt_db, email_notifications = profile
                     ci_list = ci_list_db if ci_list_db is not None else [] # Ensure ci_list is a list
-                    apprise_urls = apprise_urls_db if apprise_urls_db is not None else [] # Ensure apprise_urls is a list
+
+                    # Decrypt Apprise URLs for editing
+                    apprise_urls_text = ''
+                    if apprise_urls_db and apprise_urls_salt_db:
+                        try:
+                            decrypted_urls = []
+                            encryption_key = os.getenv('ENCRYPTION_KEY')
+                            if encryption_key:
+                                encryption_key = encryption_key.encode()
+                                for i, encrypted_url in enumerate(apprise_urls_db):
+                                    if i < len(apprise_urls_salt_db):
+                                        decrypted = decrypt_data(encrypted_url, apprise_urls_salt_db[i], encryption_key)
+                                        if decrypted:
+                                            decrypted_urls.append(decrypted)
+                            apprise_urls_text = '\n'.join(decrypted_urls)
+                        except Exception as e:
+                            print(f"Error decrypting Apprise URLs: {e}")
+                            apprise_urls_text = ''
+
                     notification_method = 'email' if email_notifications else 'apprise'
-                    apprise_urls_text = '\n'.join(apprise_urls) if apprise_urls else ''
 
                     print(f"DEBUG: Loaded profile - name: {name}, ci_list: {ci_list}, ci_list type: {type(ci_list)}")
 
