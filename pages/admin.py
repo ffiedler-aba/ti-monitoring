@@ -95,6 +95,7 @@ try:
             cmap = getattr(app, 'callback_map', {}) or {}
             target = ['admin-root-content.children', 'admin-root-denied.style', 'admin-root-auth-status.data']
             for _k, meta in cmap.items():
+                # Case 1: Dash >=2 provides outputs_list (list of dicts)
                 outputs = meta.get('outputs_list') or meta.get('outputs')
                 names = []
                 if isinstance(outputs, list):
@@ -105,6 +106,13 @@ try:
                     names.append(f"{outputs.get('id')}.{outputs.get('property')}")
                 if names == target:
                     return True
+                # Case 2: Some Dash versions expose a single 'output' string
+                out_str = meta.get('output')
+                if isinstance(out_str, str):
+                    # Normalize by splitting on commas and trimming
+                    parts = [p.strip() for p in out_str.split(',')]
+                    if parts == target:
+                        return True
         except Exception:
             return False
         return False
