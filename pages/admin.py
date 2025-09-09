@@ -117,6 +117,36 @@ try:
             return False
         return False
 
+    # Ensure no duplicates by pruning existing identical registrations first
+    try:
+        cmap = getattr(app, 'callback_map', {}) or {}
+        target = ['admin-root-content.children', 'admin-root-denied.style', 'admin-root-auth-status.data']
+        keys_to_delete = []
+        for k, meta in list(cmap.items()):
+            outputs = meta.get('outputs_list') or meta.get('outputs')
+            names = []
+            if isinstance(outputs, list):
+                for out in outputs:
+                    if isinstance(out, dict) and 'id' in out and 'property' in out:
+                        names.append(f"{out['id']}.{out['property']}")
+            elif isinstance(outputs, dict):
+                names.append(f"{outputs.get('id')}.{outputs.get('property')}")
+            match = (names == target)
+            if not match:
+                out_str = meta.get('output')
+                if isinstance(out_str, str):
+                    parts = [p.strip() for p in out_str.split(',')]
+                    match = (parts == target)
+            if match:
+                keys_to_delete.append(k)
+        for k in keys_to_delete:
+            try:
+                del app.callback_map[k]
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     if not _admin_callback_already_registered():
         app.callback(
             [Output('admin-root-content', 'children'),
