@@ -29,8 +29,6 @@ core:
   # URL for API
   url: "https://ti-lage.prod.ccs.gematik.solutions/lageapi/v1/tilage/bu/PU"
   
-  # Path to hdf5 file for saving the availability data 
-  file_name: "data/data.hdf5"
   # Time frame for statistics in web app
   stats_delta_hours: 12
   

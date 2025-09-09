@@ -1360,9 +1360,10 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
 
 # Callback to save profile
 @callback(
-    [Output('form-error', 'children'),
+   [Output('form-error', 'children'),
      Output('form-error', 'style'),
      Output('save-profile-button', 'n_clicks')],
+   allow_duplicate=True,
     [Input('save-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
     [State('editing-profile-id', 'data'),
@@ -1436,6 +1437,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
     [     Output('delete-confirm', 'displayed'),
      Output('delete-confirm', 'message'),
      Output('delete-index-store', 'data')],
+    allow_duplicate=True,
     [Input({'type': 'delete-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     prevent_initial_call=True
 )
