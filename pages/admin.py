@@ -34,19 +34,19 @@ def serve_layout():
         create_admin_header('Admin Dashboard'),
 
         # Admin content (hidden until auth verified)
-        html.Div(id='admin-content', children=[
+        html.Div(id='admin-root-content', children=[
             html.P('Überprüfe Admin-Berechtigung...', style={'textAlign': 'center'})
         ]),
 
         # Non-admin message (hidden by default)
-        html.Div(id='admin-denied', children=[
+        html.Div(id='admin-root-denied', children=[
             html.H3('Zugriff verweigert'),
             html.P('Sie haben keine Admin-Berechtigung für diesen Bereich.'),
             html.A('Zurück zu Notifications', href='/notifications', className='btn btn-primary')
         ], style={'display': 'none'}),
 
         # Store for admin status
-        dcc.Store(id='admin-auth-status'),
+        dcc.Store(id='admin-root-auth-status'),
 
         # Check auth status from notifications page (same ID as notifications)
         dcc.Store(id='auth-status', storage_type='local')
@@ -60,9 +60,9 @@ layout = serve_layout
 if not globals().get('_admin_callbacks_registered'):
     # Callback: Check admin status based on auth data from notifications
     @callback(
-        [Output('admin-content', 'children'),
-         Output('admin-denied', 'style'),
-         Output('admin-auth-status', 'data')],
+        [Output('admin-root-content', 'children'),
+         Output('admin-root-denied', 'style'),
+         Output('admin-root-auth-status', 'data')],
         [Input('auth-status', 'data')],
         prevent_initial_call=False
     )
