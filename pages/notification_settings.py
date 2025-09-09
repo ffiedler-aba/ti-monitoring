@@ -196,21 +196,19 @@ def serve_layout():
 @callback(
     [Output('otp-login-container', 'style'),
      Output('otp-code-container', 'style'),
-     Output('settings-container', 'style'),
-     Output('logout-button', 'style')],
+     Output('settings-container', 'style')],
     [Input('ui-state-store', 'data')]
 )
 def update_ui_visibility(ui_state):
     """Update UI visibility based on state store"""
     if not ui_state:
-        return [{'display': 'block'}, {'display': 'none'}, {'display': 'none'}, {'display': 'none'}]
+        return [{'display': 'block'}, {'display': 'none'}, {'display': 'none'}]
 
     login_style = {'display': 'block'} if ui_state.get('show_login') else {'display': 'none'}
     otp_style = {'display': 'block'} if ui_state.get('show_otp') else {'display': 'none'}
     settings_style = {'display': 'block'} if ui_state.get('show_settings') else {'display': 'none'}
-    logout_style = {**get_button_style('secondary'), 'display': 'block'} if ui_state.get('show_settings') else {'display': 'none'}
 
-    return [login_style, otp_style, settings_style, logout_style]
+    return [login_style, otp_style, settings_style]
 
 # 2. OTP Request Handler
 @callback(
