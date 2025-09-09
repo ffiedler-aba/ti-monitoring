@@ -346,13 +346,12 @@ def update_ui_from_otp(otp_state):
 # 7. Logout Handler
 @callback(
     Output('auth-state-store', 'data', allow_duplicate=True),
-    [Input('logout-button', 'n_clicks'),
-     Input('logout-button-integrated', 'n_clicks')],
+    [Input('logout-button-integrated', 'n_clicks')],
     prevent_initial_call=True
 )
-def handle_logout(logout_clicks, logout_integrated_clicks):
+def handle_logout(logout_integrated_clicks):
     """Handle logout (single responsibility)"""
-    if not logout_clicks and not logout_integrated_clicks:
+    if not logout_integrated_clicks:
         return no_update
 
     # Reset auth state
