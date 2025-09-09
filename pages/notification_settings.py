@@ -211,10 +211,17 @@ def serve_layout():
                 'alignItems': 'center'
             }),
 
-            # Logout button (hidden by default, shown when authenticated)
-            html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                **get_button_style('secondary'),
-                'display': 'none'  # Hidden by default
+            # Logout button (positioned below user info, right-aligned)
+            html.Div([
+                html.Button('Abmelden', id='logout-button', n_clicks=0, style={
+                    **get_button_style('secondary'),
+                    'display': 'none'  # Hidden by default
+                })
+            ], style={
+                'display': 'flex',
+                'justifyContent': 'flex-end',
+                'marginBottom': '20px',
+                'marginTop': '-10px'  # Bring closer to user-info
             }),
 
             # Delete profile button + confirm dialog
@@ -574,7 +581,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
-                {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
+                {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -599,7 +606,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             user = get_user_by_email(email)
             if not user:
                 return [
-                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update, no_update, no_update,
                     no_update, no_update,
                     'Benutzer nicht gefunden.',
                     no_update, no_update, no_update
@@ -610,7 +617,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             # Check if account is locked
             if is_account_locked(user_id):
                 return [
-                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update, no_update, no_update,
                     no_update, no_update,
                     'Konto ist gesperrt. Bitte versuchen Sie es später erneut.',
                     no_update, no_update, no_update
@@ -625,17 +632,17 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 auth_data['user_id'] = user_id
                 auth_data['email'] = email
 
-                # Create user info
+                # Create user info with logout button
                 user_info = html.Div([
-                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
-                ], style={'textAlign': 'right', 'marginBottom': '20px'})
+                    html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+                    html.Button('Abmelden', id='logout-button', n_clicks=0, style=get_button_style('secondary'))
+                ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
                 return [
                     {'display': 'none'},  # Hide login container
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
-                    user_info,  # Show user info
-                    {**get_button_style('secondary'), 'display': 'block'}, # Show logout button with proper styling
+                    user_info,  # Show user info with logout button
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
@@ -646,7 +653,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             else:
                 # OTP validation failed
                 return [
-                    no_update, no_update, no_update, no_update, no_update,
+                    no_update, no_update, no_update, no_update,
                     no_update, no_update,
                     'Ungültiger OTP-Code. Bitte versuchen Sie es erneut.',
                     no_update, no_update, no_update
@@ -654,7 +661,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
 
         except Exception as e:
             return [
-                no_update, no_update, no_update, no_update, no_update,
+                no_update, no_update, no_update, no_update,
                 no_update, no_update,
                 f'Fehler bei der OTP-Verifikation: {str(e)}',
                 no_update, no_update, no_update
@@ -835,8 +842,9 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
         # User is authenticated - show settings
         email = auth_data.get('email', 'Unbekannt')
         user_info = html.Div([
-            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'})
-        ], style={'textAlign': 'right', 'marginBottom': '20px'})
+            html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
+            html.Button('Abmelden', id='logout-button', n_clicks=0, style=get_button_style('secondary'))
+        ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
         return [
             {'display': 'none'},  # Hide login container
