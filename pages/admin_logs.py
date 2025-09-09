@@ -1,7 +1,7 @@
 import dash
 from dash import html, dcc, Input, Output, State, callback, no_update
 from mylibrary import is_admin_user
-from pages.admin import create_admin_header
+from pages.components.admin_common import create_admin_header
 import yaml
 import os
 import time
@@ -58,7 +58,7 @@ def get_button_style(variant='primary'):
         'marginRight': '10px',
         'marginBottom': '10px'
     }
-    
+
     if variant == 'primary':
         base.update({
             'backgroundColor': '#3498db',
@@ -79,7 +79,7 @@ def get_button_style(variant='primary'):
             'backgroundColor': '#95a5a6',
             'color': 'white'
         })
-    
+
     return base
 
 dash.register_page(__name__, path='/admin/logs')
@@ -89,7 +89,7 @@ def serve_layout():
     layout = html.Div([
         # Admin header with logo
         create_admin_header('Admin: System-Logs'),
-        
+
         # Back link
         html.A('← Zurück zum Admin-Dashboard', href='/admin', style={
             'color': '#3498db',
@@ -97,15 +97,15 @@ def serve_layout():
             'marginBottom': '20px',
             'display': 'block'
         }),
-        
+
         # Auth check
         html.Div(id='admin-logs-content', children=[
             html.P('Überprüfe Admin-Berechtigung...', style={'textAlign': 'center'})
         ]),
-        
+
         # Store for auth status
         dcc.Store(id='auth-status', storage_type='local'),
-        
+
         # Refresh interval for logs
         dcc.Interval(
             id='log-refresh-interval',
@@ -114,7 +114,7 @@ def serve_layout():
             disabled=True
         )
     ])
-    
+
     return layout
 
 layout = serve_layout
@@ -133,7 +133,7 @@ def check_admin_and_load_logs(auth_data):
             html.P('Bitte melden Sie sich zuerst über die Notifications-Seite an.'),
             html.A('Zur Anmeldung', href='/notifications', className='btn btn-primary')
         ])
-    
+
     user_email = auth_data.get('email', '')
     if not is_admin_user(user_email):
         return html.Div([
@@ -141,14 +141,14 @@ def check_admin_and_load_logs(auth_data):
             html.P('Sie haben keine Admin-Berechtigung für diesen Bereich.'),
             html.A('Zurück zu Notifications', href='/notifications', className='btn btn-primary')
         ])
-    
+
     # Admin verified - show logs interface
     return html.Div([
         html.H4('Container-Logs'),
         html.Div([
             html.Div([
                 html.Label('Anzahl Zeilen:', style={
-                    'marginRight': '10px', 
+                    'marginRight': '10px',
                     'fontWeight': '500',
                     'lineHeight': '36px',  # Match dropdown height
                     'display': 'inline-block'
@@ -165,12 +165,12 @@ def check_admin_and_load_logs(auth_data):
                     style={'width': '150px', 'display': 'inline-block'}
                 )
             ], style={
-                'display': 'inline-flex', 
-                'alignItems': 'center', 
+                'display': 'inline-flex',
+                'alignItems': 'center',
                 'marginRight': '20px',
                 'gap': '10px'
             }),
-            
+
             html.Div([
                 html.Button('Aktualisieren', id='refresh-logs-btn', n_clicks=0, style={
                     **get_button_style('primary'),
@@ -179,13 +179,13 @@ def check_admin_and_load_logs(auth_data):
                 html.Button('Alle Logs', id='full-logs-btn', n_clicks=0, style=get_button_style('secondary'))
             ], style={'display': 'inline-flex', 'alignItems': 'center', 'gap': '10px'})
         ], style={
-            'marginBottom': '20px', 
-            'display': 'flex', 
-            'alignItems': 'center', 
+            'marginBottom': '20px',
+            'display': 'flex',
+            'alignItems': 'center',
             'flexWrap': 'wrap',
             'gap': '15px'
         }),
-        
+
         html.Div(id='admin-log-content-display', style={
             'backgroundColor': '#f8f9fa',
             'border': '1px solid #dee2e6',
@@ -215,12 +215,12 @@ def update_log_content(refresh_clicks, full_clicks, interval_clicks, selected_li
     # Check admin access first
     if not auth_data or not auth_data.get('authenticated'):
         return 'Nicht authentifiziert', no_update
-    
+
     if not is_admin_user(auth_data.get('email', '')):
         return 'Keine Admin-Berechtigung', no_update
-    
+
     ctx = dash.callback_context
-    
+
     # Determine number of lines to show
     if not ctx.triggered:
         # First load - show default logs
@@ -254,10 +254,10 @@ Letzte Aktivität: {datetime.now().strftime("%H:%M:%S")}
 
 === System-Status ===
 Web-Container: Läuft
-Cron-Container: Läuft  
+Cron-Container: Läuft
 Datenbank: Verbunden
 '''
-            
+
     except Exception as e:
         log_content = f'Fehler beim Generieren der Log-Anzeige: {str(e)}'
 
