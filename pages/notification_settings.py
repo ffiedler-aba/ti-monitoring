@@ -1361,9 +1361,7 @@ def show_profile_form(add_clicks, edit_clicks, auth_data):
 # Callback to save profile
 @callback(
    [Output('form-error', 'children'),
-     Output('form-error', 'style'),
      Output('save-profile-button', 'n_clicks')],
-   allow_duplicate=True,
     [Input('save-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
     [State('editing-profile-id', 'data'),
@@ -1379,23 +1377,23 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
     # Check which button was clicked
     ctx = callback_context
     if not ctx.triggered:
-        return [no_update, '', get_error_style(visible=False), 0]
+        return [no_update, 0]
 
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     # Handle cancel button
     if button_id == 'cancel-profile-button':
-        return [{'display': 'none'}, '', get_error_style(visible=False), 0]
+        return ['', 0]
 
     # Handle save button
     if button_id == 'save-profile-button' and save_clicks > 0:
         # Validate inputs
         if not name or name.strip() == '':
-            return [no_update, 'Profilname ist erforderlich.', get_error_style(visible=True), 0]
+            return ['Profilname ist erforderlich.', 0]
 
         user_id = auth_data.get('user_id')
         if not user_id:
-            return [no_update, 'Benutzer nicht authentifiziert.', get_error_style(visible=True), 0]
+            return ['Benutzer nicht authentifiziert.', 0]
 
         # Get selected CIs from the selected-cis-data store
         ci_items = selected_cis if selected_cis else []
@@ -1411,7 +1409,7 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
 
             # Validate Apprise URLs
             if url_items and not validate_apprise_urls(url_items):
-                return [no_update, 'Eine oder mehrere Apprise-URLs sind ungültig.', get_error_style(visible=True), 0]
+                return ['Eine oder mehrere Apprise-URLs sind ungültig.', 0]
 
         try:
             # Save profile to database using encryption functions
@@ -1419,39 +1417,37 @@ def handle_profile_form(save_clicks, cancel_clicks, edit_id, name, notification_
                 # Update existing profile
                 success = update_notification_profile(edit_id, user_id, name, notification_type, ci_items, url_items, email_notifications, email_address)
                 if not success:
-                    return ['Fehler beim Aktualisieren des Profils.', get_error_style(visible=True), 0]
+                    return ['Fehler beim Aktualisieren des Profils.', 0]
             else:
                 # Add new profile
                 profile_id = create_notification_profile(user_id, name, notification_type, ci_items, url_items, email_notifications, email_address)
                 if not profile_id:
-                    return ['Fehler beim Erstellen des Profils.', get_error_style(visible=True), 0]
+                    return ['Fehler beim Erstellen des Profils.', 0]
 
-            return ['', get_error_style(visible=False), 0]  # Success: clear error and reset clicks
+            return ['', 0]  # Success: clear error and reset clicks
         except Exception as e:
-            return [f'Fehler beim Speichern: {str(e)}', get_error_style(visible=True), 0]
+            return [f'Fehler beim Speichern: {str(e)}', 0]
 
-    return ['', get_error_style(visible=False), 0]
+    return ['', 0]
 
 # Callback to handle delete confirmation
 @callback(
     [     Output('delete-confirm', 'displayed'),
-     Output('delete-confirm', 'message'),
      Output('delete-index-store', 'data')],
-    allow_duplicate=True,
     [Input({'type': 'delete-profile', 'profile_id': dash.ALL}, 'n_clicks')],
     prevent_initial_call=True
 )
 def show_delete_confirm(delete_clicks):
     ctx = callback_context
     if not ctx.triggered:
-        return [False, '', None]
+        return [False, None]
 
     # Get the triggered input that caused this callback
     triggered_input = ctx.triggered[0]
 
     # Only show confirmation if a delete button was actually clicked (n_clicks > 0)
     if triggered_input['value'] <= 0:
-        return [False, '', None]
+        return [False, None]
 
     try:
         button_id = triggered_input['prop_id'].split('.')[0]
@@ -1467,11 +1463,11 @@ def show_delete_confirm(delete_clicks):
             profile_name = result[0] if result else 'Unbenanntes Profil'
 
         message = f'Sind Sie sicher, dass Sie das Profil "{profile_name}" löschen möchten?'
-        return [True, message, profile_id]
+        return [True, profile_id]
     except Exception as e:
         print(f"Error in show_delete_confirm: {e}")
 
-    return [False, '', None]
+    return [False, None]
 
 # Note: Problematic delete_profile callback removed - delete logic handled by ConfirmDialog
 
