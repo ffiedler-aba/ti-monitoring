@@ -182,14 +182,6 @@ def serve_layout():
                                 ],
                                 href='/notifications',
                                 style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
-                            ),
-                            html.A(
-                                [
-                                    html.Span(html.I(className='material-icons', children='description'), style={'marginRight': '10px'}),
-                                    html.Span('Logs')
-                                ],
-                                href='/logs',
-                                style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
                             )
                         ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': '#ffffff', 'border': '1px solid #e0e0e0', 'borderRadius': '10px', 'padding': '8px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.12)', 'minWidth': '220px', 'display': 'grid', 'rowGap': '4px'})
                     ], style={'position': 'relative'})
