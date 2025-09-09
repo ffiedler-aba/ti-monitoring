@@ -211,17 +211,6 @@ def serve_layout():
                 'alignItems': 'center'
             }),
 
-            # Logout button (positioned below user info, right-aligned)
-            html.Div(id='logout-button-container', children=[
-                html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                    **get_button_style('secondary')
-                })
-            ], style={
-                'display': 'none',  # Hidden by default, controlled by callback
-                'justifyContent': 'flex-end',
-                'marginBottom': '20px',
-                'marginTop': '-10px'  # Bring closer to user-info
-            }),
 
             # Delete profile button + confirm dialog
             html.Button('Profil vollständig löschen', id='delete-own-profile-button', n_clicks=0, style={
@@ -554,7 +543,6 @@ def delete_user_profile(confirm_clicks, auth_data):
      Output('settings-container', 'style'),
      Output('otp-code-container', 'style'),
      Output('user-info', 'children'),
-     Output('logout-button-container', 'style'),
      Output('otp-request-error', 'children'),
      Output('otp-instructions', 'children'),
      Output('otp-verify-error', 'children'),
@@ -584,7 +572,6 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
-                {'display': 'none'},   # Hide logout button container
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -646,7 +633,6 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
                     user_info,  # Show user info with logout button
-                    {'display': 'flex'},  # Show logout button container
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
@@ -854,8 +840,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},  # Hide login container
             {'display': 'block'}, # Show settings container
             {'display': 'none'},  # Hide OTP code container
-            user_info,  # Show user info
-            {**get_button_style('secondary'), 'display': 'block'}, # Show logout button with proper styling
+            user_info,  # Show user info with integrated logout button
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
@@ -870,7 +855,6 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
             '',  # No user info
-            {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button with proper styling
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
