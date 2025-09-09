@@ -127,6 +127,7 @@ def serve_layout():
         dcc.Store(id='available-cis-data', data=[]),
         dcc.Store(id='selected-cis-data', data=[]),
         dcc.Store(id='ci-filter-text', data=''),
+        dcc.Store(id='redirect-trigger', data=None),
 
         # === UI CONTAINERS (Controlled by stores) ===
         # Login container
@@ -344,17 +345,18 @@ def update_ui_from_otp(otp_state):
 
 # 7. Logout Handler
 @callback(
-    Output('auth-status', 'data'),
+    [Output('auth-status', 'data'),
+     Output('redirect-trigger', 'data')],
     [Input('logout-button-integrated', 'n_clicks')],
     prevent_initial_call=True
 )
 def handle_logout(logout_integrated_clicks):
     """Handle logout (single responsibility)"""
     if not logout_integrated_clicks:
-        return no_update
+        return [no_update, no_update]
 
-    # Reset auth status (global, persistent) and redirect to homepage
-    return {'authenticated': False, 'user_id': None, 'email': None, 'redirect': True}
+    # Reset auth status and trigger redirect
+    return [{'authenticated': False, 'user_id': None, 'email': None}, {'redirect': True, 'timestamp': str(datetime.now())}]
 
 # 7. Apprise Test Handler
 @callback(
@@ -712,16 +714,16 @@ except:
 # Clientside callback for logout redirect
 dash.clientside_callback(
     """
-    function(auth_status) {
-        if (auth_status && auth_status.redirect) {
+    function(redirect_data) {
+        if (redirect_data && redirect_data.redirect) {
             window.location.href = '/';
-            return window.dash_clientside.no_update;
         }
         return window.dash_clientside.no_update;
     }
     """,
-    Output('auth-status', 'data', allow_duplicate=True),
-    [Input('auth-status', 'data')]
+    Output('redirect-trigger', 'data', allow_duplicate=True),
+    [Input('redirect-trigger', 'data')],
+    prevent_initial_call=True
 )
 
 layout = serve_layout
