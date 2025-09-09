@@ -127,7 +127,7 @@ def serve_layout():
 
         # === UI CONTAINERS (Controlled by stores) ===
         # Login container
-        html.Div(id='refactored-otp-login-container', children=[
+        html.Div(id='otp-login-container', children=[
             html.H3('OTP-Anmeldung erforderlich'),
             html.P('Bitte geben Sie Ihre E-Mail-Adresse ein, um einen OTP-Code zu erhalten.'),
             dcc.Input(id='email-input', type='email', placeholder='E-Mail-Adresse eingeben', style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px'}),
