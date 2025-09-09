@@ -305,17 +305,23 @@ def handle_otp_verification(n_clicks, email, otp_code):
     [Output('ui-state-store', 'data'),
      Output('user-info', 'children')],
     [Input('auth-state-store', 'data'),
-     Input('auth-status', 'data')],  # Also listen to persistent storage
+     Input('auth-status', 'data'),
+     Input('otp-state-store', 'data')],  # Also listen to OTP state for UI updates
     prevent_initial_call=False
 )
-def update_ui_from_auth(auth_state, auth_status):
+def update_ui_from_auth(auth_state, auth_status, otp_state):
     """Update UI state when auth state changes"""
     # Use auth_status (persistent) if auth_state is not available
     current_auth = auth_state if (auth_state and auth_state.get('authenticated')) else auth_status
 
+    # Handle OTP state for UI transitions
+    if otp_state and otp_state.get('step') == 'verify':
+        ui_state = {'show_login': False, 'show_otp': True, 'show_settings': False}
+        return [ui_state, '']
+
     if not current_auth or not current_auth.get('authenticated'):
         ui_state = {'show_login': True, 'show_otp': False, 'show_settings': False}
-        return [ui_state, '', {'authenticated': False}]
+        return [ui_state, '']
 
     # Authenticated - show settings
     email = current_auth.get('email', 'Unbekannt')
@@ -327,21 +333,6 @@ def update_ui_from_auth(auth_state, auth_status):
 
     return [ui_state, user_info]
 
-# 5. OTP State to UI State Bridge
-@callback(
-    Output('ui-state-store', 'data', allow_duplicate=True),
-    [Input('otp-state-store', 'data')],
-    prevent_initial_call=True
-)
-def update_ui_from_otp(otp_state):
-    """Update UI when OTP state changes"""
-    if not otp_state:
-        return {'show_login': True, 'show_otp': False, 'show_settings': False}
-
-    if otp_state.get('step') == 'verify':
-        return {'show_login': False, 'show_otp': True, 'show_settings': False}
-
-    return {'show_login': True, 'show_otp': False, 'show_settings': False}
 
 # 7. Logout Handler
 @callback(
@@ -721,7 +712,7 @@ dash.clientside_callback(
         return window.dash_clientside.no_update;
     }
     """,
-    Output('redirect-trigger', 'data', allow_duplicate=True),
+    Output('redirect-trigger', 'data'),
     [Input('redirect-trigger', 'data')],
     prevent_initial_call=True
 )
