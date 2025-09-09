@@ -353,8 +353,8 @@ def handle_logout(logout_integrated_clicks):
     if not logout_integrated_clicks:
         return no_update
 
-    # Reset auth status (global, persistent)
-    return {'authenticated': False, 'user_id': None, 'email': None}
+    # Reset auth status (global, persistent) and redirect to homepage
+    return {'authenticated': False, 'user_id': None, 'email': None, 'redirect': True}
 
 # 7. Apprise Test Handler
 @callback(
@@ -708,5 +708,20 @@ try:
     dash.register_page(__name__, path='/notifications')
 except:
     pass
+
+# Clientside callback for logout redirect
+dash.clientside_callback(
+    """
+    function(auth_status) {
+        if (auth_status && auth_status.redirect) {
+            window.location.href = '/';
+            return window.dash_clientside.no_update;
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output('auth-status', 'data', allow_duplicate=True),
+    [Input('auth-status', 'data')]
+)
 
 layout = serve_layout
