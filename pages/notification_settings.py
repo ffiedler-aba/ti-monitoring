@@ -212,13 +212,12 @@ def serve_layout():
             }),
 
             # Logout button (positioned below user info, right-aligned)
-            html.Div([
+            html.Div(id='logout-button-container', children=[
                 html.Button('Abmelden', id='logout-button', n_clicks=0, style={
-                    **get_button_style('secondary'),
-                    'display': 'none'  # Hidden by default
+                    **get_button_style('secondary')
                 })
             ], style={
-                'display': 'flex',
+                'display': 'none',  # Hidden by default, controlled by callback
                 'justifyContent': 'flex-end',
                 'marginBottom': '20px',
                 'marginTop': '-10px'  # Bring closer to user-info
@@ -555,7 +554,7 @@ def delete_user_profile(confirm_clicks, auth_data):
      Output('settings-container', 'style'),
      Output('otp-code-container', 'style'),
      Output('user-info', 'children'),
-     Output('logout-button', 'style'),
+     Output('logout-button-container', 'style'),
      Output('otp-request-error', 'children'),
      Output('otp-instructions', 'children'),
      Output('otp-verify-error', 'children'),
@@ -585,7 +584,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
-                {**get_button_style('secondary'), 'display': 'none'},  # Hide logout button
+                {'display': 'none'},   # Hide logout button container
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -647,6 +646,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
                     user_info,  # Show user info with logout button
+                    {'display': 'flex'},  # Show logout button container
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
