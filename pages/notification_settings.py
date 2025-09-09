@@ -345,7 +345,7 @@ def update_ui_from_otp(otp_state):
 
 # 7. Logout Handler
 @callback(
-    Output('auth-state-store', 'data', allow_duplicate=True),
+    Output('auth-status', 'data'),
     [Input('logout-button-integrated', 'n_clicks')],
     prevent_initial_call=True
 )
@@ -354,7 +354,7 @@ def handle_logout(logout_integrated_clicks):
     if not logout_integrated_clicks:
         return no_update
 
-    # Reset auth state
+    # Reset auth status (global, persistent)
     return {'authenticated': False, 'user_id': None, 'email': None}
 
 # 7. Apprise Test Handler
