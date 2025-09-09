@@ -302,8 +302,7 @@ def handle_otp_verification(n_clicks, email, otp_code):
 # 4. Auth State to UI State Bridge
 @callback(
     [Output('ui-state-store', 'data'),
-     Output('user-info', 'children'),
-     Output('auth-status', 'data')],
+     Output('user-info', 'children')],
     [Input('auth-state-store', 'data'),
      Input('auth-status', 'data')],  # Also listen to persistent storage
     prevent_initial_call=False
@@ -325,7 +324,7 @@ def update_ui_from_auth(auth_state, auth_status):
         html.Button('Abmelden', id='logout-button-integrated', n_clicks=0, style=get_button_style('secondary'))
     ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
-    return [ui_state, user_info, current_auth]
+    return [ui_state, user_info]
 
 # 5. OTP State to UI State Bridge
 @callback(
