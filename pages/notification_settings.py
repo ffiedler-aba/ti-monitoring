@@ -124,6 +124,9 @@ def serve_layout():
         dcc.Store(id='auth-state-store', data={'authenticated': False}),
         dcc.Store(id='otp-state-store', data={'step': 'login', 'email': ''}),
         dcc.Store(id='ui-state-store', data={'show_login': True, 'show_otp': False, 'show_settings': False}),
+        dcc.Store(id='available-cis-data', data=[]),
+        dcc.Store(id='selected-cis-data', data=[]),
+        dcc.Store(id='ci-filter-text', data=''),
 
         # === UI CONTAINERS (Controlled by stores) ===
         # Login container
@@ -170,6 +173,23 @@ def serve_layout():
                         {'label': 'E-Mail (Einfach)', 'value': 'email'}
                     ], value='apprise', inline=True)
                 ], style={'marginBottom': '15px'}),
+
+                # CI Selection Section
+                html.Div([
+                    html.Label('Konfigurationsobjekte:'),
+                    html.Div([
+                        dcc.Input(id='ci-filter-input', type='text', placeholder='CIs filtern (z.B. "CI-0000" oder "gematik")',
+                                style={'flex': '1', 'padding': '8px 12px', 'borderRadius': '6px', 'marginRight': '10px'}),
+                        html.Button('Alle auswählen', id='select-all-cis-button', n_clicks=0, style=get_button_style('secondary')),
+                        html.Button('Alle abwählen', id='deselect-all-cis-button', n_clicks=0, style=get_button_style('secondary'))
+                    ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '10px'}),
+                    html.Div(id='ci-filter-info', style={'fontSize': '12px', 'color': '#7f8c8d', 'marginBottom': '8px'}),
+                    html.Div(id='ci-checkboxes-container', style={
+                        'maxHeight': '200px', 'overflowY': 'auto', 'border': '1px solid #e9ecef',
+                        'borderRadius': '8px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
+                    })
+                ], style={'marginBottom': '15px'}),
+
                 dcc.Textarea(id='apprise-urls-textarea', placeholder='Apprise URLs (eine pro Zeile)',
                            style={'width': '100%', 'height': '100px', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'fontFamily': 'monospace'}),
                 html.Div(id='form-error', style={'color': '#e74c3c', 'marginBottom': '15px'}),
@@ -405,10 +425,11 @@ def toggle_profile_form(add_clicks, cancel_clicks):
      State('notification-type-radio', 'value'),
      State('notification-method-radio', 'value'),
      State('apprise-urls-textarea', 'value'),
+     State('selected-cis-data', 'data'),
      State('auth-state-store', 'data')],
     prevent_initial_call=True
 )
-def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, auth_state):
+def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, selected_cis, auth_state):
     """Save profile (single responsibility)"""
     if not n_clicks:
         return [no_update, no_update, no_update]
@@ -431,8 +452,8 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
             if url_items and not validate_apprise_urls(url_items):
                 return ['Eine oder mehrere Apprise-URLs sind ungültig.', no_update, no_update]
 
-        # Save profile (simplified - no CI selection for now)
-        profile_id = create_notification_profile(user_id, name, notification_type, [], url_items, email_notifications, email_address)
+        # Save profile with selected CIs
+        profile_id = create_notification_profile(user_id, name, notification_type, selected_cis or [], url_items, email_notifications, email_address)
 
         if profile_id:
             return ['✅ Profil erfolgreich erstellt!', '', '']  # Clear form
@@ -441,6 +462,174 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
 
     except Exception as e:
         return [f'Fehler: {str(e)}', no_update, no_update]
+
+# === CI SELECTION CALLBACKS ===
+
+# 10. Load Available CIs
+@callback(
+    Output('available-cis-data', 'data'),
+    [Input('auth-state-store', 'data')]
+)
+def load_available_cis(auth_state):
+    """Load available CIs when authenticated"""
+    if not auth_state or not auth_state.get('authenticated'):
+        return []
+
+    try:
+        from mylibrary import get_data_of_all_cis
+        cis_df = get_data_of_all_cis('')
+
+        if not cis_df.empty:
+            ci_list = []
+            for _, row in cis_df.iterrows():
+                ci_info = {
+                    'ci': str(row.get('ci', '')),
+                    'name': str(row.get('name', '')),
+                    'organization': str(row.get('organization', '')),
+                    'product': str(row.get('product', ''))
+                }
+                ci_list.append(ci_info)
+            return ci_list
+        else:
+            return []
+    except Exception as e:
+        print(f"Error loading CIs: {e}")
+        return []
+
+# 11. CI Filter Handler
+@callback(
+    Output('ci-filter-text', 'data'),
+    [Input('ci-filter-input', 'value')]
+)
+def update_ci_filter(filter_text):
+    """Update CI filter text"""
+    return filter_text or ''
+
+# 12. CI Filter Info Display
+@callback(
+    Output('ci-filter-info', 'children'),
+    [Input('ci-filter-text', 'data'),
+     Input('available-cis-data', 'data')]
+)
+def update_filter_info(filter_text, available_cis):
+    """Show filter information"""
+    if not available_cis:
+        return ''
+
+    total_cis = len(available_cis)
+    if not filter_text:
+        return f'Zeige alle {total_cis} Configuration Items'
+
+    # Count filtered results
+    filtered_count = 0
+    filter_lower = filter_text.lower()
+    for ci in available_cis:
+        if (filter_lower in ci.get('ci', '').lower() or
+            filter_lower in ci.get('name', '').lower() or
+            filter_lower in ci.get('organization', '').lower() or
+            filter_lower in ci.get('product', '').lower()):
+            filtered_count += 1
+
+    return f'Filter: "{filter_text}" - {filtered_count} von {total_cis} CIs angezeigt'
+
+# 13. Render CI Checkboxes
+@callback(
+    Output('ci-checkboxes-container', 'children'),
+    [Input('available-cis-data', 'data'),
+     Input('ci-filter-text', 'data'),
+     Input('selected-cis-data', 'data')]
+)
+def render_ci_checkboxes(available_cis, filter_text, selected_cis):
+    """Render CI checkboxes with filtering"""
+    if not available_cis:
+        return html.P('Lade CIs...', style={'textAlign': 'center'})
+
+    # Filter CIs
+    filtered_cis = available_cis
+    if filter_text:
+        filter_lower = filter_text.lower()
+        filtered_cis = []
+        for ci in available_cis:
+            if (filter_lower in ci.get('ci', '').lower() or
+                filter_lower in ci.get('name', '').lower() or
+                filter_lower in ci.get('organization', '').lower() or
+                filter_lower in ci.get('product', '').lower()):
+                filtered_cis.append(ci)
+
+    # Create checkboxes
+    checkboxes = []
+    for ci_info in filtered_cis[:50]:  # Limit to 50 for performance
+        ci_id = ci_info.get('ci', '')
+        is_checked = ci_id in (selected_cis or [])
+
+        checkbox = html.Div([
+            dcc.Checklist(
+                id={'type': 'ci-checkbox', 'ci': ci_id},
+                options=[{'label': '', 'value': ci_id}],
+                value=[ci_id] if is_checked else [],
+                style={'marginRight': '10px'}
+            ),
+            html.Label([
+                html.Strong(ci_id),
+                html.Br(),
+                html.Span(ci_info.get('name', ''), style={'fontSize': '14px'}),
+                html.Br(),
+                html.Span(f"{ci_info.get('organization', '')} - {ci_info.get('product', '')}",
+                         style={'fontSize': '12px', 'color': '#7f8c8d'})
+            ])
+        ], style={'display': 'flex', 'alignItems': 'flex-start', 'marginBottom': '10px',
+                  'padding': '8px', 'backgroundColor': 'white', 'borderRadius': '6px', 'border': '1px solid #e9ecef'})
+
+        checkboxes.append(checkbox)
+
+    if not checkboxes:
+        return html.P('Keine CIs gefunden', style={'textAlign': 'center'})
+
+    return checkboxes
+
+# 14. Handle CI Selection
+@callback(
+    Output('selected-cis-data', 'data'),
+    [Input({'type': 'ci-checkbox', 'ci': dash.ALL}, 'value'),
+     Input('select-all-cis-button', 'n_clicks'),
+     Input('deselect-all-cis-button', 'n_clicks')],
+    [State('available-cis-data', 'data'),
+     State('ci-filter-text', 'data')]
+)
+def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks, available_cis, filter_text):
+    """Handle CI selection changes"""
+    ctx = callback_context
+    if not ctx.triggered or not available_cis:
+        return []
+
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Handle select all
+    if trigger_id == 'select-all-cis-button' and select_all_clicks:
+        # Select all filtered CIs
+        if filter_text:
+            filter_lower = filter_text.lower()
+            return [ci['ci'] for ci in available_cis if
+                   (filter_lower in ci.get('ci', '').lower() or
+                    filter_lower in ci.get('name', '').lower() or
+                    filter_lower in ci.get('organization', '').lower() or
+                    filter_lower in ci.get('product', '').lower())][:50]
+        else:
+            return [ci['ci'] for ci in available_cis[:50]]
+
+    # Handle deselect all
+    if trigger_id == 'deselect-all-cis-button' and deselect_all_clicks:
+        return []
+
+    # Handle individual checkbox changes
+    if 'ci-checkbox' in trigger_id:
+        selected_cis = []
+        for checkbox_value in checkbox_values:
+            if checkbox_value:
+                selected_cis.extend(checkbox_value)
+        return list(set(selected_cis))  # Remove duplicates
+
+    return []
 
 # Register page at the end
 try:
