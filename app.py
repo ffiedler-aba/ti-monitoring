@@ -1,5 +1,5 @@
 import dash
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, Input, Output, callback
 from mylibrary import *
 import yaml
 import os
@@ -544,7 +544,7 @@ def list_profiles():
     return jsonify([]), 200
 
 # Callback to show/hide admin link in hamburger menu
-@app.callback(
+@callback(
     Output('admin-menu-link', 'style'),
     [Input('auth-status', 'data')],
     prevent_initial_call=False
