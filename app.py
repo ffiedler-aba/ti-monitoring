@@ -158,7 +158,7 @@ def serve_layout():
                             html.I(className='material-icons', children='menu'),
                             style={'listStyle': 'none', 'cursor': 'pointer', 'padding': '6px 8px', 'borderRadius': '8px', 'border': '1px solid #e0e0e0'}
                         ),
-                        html.Div(children=[
+                        html.Div(id='hamburger-menu-content', children=[
                             html.A(
                                 [
                                     html.Span(html.I(className='material-icons', children='home'), style={'marginRight': '10px'}),
@@ -182,6 +182,16 @@ def serve_layout():
                                 ],
                                 href='/notifications',
                                 style={'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#2c3e50', 'borderRadius': '6px'}
+                            ),
+                            # Admin link (hidden by default, shown for admin users)
+                            html.A(
+                                [
+                                    html.Span(html.I(className='material-icons', children='admin_panel_settings'), style={'marginRight': '10px'}),
+                                    html.Span('Admin')
+                                ],
+                                href='/admin',
+                                id='admin-menu-link',
+                                style={'display': 'none', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#e74c3c', 'borderRadius': '6px'}
                             )
                         ], style={'position': 'absolute', 'right': '0', 'marginTop': '8px', 'background': '#ffffff', 'border': '1px solid #e0e0e0', 'borderRadius': '10px', 'padding': '8px', 'boxShadow': '0 8px 24px rgba(0,0,0,0.12)', 'minWidth': '220px', 'display': 'grid', 'rowGap': '4px'})
                     ], style={'position': 'relative'})
@@ -203,7 +213,10 @@ def serve_layout():
                     html.Span('.')
                 ]),
             ]),
-            html.Div(id = 'footer', children = footer_elements)
+            html.Div(id = 'footer', children = footer_elements),
+            
+            # Global auth status store (used across all pages)
+            dcc.Store(id='auth-status', storage_type='local')
         ])
         
         _layout_cache_timestamp = current_time
@@ -529,6 +542,23 @@ def list_profiles():
     # In a real implementation, we would check authentication here
     # For now, we'll just return an empty list
     return jsonify([]), 200
+
+# Callback to show/hide admin link in hamburger menu
+@app.callback(
+    Output('admin-menu-link', 'style'),
+    [Input('auth-status', 'data')],
+    prevent_initial_call=False
+)
+def toggle_admin_menu_link(auth_data):
+    """Show admin link only for authenticated admin users"""
+    if not auth_data or not auth_data.get('authenticated'):
+        return {'display': 'none'}
+    
+    user_email = auth_data.get('email', '')
+    if is_admin_user(user_email):
+        return {'display': 'flex', 'alignItems': 'center', 'padding': '10px 12px', 'textDecoration': 'none', 'color': '#e74c3c', 'borderRadius': '6px'}
+    else:
+        return {'display': 'none'}
 
 if __name__ == '__main__':
     app.run(debug=False)
