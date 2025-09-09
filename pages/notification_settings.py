@@ -543,6 +543,7 @@ def delete_user_profile(confirm_clicks, auth_data):
      Output('settings-container', 'style'),
      Output('otp-code-container', 'style'),
      Output('user-info', 'children'),
+     Output('logout-button', 'style'),
      Output('otp-request-error', 'children'),
      Output('otp-instructions', 'children'),
      Output('otp-verify-error', 'children'),
@@ -572,6 +573,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                 {'display': 'none'},   # Hide settings container
                 {'display': 'none'},   # Hide OTP code container
                 '',  # No user info
+                {'display': 'none'},  # Hide logout button
                 '',  # Clear request error
                 '',  # Clear instructions
                 '',  # Clear verify error
@@ -633,6 +635,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
                     {'display': 'block'}, # Show settings container
                     {'display': 'none'},  # Hide OTP code container
                     user_info,  # Show user info with integrated logout button
+                    {'display': 'none'},  # Logout button is integrated in user_info
                     '',  # Clear request error
                     '',  # Clear instructions
                     '',  # Clear verify error
@@ -841,6 +844,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'block'}, # Show settings container
             {'display': 'none'},  # Hide OTP code container
             user_info,  # Show user info with integrated logout button
+            {'display': 'none'},  # Logout button is integrated in user_info
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
@@ -855,6 +859,7 @@ def manage_authentication_state(auth_data, otp_clicks, verify_clicks, resend_cli
             {'display': 'none'},   # Hide settings container
             {'display': 'none'},   # Hide OTP code container
             '',  # No user info
+            {'display': 'none'},  # Hide logout button
             '',  # Clear request error
             '',  # Clear instructions
             '',  # Clear verify error
