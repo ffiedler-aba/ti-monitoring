@@ -294,6 +294,7 @@ def handle_otp_verification(n_clicks, email, otp_code):
         if validate_otp(user_id, otp_code):
             # Success - set both auth states for immediate and persistent storage
             auth_state = {'authenticated': True, 'user_id': user_id, 'email': email}
+            print(f"DEBUG: OTP verification successful, setting auth_state: {auth_state}")
             return [auth_state, auth_state, '', '']  # Set both stores and clear OTP input
         else:
             return [no_update, no_update, 'Ungültiger OTP-Code.', no_update]
@@ -312,8 +313,10 @@ def handle_otp_verification(n_clicks, email, otp_code):
 )
 def update_ui_from_auth(auth_state, auth_status, otp_state):
     """Update UI state when auth state changes"""
+    print(f"DEBUG: update_ui_from_auth called with auth_state: {auth_state}, auth_status: {auth_status}")
     # Use auth_status (persistent) if auth_state is not available
     current_auth = auth_state if (auth_state and auth_state.get('authenticated')) else auth_status
+    print(f"DEBUG: current_auth: {current_auth}")
 
     # Handle OTP state for UI transitions
     if otp_state and otp_state.get('step') == 'verify':
