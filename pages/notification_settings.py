@@ -211,6 +211,8 @@ def serve_layout():
                 'alignItems': 'center'
             }),
 
+            # Hidden logout button (for callback reference, actual button is in user-info)
+            html.Button('Abmelden', id='logout-button', n_clicks=0, style={'display': 'none'}),
 
             # Delete profile button + confirm dialog
             html.Button('Profil vollständig löschen', id='delete-own-profile-button', n_clicks=0, style={
