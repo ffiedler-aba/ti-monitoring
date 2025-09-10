@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, State, callback, no_update, callback_context
+from dash import html, dcc, Input, Output, State, callback, no_update, callback_context, ALL
 import json
 from mylibrary import *
 import yaml
@@ -310,17 +310,17 @@ def sync_ui_from_otp_state(otp_state, auth_state):
 def handle_otp_verification(n_clicks, email, otp_code):
     """Handle OTP verification with direct UI update"""
     if not n_clicks or not email or not otp_code:
-        return [no_update, no_update, no_update, no_update, no_update]
+        return [no_update, no_update, no_update, no_update]
 
     try:
         user = get_user_by_email(email)
         if not user:
-            return [no_update, no_update, no_update, 'Benutzer nicht gefunden.', no_update]
+            return [no_update, no_update, 'Benutzer nicht gefunden.', no_update]
 
         user_id = user[0]
 
         if is_account_locked(user_id):
-            return [no_update, no_update, no_update, 'Konto ist gesperrt.', no_update]
+            return [no_update, no_update, 'Konto ist gesperrt.', no_update]
 
         if validate_otp(user_id, otp_code):
             # Success - set auth states; UI will switch to settings via bridge
@@ -777,6 +777,64 @@ def display_profiles(auth_state, save_clicks):
 
     except Exception as e:
         return html.P(f'Fehler beim Laden der Profile: {str(e)}', style={'color': '#e74c3c'})
+
+# 16. Handle Edit Profile clicks: populate form and show it
+@callback(
+    [Output('profile-form-container', 'style'),
+     Output('profile-name-input', 'value'),
+     Output('notification-type-radio', 'value'),
+     Output('notification-method-radio', 'value'),
+     Output('apprise-urls-textarea', 'value'),
+     Output('selected-cis-data', 'data')],
+    [Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
+     Input('add-profile-button', 'n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True,
+    allow_duplicate=True
+)
+def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
+    ctx = callback_context
+    if not ctx.triggered:
+        return no_update, no_update, no_update, no_update, no_update, no_update
+
+    trigger = ctx.triggered[0]['prop_id']
+    # Add new profile clicked → just show empty form
+    if trigger.startswith('add-profile-button'):
+        return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
+
+    # Find which edit button was clicked
+    try:
+        triggered_id = json.loads(trigger.split('.')[0])
+    except Exception:
+        return no_update, no_update, no_update, no_update, no_update, no_update
+
+    if not auth_data or not auth_data.get('authenticated'):
+        return no_update, no_update, no_update, no_update, no_update, no_update
+
+    profile_id = triggered_id.get('profile_id')
+    if not profile_id:
+        return no_update, no_update, no_update, no_update, no_update, no_update
+
+    # Load profile from DB
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT name, type, ci_list, apprise_urls, email_notifications
+                FROM notification_profiles
+                WHERE id = %s
+                """,
+                (int(profile_id),)
+            )
+            row = cur.fetchone()
+            if not row:
+                return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
+            name, profile_type, ci_list, apprise_urls, email_notifications = row
+            method = 'email' if email_notifications else 'apprise'
+            urls_text = '\n'.join(apprise_urls or []) if (apprise_urls and method == 'apprise') else ''
+            return {'display': 'block'}, name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or [])
+    except Exception:
+        return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
 
 # Register page at the end
 try:
