@@ -125,6 +125,7 @@ def serve_layout():
         dcc.Store(id='ui-state-store', data={'show_login': True, 'show_otp': False, 'show_settings': False}),
         dcc.Store(id='available-cis-data', data=None),
         dcc.Store(id='selected-cis-data', data=[]),
+        dcc.Store(id='profile-selected-cis', data=[]),
         dcc.Store(id='ci-filter-text', data=''),
         dcc.Store(id='redirect-trigger', data=None),
         # Trigger zum einmaligen Laden der CI-Liste nach Seitenaufruf
@@ -334,6 +335,29 @@ def handle_otp_verification(n_clicks, email, otp_code):
 
     except Exception as e:
         return [no_update, no_update, f'Fehler: {str(e)}', no_update]
+
+# Allow requesting a new OTP from the OTP screen
+@callback(
+    Output('otp-instructions', 'children'),
+    [Input('resend-otp-button', 'n_clicks')],
+    [State('email-input', 'value')],
+    prevent_initial_call=True
+)
+def handle_resend_otp(resend_clicks, email):
+    if not resend_clicks or not email:
+        return no_update
+    try:
+        import requests
+        response = requests.post('http://localhost:8050/api/auth/otp/request',
+                                 json={'email': email}, timeout=10)
+        if response.status_code == 200:
+            # Inform the user that a new code was sent
+            return 'Ein neuer OTP-Code wurde an Ihre E-Mail gesendet.'
+        else:
+            error_msg = response.json().get('error', 'Unbekannter Fehler') if response.content else 'Unbekannter Fehler'
+            return f'Fehler beim Senden: {error_msg}'
+    except Exception as e:
+        return f'Fehler beim Senden: {str(e)}'
 
 # 4. Auth State to UI State Bridge (for initial load only)
 @callback(
@@ -685,18 +709,23 @@ def render_ci_checkboxes(available_cis, filter_text, selected_cis):
     Output('selected-cis-data', 'data'),
     [Input({'type': 'ci-checkbox', 'ci': dash.ALL}, 'value'),
      Input('select-all-cis-button', 'n_clicks'),
-     Input('deselect-all-cis-button', 'n_clicks')],
+     Input('deselect-all-cis-button', 'n_clicks'),
+     Input('profile-selected-cis', 'data')],
     [State('available-cis-data', 'data'),
      State('ci-filter-text', 'data')],
-    prevent_initial_call=True
+    prevent_initial_call=False
 )
-def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks, available_cis, filter_text):
+def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks, profile_selected_cis, available_cis, filter_text):
     """Handle CI selection changes"""
     ctx = callback_context
     if not ctx.triggered or not available_cis:
-        return []
+        return profile_selected_cis or []
 
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Initialize from profile-selected-cis on edit load
+    if trigger_id == 'profile-selected-cis':
+        return profile_selected_cis or []
 
     # Handle select all
     if trigger_id == 'select-all-cis-button' and select_all_clicks:
@@ -723,7 +752,7 @@ def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks,
                 selected_cis.extend(checkbox_value)
         return list(set(selected_cis))  # Remove duplicates
 
-    return []
+    return profile_selected_cis or []
 
 # 15. Load and Display Profiles
 @callback(
@@ -794,7 +823,8 @@ def display_profiles(auth_state, save_clicks):
     [Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
-     Output('apprise-urls-textarea', 'value')],
+     Output('apprise-urls-textarea', 'value'),
+     Output('profile-selected-cis', 'data')],
     [Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
      Input('add-profile-button', 'n_clicks')],
     [State('auth-status', 'data')],
@@ -808,20 +838,20 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
     trigger = ctx.triggered[0]['prop_id']
     # Add new profile clicked → just show empty form values
     if trigger.startswith('add-profile-button'):
-        return '', 'whitelist', 'apprise', ''
+        return '', 'whitelist', 'apprise', '', []
 
     # Find which edit button was clicked
     try:
         triggered_id = json.loads(trigger.split('.')[0])
     except Exception:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     if not auth_data or not auth_data.get('authenticated'):
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     profile_id = triggered_id.get('profile_id')
     if not profile_id:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     # Load profile from DB
     try:
@@ -836,7 +866,7 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             )
             row = cur.fetchone()
             if not row:
-                return '', 'whitelist', 'apprise', ''
+                return '', 'whitelist', 'apprise', '', []
             name, profile_type, ci_list, apprise_urls, apprise_urls_salt, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
             # Decrypt apprise URLs for editing
@@ -861,9 +891,9 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
                     urls_text = '\n'.join(decrypted_urls)
                 except Exception:
                     urls_text = ''
-            return name or '', (profile_type or 'whitelist'), method, urls_text
+            return name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or [])
     except Exception:
-        return '', 'whitelist', 'apprise', ''
+        return '', 'whitelist', 'apprise', '', []
 
 # Register page at the end
 try:
