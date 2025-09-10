@@ -123,10 +123,12 @@ def serve_layout():
         dcc.Store(id='auth-state-store', data={'authenticated': False}),
         dcc.Store(id='otp-state-store', data={'step': 'login', 'email': ''}),
         dcc.Store(id='ui-state-store', data={'show_login': True, 'show_otp': False, 'show_settings': False}),
-        dcc.Store(id='available-cis-data', data=[]),
+        dcc.Store(id='available-cis-data', data=None),
         dcc.Store(id='selected-cis-data', data=[]),
         dcc.Store(id='ci-filter-text', data=''),
         dcc.Store(id='redirect-trigger', data=None),
+        # Trigger zum einmaligen Laden der CI-Liste nach Seitenaufruf
+        dcc.Interval(id='ci-load-once', interval=200, n_intervals=0, max_intervals=1),
 
         # === UI CONTAINERS (Controlled by stores) ===
         # Login container
@@ -184,6 +186,7 @@ def serve_layout():
                         html.Button('Alle abwählen', id='deselect-all-cis-button', n_clicks=0, style=get_button_style('secondary'))
                     ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '10px'}),
                     html.Div(id='ci-filter-info', style={'fontSize': '12px', 'color': '#7f8c8d', 'marginBottom': '8px'}),
+                    html.Div(id='ci-load-status', style={'fontSize': '12px', 'color': '#e74c3c', 'marginBottom': '8px'}),
                     html.Div(id='ci-checkboxes-container', style={
                         'maxHeight': '200px', 'overflowY': 'auto', 'border': '1px solid #e9ecef',
                         'borderRadius': '8px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
@@ -488,9 +491,14 @@ def toggle_profile_form(add_clicks, cancel_clicks, edit_clicks_list):
         return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
     if trigger_id == 'cancel-profile-button' and cancel_clicks:
         return {'display': 'none'}
-    # Any edit-profile click → show form
-    if trigger_id.startswith('{"type":"edit-profile"'):
-        return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
+    # Any edit-profile click → show form (robust JSON parsing, unabhängig von Key-Reihenfolge)
+    if trigger_id.startswith('{'):
+        try:
+            trig_obj = json.loads(trigger_id)
+            if trig_obj.get('type') == 'edit-profile':
+                return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
+        except Exception:
+            pass
 
     return {'display': 'none'}
 
@@ -542,42 +550,41 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
 
 # === CI SELECTION CALLBACKS ===
 
-# 10. Load Available CIs
+# 10. Load Available CIs (DB only, informative status)
 @callback(
-    Output('available-cis-data', 'data'),
-    [Input('auth-status', 'data')]
+    [Output('available-cis-data', 'data'),
+     Output('ci-load-status', 'children')],
+    [Input('auth-status', 'data'),
+     Input('auth-state-store', 'data'),
+     Input('ui-state-store', 'data'),
+     Input('ci-load-once', 'n_intervals')]
 )
-def load_available_cis(auth_state):
-    """Load available CIs when authenticated"""
-    print(f"DEBUG: load_available_cis called with auth_state: {auth_state}")
-
-    if not auth_state or not auth_state.get('authenticated'):
-        print("DEBUG: Not authenticated, returning empty list")
-        return []
+def load_available_cis(auth_status, auth_state, ui_state, _n):
+    """Load available CIs from DB when authenticated. Show cause on failure."""
+    current_auth = auth_status if (auth_status and auth_status.get('authenticated')) else auth_state
+    # Wenn UI bereits Einstellungen zeigt, versuchen zu laden (zusätzlicher Trigger)
+    if (ui_state and ui_state.get('show_settings') and (not current_auth or not current_auth.get('authenticated'))):
+        # In diesem Fall verlassen wir uns auf persistentes auth-status; ohne Auth keine CIs
+        pass
+    if not current_auth or not current_auth.get('authenticated'):
+        return [], ''
 
     try:
         from mylibrary import get_data_of_all_cis
         cis_df = get_data_of_all_cis('')
-        print(f"DEBUG: Loaded {len(cis_df)} CIs from database")
-
-        if not cis_df.empty:
-            ci_list = []
+        ci_list: list = []
+        if hasattr(cis_df, 'empty') and not cis_df.empty:
             for _, row in cis_df.iterrows():
-                ci_info = {
+                ci_list.append({
                     'ci': str(row.get('ci', '')),
                     'name': str(row.get('name', '')),
                     'organization': str(row.get('organization', '')),
                     'product': str(row.get('product', ''))
-                }
-                ci_list.append(ci_info)
-            print(f"DEBUG: Returning {len(ci_list)} CI items")
-            return ci_list
-        else:
-            print("DEBUG: CIs DataFrame is empty")
-            return []
+                })
+            return ci_list, ''
+        return [], 'Keine CIs gefunden (ci_metadata leer).'
     except Exception as e:
-        print(f"ERROR loading CIs: {e}")
-        return []
+        return [], f'Fehler beim Laden der CIs aus der Datenbank: {str(e)}'
 
 # 11. CI Filter Handler
 @callback(
@@ -624,11 +631,13 @@ def update_filter_info(filter_text, available_cis):
 )
 def render_ci_checkboxes(available_cis, filter_text, selected_cis):
     """Render CI checkboxes with filtering"""
-    if not available_cis:
+    if available_cis is None:
         return html.P('Lade CIs...', style={'textAlign': 'center'})
+    if isinstance(available_cis, list) and len(available_cis) == 0:
+        return html.P('Keine CIs gefunden', style={'textAlign': 'center'})
 
     # Filter CIs
-    filtered_cis = available_cis
+    filtered_cis = available_cis or []
     if filter_text:
         filter_lower = filter_text.lower()
         filtered_cis = []
@@ -818,7 +827,7 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
         with get_db_conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT name, type, ci_list, apprise_urls, email_notifications
+                SELECT name, type, ci_list, apprise_urls, apprise_urls_salt, email_notifications
                 FROM notification_profiles
                 WHERE id = %s
                 """,
@@ -827,9 +836,30 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             row = cur.fetchone()
             if not row:
                 return '', 'whitelist', 'apprise', ''
-            name, profile_type, ci_list, apprise_urls, email_notifications = row
+            name, profile_type, ci_list, apprise_urls, apprise_urls_salt, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
-            urls_text = '\n'.join(apprise_urls or []) if (apprise_urls and method == 'apprise') else ''
+            # Decrypt apprise URLs for editing
+            urls_text = ''
+            if method == 'apprise' and apprise_urls:
+                try:
+                    encryption_key = os.getenv('ENCRYPTION_KEY')
+                    if encryption_key:
+                        encryption_key = encryption_key.encode()
+                    else:
+                        encryption_key = generate_encryption_key()
+                    decrypted_urls = []
+                    salts = list(apprise_urls_salt or [])
+                    for idx, enc in enumerate(list(apprise_urls)):
+                        try:
+                            salt = salts[idx] if salts and len(salts) > idx else None
+                            dec = decrypt_data(enc, salt, encryption_key) if salt else None
+                            if dec:
+                                decrypted_urls.append(dec)
+                        except Exception:
+                            continue
+                    urls_text = '\n'.join(decrypted_urls)
+                except Exception:
+                    urls_text = ''
             return name or '', (profile_type or 'whitelist'), method, urls_text
     except Exception:
         return '', 'whitelist', 'apprise', ''
