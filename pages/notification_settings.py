@@ -271,7 +271,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
 @callback(
     Output('ui-state-store', 'data'),
     [Input('otp-state-store', 'data'),
-     Input('auth-state-store', 'data')],
+     Input('auth-status', 'data')],
     prevent_initial_call=False
 )
 def sync_ui_from_otp_state(otp_state, auth_state):
