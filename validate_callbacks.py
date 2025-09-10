@@ -142,32 +142,44 @@ def validate_callback_parameters(callback_info):
 
 
 def check_callback_consistency(callbacks):
+    """Global konsistenz: Ein Output darf nur EINEN schreibenden Callback haben (One-writer)."""
     issues = []
-    by_file = {}
+    output_to_callbacks: Dict[str, List[Tuple[str, str, int]]] = {}
     for cb in callbacks:
-        file_path = cb['file']
-        if file_path not in by_file:
-            by_file[file_path] = []
-        by_file[file_path].append(cb)
-    for file_path, file_callbacks in by_file.items():
-        outputs = []
-        dupe_map: Dict[str, List[Dict[str, Any]]]= {}
-        for cb in file_callbacks:
-            declaration = cb.get('declaration', '')
-            output_matches = re.findall(r"Output\('([^']+)'", declaration)
-            for out in output_matches:
-                dupe_map.setdefault(out, []).append(cb)
-            for match in output_matches:
-                output_pattern = rf"Output\('{re.escape(match)}'[^)]*\)"
-                output_blocks = re.findall(output_pattern, declaration)
-                has_allow_duplicate = any('allow_duplicate=True' in block for block in output_blocks)
-                if not has_allow_duplicate:
-                    outputs.append(match)
-        seen_outputs = set()
-        for output in outputs:
-            if output in seen_outputs:
-                issues.append(f"Duplikate Output-ID '{output}' in {file_path} (ohne allow_duplicate=True)")
-            seen_outputs.add(output)
+        declaration = cb.get('declaration', '')
+        file_path = cb.get('file')
+        function = cb.get('function', '?')
+        line = cb.get('line', 0)
+        output_matches = re.findall(r"Output\('([^']+)'", declaration)
+        for out in output_matches:
+            output_to_callbacks.setdefault(out, []).append((file_path, function, line))
+
+    for out_id, writers in output_to_callbacks.items():
+        if len(writers) > 1:
+            locs = ", ".join([f"{f}:{ln}({fn})" for f, fn, ln in writers])
+            issues.append(f"One-writer verletzt: Output-ID '{out_id}' wird in mehreren Callbacks beschrieben: {locs}")
+    return issues
+
+
+def detect_forbidden_allow_duplicate(callbacks) -> List[str]:
+    issues: List[str] = []
+    for cb in callbacks:
+        declaration = cb.get('declaration', '')
+        if 'allow_duplicate=True' in declaration.replace(' ', ''):
+            issues.append(
+                f"Verbotene Option allow_duplicate=True in {cb['file']}:{cb.get('line', '?')} (Callback {cb.get('function', '?')})"
+            )
+    return issues
+
+
+def validate_policy(callbacks_ast: List[Dict[str, Any]]) -> List[str]:
+    issues: List[str] = []
+    MAX_OUTPUTS = 5
+    for cb in callbacks_ast:
+        if cb.get('outputs_count', 0) > MAX_OUTPUTS:
+            issues.append(
+                f"Zu viele Outputs ({cb['outputs_count']}) in {cb['file']}:{cb['line']} (Callback {cb['function']}); max {MAX_OUTPUTS}"
+            )
     return issues
 
 
@@ -250,6 +262,12 @@ def main():
             print(f"      {label} {issue}")
             if strict:
                 total_issues += 1
+        # Policy checks (AST): Max Outputs
+        policy_issues = validate_policy(callbacks_ast)
+        for issue in policy_issues:
+            report['errors'].append(issue)
+            print(f"      ❌ {issue}")
+            total_issues += 1
 
     print(f"\n🔗 Konsistenz-Prüfung...")
     consistency_issues = check_callback_consistency(all_callbacks)
@@ -259,6 +277,12 @@ def main():
         total_issues += 1
     if not consistency_issues:
         print("  ✅ Konsistenz OK")
+    # Forbid allow_duplicate=True globally
+    allow_dupe_issues = detect_forbidden_allow_duplicate(all_callbacks)
+    for issue in allow_dupe_issues:
+        print(f"  ❌ {issue}")
+        report['errors'].append(issue)
+        total_issues += 1
 
     print(f"\n📊 Zusammenfassung:")
     print(f"  📁 Dateien überprüft: {len(pages)}")

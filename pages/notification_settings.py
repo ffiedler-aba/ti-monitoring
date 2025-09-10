@@ -781,8 +781,7 @@ def display_profiles(auth_state, save_clicks):
 
 # 16. Handle Edit Profile clicks: populate form and show it
 @callback(
-    [Output('profile-form-container', 'style'),
-     Output('profile-name-input', 'value'),
+    [Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
      Output('apprise-urls-textarea', 'value')],
@@ -794,25 +793,25 @@ def display_profiles(auth_state, save_clicks):
 def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
     ctx = callback_context
     if not ctx.triggered:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     trigger = ctx.triggered[0]['prop_id']
-    # Add new profile clicked → just show empty form
+    # Add new profile clicked → just show empty form values
     if trigger.startswith('add-profile-button'):
-        return {'display': 'block'}, '', 'whitelist', 'apprise', ''
+        return '', 'whitelist', 'apprise', ''
 
     # Find which edit button was clicked
     try:
         triggered_id = json.loads(trigger.split('.')[0])
     except Exception:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     if not auth_data or not auth_data.get('authenticated'):
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     profile_id = triggered_id.get('profile_id')
     if not profile_id:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     # Load profile from DB
     try:
@@ -827,13 +826,13 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             )
             row = cur.fetchone()
             if not row:
-                return {'display': 'block'}, '', 'whitelist', 'apprise', ''
+                return '', 'whitelist', 'apprise', ''
             name, profile_type, ci_list, apprise_urls, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
             urls_text = '\n'.join(apprise_urls or []) if (apprise_urls and method == 'apprise') else ''
-            return {'display': 'block'}, name or '', (profile_type or 'whitelist'), method, urls_text
+            return name or '', (profile_type or 'whitelist'), method, urls_text
     except Exception:
-        return {'display': 'block'}, '', 'whitelist', 'apprise', ''
+        return '', 'whitelist', 'apprise', ''
 
 # Register page at the end
 try:
