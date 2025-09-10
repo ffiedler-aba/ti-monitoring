@@ -538,24 +538,24 @@ def toggle_profile_form(add_clicks, cancel_clicks, edit_clicks_list):
      State('notification-method-radio', 'value'),
      State('apprise-urls-textarea', 'value'),
      State('selected-cis-data', 'data'),
-     State('auth-state-store', 'data')],
+     State('auth-status', 'data')],
     prevent_initial_call=True
 )
-def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, selected_cis, auth_state):
+def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, selected_cis, auth_status):
     """Save profile (single responsibility)"""
     if not n_clicks:
         return no_update
 
-    if not auth_state or not auth_state.get('authenticated'):
+    if not auth_status or not auth_status.get('authenticated'):
         return ['Nicht authentifiziert.']
 
     if not name or not name.strip():
         return ['Profilname ist erforderlich.']
 
     try:
-        user_id = auth_state.get('user_id')
+        user_id = auth_status.get('user_id')
         email_notifications = notification_method == 'email'
-        email_address = auth_state.get('email') if email_notifications else None
+        email_address = auth_status.get('email') if email_notifications else None
 
         # Process Apprise URLs
         url_items = []
