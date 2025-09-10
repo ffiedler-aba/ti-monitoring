@@ -475,7 +475,8 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
     Output('profile-form-container', 'style'),
     [Input('add-profile-button', 'n_clicks'),
      Input('cancel-profile-button', 'n_clicks')],
-    prevent_initial_call=True
+    prevent_initial_call=True,
+    allow_duplicate=True
 )
 def toggle_profile_form(add_clicks, cancel_clicks):
     """Show/hide profile form"""
@@ -504,7 +505,8 @@ def toggle_profile_form(add_clicks, cancel_clicks):
      State('apprise-urls-textarea', 'value'),
      State('selected-cis-data', 'data'),
      State('auth-state-store', 'data')],
-    prevent_initial_call=True
+    prevent_initial_call=True,
+    allow_duplicate=True
 )
 def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, selected_cis, auth_state):
     """Save profile (single responsibility)"""
