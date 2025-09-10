@@ -161,6 +161,34 @@ def check_callback_consistency(callbacks):
     return issues
 
 
+def check_store_usage_patterns(callbacks) -> List[str]:
+    """Check for problematic store usage patterns"""
+    issues: List[str] = []
+    
+    # Define store patterns that should be avoided
+    problematic_patterns = {
+        'auth-state-store': {
+            'description': 'temporary auth store',
+            'recommended': 'auth-status',
+            'functions': ['save_profile', 'display_profiles', 'handle_edit_profile', 'handle_delete_profile']
+        }
+    }
+    
+    for cb in callbacks:
+        function_name = cb.get('function', '')
+        stores_used = cb.get('stores_used', [])
+        
+        for store_id in stores_used:
+            if store_id in problematic_patterns:
+                pattern = problematic_patterns[store_id]
+                if function_name in pattern['functions']:
+                    issues.append(
+                        f"⚠️  {function_name} in {cb['file']}:{cb.get('line', '?')} verwendet {store_id} "
+                        f"({pattern['description']}). Empfohlen: {pattern['recommended']} für Persistenz."
+                    )
+    
+    return issues
+
 def detect_forbidden_allow_duplicate(callbacks) -> List[str]:
     issues: List[str] = []
     for cb in callbacks:
@@ -284,10 +312,18 @@ def main():
         report['errors'].append(issue)
         total_issues += 1
 
+    print(f"\n🔍 Store-Verwendungs-Prüfung...")
+    store_usage_issues = check_store_usage_patterns(all_callbacks)
+    for issue in store_usage_issues:
+        print(f"  {issue}")
+        report['warnings'].append(issue)
+        # Store usage issues are warnings, not errors
+
     print(f"\n📊 Zusammenfassung:")
     print(f"  📁 Dateien überprüft: {len(pages)}")
     print(f"  🔄 Callbacks gefunden: {len(all_callbacks)}")
     print(f"  ❌ Probleme gefunden: {total_issues}")
+    print(f"  ⚠️  Warnungen: {len(store_usage_issues)}")
 
     if as_json:
         print(json.dumps(report, ensure_ascii=False))
