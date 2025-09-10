@@ -687,7 +687,7 @@ def render_ci_checkboxes(available_cis, filter_text, selected_cis):
 
     # Create checkboxes
     checkboxes = []
-    for ci_info in filtered_cis[:50]:  # Limit to 50 for performance
+    for ci_info in filtered_cis:  # Show all CIs
         ci_id = ci_info.get('ci', '')
         is_checked = ci_id in (selected_cis or [])
 
@@ -748,9 +748,9 @@ def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks,
                    (filter_lower in ci.get('ci', '').lower() or
                     filter_lower in ci.get('name', '').lower() or
                     filter_lower in ci.get('organization', '').lower() or
-                    filter_lower in ci.get('product', '').lower())][:50]
+                    filter_lower in ci.get('product', '').lower())]
         else:
-            return [ci['ci'] for ci in available_cis[:50]]
+            return [ci['ci'] for ci in available_cis]
 
     # Handle deselect all
     if trigger_id == 'deselect-all-cis-button' and deselect_all_clicks:
