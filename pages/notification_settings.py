@@ -126,7 +126,9 @@ def serve_layout():
         dcc.Store(id='available-cis-data', data=None),
         dcc.Store(id='selected-cis-data', data=[]),
         dcc.Store(id='profile-selected-cis', data=[]),
+        dcc.Store(id='current-profile-id', data=None),
         dcc.Store(id='ci-filter-text', data=''),
+        dcc.Store(id='delete-profile-status', data=''),
         dcc.Store(id='redirect-trigger', data=None),
         # Trigger zum einmaligen Laden der CI-Liste nach Seitenaufruf
         dcc.Interval(id='ci-load-once', interval=200, n_intervals=0, max_intervals=1),
@@ -523,13 +525,13 @@ def toggle_profile_form(add_clicks, cancel_clicks, edit_clicks_list):
             if trig_obj.get('type') == 'edit-profile':
                 return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
         except Exception:
-            pass
+            return {'display': 'none'}
 
     return {'display': 'none'}
 
 # 9. Profile Save Handler
 @callback(
-    Output('form-error', 'children'),
+    [Output('form-error', 'children')],
     [Input('save-profile-button', 'n_clicks')],
     [State('profile-name-input', 'value'),
      State('notification-type-radio', 'value'),
@@ -545,10 +547,10 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
         return no_update
 
     if not auth_state or not auth_state.get('authenticated'):
-        return 'Nicht authentifiziert.'
+        return ['Nicht authentifiziert.']
 
     if not name or not name.strip():
-        return 'Profilname ist erforderlich.'
+        return ['Profilname ist erforderlich.']
 
     try:
         user_id = auth_state.get('user_id')
@@ -562,16 +564,26 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
             if url_items and not validate_apprise_urls(url_items):
                 return 'Eine oder mehrere Apprise-URLs sind ungültig.'
 
-        # Save profile with selected CIs
-        profile_id = create_notification_profile(user_id, name, notification_type, selected_cis or [], url_items, email_notifications, email_address)
-
+        # Update falls current_profile_id gesetzt ist, sonst Create
+        # Entscheiden, ob Update (wenn Name bereits existiert) oder Create
+        profile_id = None
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                SELECT id FROM notification_profiles
+                WHERE user_id = %s AND name = %s
+            """, (user_id, name))
+            row = cur.fetchone()
+            if row:
+                profile_id = row[0]
         if profile_id:
-            return '✅ Profil erfolgreich erstellt!'
+            ok = update_notification_profile(int(profile_id), user_id, name, notification_type, selected_cis or [], url_items, email_notifications, email_address)
+            return ['✅ Profil erfolgreich aktualisiert!' if ok else 'Fehler beim Aktualisieren des Profils.']
         else:
-            return 'Fehler beim Erstellen des Profils.'
+            new_id = create_notification_profile(user_id, name, notification_type, selected_cis or [], url_items, email_notifications, email_address)
+            return ['✅ Profil erfolgreich erstellt!' if new_id else 'Fehler beim Erstellen des Profils.']
 
     except Exception as e:
-        return f'Fehler: {str(e)}'
+        return [f'Fehler: {str(e)}']
 
 # === CI SELECTION CALLBACKS ===
 
@@ -758,10 +770,11 @@ def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks,
 @callback(
     Output('profiles-container', 'children'),
     [Input('auth-status', 'data'),
-     Input('save-profile-button', 'n_clicks')],  # Trigger refresh after save
+     Input('save-profile-button', 'n_clicks'),
+     Input('delete-profile-status', 'data')],  # Refresh after save/delete
     prevent_initial_call=False
 )
-def display_profiles(auth_state, save_clicks):
+def display_profiles(auth_state, save_clicks, delete_status):
     """Load and display user profiles"""
     if not auth_state or not auth_state.get('authenticated'):
         return []
@@ -803,7 +816,11 @@ def display_profiles(auth_state, save_clicks):
                     html.Button('Bearbeiten', id={'type': 'edit-profile', 'profile_id': str(profile_id)},
                               n_clicks=0, style=get_button_style('secondary')),
                     html.Button('Löschen', id={'type': 'delete-profile', 'profile_id': str(profile_id)},
-                              n_clicks=0, style=get_button_style('danger'))
+                              n_clicks=0, style=get_button_style('danger')),
+                    dcc.ConfirmDialog(
+                        id={'type': 'confirm-delete-profile', 'profile_id': str(profile_id)},
+                        message='Soll dieses Profil unwiderruflich gelöscht werden?'
+                    )
                 ], style={'display': 'flex', 'gap': '10px', 'justifyContent': 'flex-end'})
             ], style={
                 'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '12px',
@@ -824,7 +841,8 @@ def display_profiles(auth_state, save_clicks):
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
      Output('apprise-urls-textarea', 'value'),
-     Output('profile-selected-cis', 'data')],
+     Output('profile-selected-cis', 'data'),
+     Output('current-profile-id', 'data')],
     [Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
      Input('add-profile-button', 'n_clicks')],
     [State('auth-status', 'data')],
@@ -838,20 +856,20 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
     trigger = ctx.triggered[0]['prop_id']
     # Add new profile clicked → just show empty form values
     if trigger.startswith('add-profile-button'):
-        return '', 'whitelist', 'apprise', '', []
+        return '', 'whitelist', 'apprise', '', [], None
 
     # Find which edit button was clicked
     try:
         triggered_id = json.loads(trigger.split('.')[0])
     except Exception:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update
 
     if not auth_data or not auth_data.get('authenticated'):
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update
 
     profile_id = triggered_id.get('profile_id')
     if not profile_id:
-        return no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update, no_update
 
     # Load profile from DB
     try:
@@ -866,7 +884,7 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             )
             row = cur.fetchone()
             if not row:
-                return '', 'whitelist', 'apprise', '', []
+                return '', 'whitelist', 'apprise', '', [], None
             name, profile_type, ci_list, apprise_urls, apprise_urls_salt, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
             # Decrypt apprise URLs for editing
@@ -891,9 +909,44 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
                     urls_text = '\n'.join(decrypted_urls)
                 except Exception:
                     urls_text = ''
-            return name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or [])
+            return name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or []), str(profile_id)
     except Exception:
-        return '', 'whitelist', 'apprise', '', []
+        return '', 'whitelist', 'apprise', '', [], None
+
+# 17. Handle per-profile deletion (confirm + delete)
+@callback(
+    Output('delete-profile-status', 'data'),
+    [Input({'type': 'delete-profile', 'profile_id': ALL}, 'n_clicks'),
+     Input({'type': 'confirm-delete-profile', 'profile_id': ALL}, 'submit_n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def handle_delete_profile(delete_clicks_list, submit_clicks_list, auth_data):
+    ctx = callback_context
+    if not ctx.triggered:
+        return ''
+    trigger = ctx.triggered[0]['prop_id']
+    # Open dialog on delete click
+    if 'delete-profile' in trigger:
+        # Find matching confirm dialog and set displayed via client JS is not feasible here; we used ConfirmDialog components per card.
+        # Returning empty string; the actual open is handled by the component when its 'displayed' is set by user action.
+        return ''
+    # Confirmed deletion
+    if 'confirm-delete-profile' in trigger:
+        if not auth_data or not auth_data.get('authenticated'):
+            return ''
+        try:
+            obj = json.loads(trigger.split('.')[0])
+            profile_id = int(obj.get('profile_id'))
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM notification_profiles
+                    WHERE id = %s
+                """, (profile_id,))
+            return f'deleted:{profile_id}'
+        except Exception:
+            return ''
+    return ''
 
 # Register page at the end
 try:
