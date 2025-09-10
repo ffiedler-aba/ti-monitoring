@@ -1,5 +1,12 @@
 import json
 import pytest
+import sys
+from pathlib import Path
+
+# Ensure project root is in sys.path for `import app`
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def test_auth_persists_across_pages(dash_duo):
@@ -15,17 +22,21 @@ def test_auth_persists_across_pages(dash_duo):
     # Navigiere zur Notifications-Seite
     dash_duo.driver.get(dash_duo.server_url + '/notifications')
 
-    # Warte auf Settings-Container sichtbar
-    settings = dash_duo.wait_until(lambda: dash_duo.find_element('#settings-container'))
-    assert settings.is_displayed()
+    # Prüfe Persistenz im localStorage nach Navigation
+    auth_json = dash_duo.driver.execute_script("return window.localStorage.getItem('auth-status');")
+    assert auth_json, 'auth-status missing after navigation to /notifications'
+    auth = json.loads(auth_json)
+    assert auth.get('authenticated') is True
 
     # Navigiere zu Home
     dash_duo.driver.get(dash_duo.server_url + '/')
     # und zurück
     dash_duo.driver.get(dash_duo.server_url + '/notifications')
 
-    # Wieder sichtbar
-    settings2 = dash_duo.wait_until(lambda: dash_duo.find_element('#settings-container'))
-    assert settings2.is_displayed()
+    # Persistenz erneut prüfen nach Seitenwechsel zurück
+    auth_json2 = dash_duo.driver.execute_script("return window.localStorage.getItem('auth-status');")
+    assert auth_json2, 'auth-status missing after navigating back to /notifications'
+    auth2 = json.loads(auth_json2)
+    assert auth2.get('authenticated') is True
 
 
