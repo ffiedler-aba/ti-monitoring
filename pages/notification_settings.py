@@ -238,8 +238,7 @@ def update_ui_visibility(ui_state):
     [State('email-input', 'value'),
      State('otp-state-store', 'data'),
      State('ui-state-store', 'data')],
-    prevent_initial_call=True,
-    allow_duplicate=True
+    prevent_initial_call=True
 )
 def handle_otp_request(n_clicks, email, otp_state, ui_state):
     """Handle OTP request (single responsibility)"""
@@ -474,12 +473,11 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
 @callback(
     Output('profile-form-container', 'style'),
     [Input('add-profile-button', 'n_clicks'),
-     Input('cancel-profile-button', 'n_clicks')],
-    prevent_initial_call=True,
-    allow_duplicate=True
+     Input('cancel-profile-button', 'n_clicks'),
+     Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks')],
+    prevent_initial_call=True
 )
-def toggle_profile_form(add_clicks, cancel_clicks):
-    """Show/hide profile form"""
+def toggle_profile_form(add_clicks, cancel_clicks, edit_clicks_list):
     ctx = callback_context
     if not ctx.triggered:
         return {'display': 'none'}
@@ -488,16 +486,17 @@ def toggle_profile_form(add_clicks, cancel_clicks):
 
     if trigger_id == 'add-profile-button' and add_clicks:
         return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
-    elif trigger_id == 'cancel-profile-button' and cancel_clicks:
+    if trigger_id == 'cancel-profile-button' and cancel_clicks:
         return {'display': 'none'}
+    # Any edit-profile click → show form
+    if trigger_id.startswith('{"type":"edit-profile"'):
+        return {'display': 'block', 'marginTop': '20px', 'padding': '20px', 'backgroundColor': 'white', 'borderRadius': '12px', 'border': '1px solid #e9ecef'}
 
     return {'display': 'none'}
 
 # 9. Profile Save Handler
 @callback(
-    [Output('form-error', 'children'),
-     Output('profile-name-input', 'value'),
-     Output('apprise-urls-textarea', 'value')],
+    Output('form-error', 'children'),
     [Input('save-profile-button', 'n_clicks')],
     [State('profile-name-input', 'value'),
      State('notification-type-radio', 'value'),
@@ -505,19 +504,18 @@ def toggle_profile_form(add_clicks, cancel_clicks):
      State('apprise-urls-textarea', 'value'),
      State('selected-cis-data', 'data'),
      State('auth-state-store', 'data')],
-    prevent_initial_call=True,
-    allow_duplicate=True
+    prevent_initial_call=True
 )
 def save_profile(n_clicks, name, notification_type, notification_method, apprise_urls, selected_cis, auth_state):
     """Save profile (single responsibility)"""
     if not n_clicks:
-        return [no_update, no_update, no_update]
+        return no_update
 
     if not auth_state or not auth_state.get('authenticated'):
-        return ['Nicht authentifiziert.', no_update, no_update]
+        return 'Nicht authentifiziert.'
 
     if not name or not name.strip():
-        return ['Profilname ist erforderlich.', no_update, no_update]
+        return 'Profilname ist erforderlich.'
 
     try:
         user_id = auth_state.get('user_id')
@@ -529,18 +527,18 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
         if notification_method == 'apprise' and apprise_urls:
             url_items = [url.strip() for url in apprise_urls.split('\n') if url.strip()]
             if url_items and not validate_apprise_urls(url_items):
-                return ['Eine oder mehrere Apprise-URLs sind ungültig.', no_update, no_update]
+                return 'Eine oder mehrere Apprise-URLs sind ungültig.'
 
         # Save profile with selected CIs
         profile_id = create_notification_profile(user_id, name, notification_type, selected_cis or [], url_items, email_notifications, email_address)
 
         if profile_id:
-            return ['✅ Profil erfolgreich erstellt!', '', '']  # Clear form
+            return '✅ Profil erfolgreich erstellt!'
         else:
-            return ['Fehler beim Erstellen des Profils.', no_update, no_update]
+            return 'Fehler beim Erstellen des Profils.'
 
     except Exception as e:
-        return [f'Fehler: {str(e)}', no_update, no_update]
+        return f'Fehler: {str(e)}'
 
 # === CI SELECTION CALLBACKS ===
 
@@ -679,7 +677,8 @@ def render_ci_checkboxes(available_cis, filter_text, selected_cis):
      Input('select-all-cis-button', 'n_clicks'),
      Input('deselect-all-cis-button', 'n_clicks')],
     [State('available-cis-data', 'data'),
-     State('ci-filter-text', 'data')]
+     State('ci-filter-text', 'data')],
+    prevent_initial_call=True
 )
 def handle_ci_selection(checkbox_values, select_all_clicks, deselect_all_clicks, available_cis, filter_text):
     """Handle CI selection changes"""
@@ -786,36 +785,34 @@ def display_profiles(auth_state, save_clicks):
      Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
-     Output('apprise-urls-textarea', 'value'),
-     Output('selected-cis-data', 'data')],
+     Output('apprise-urls-textarea', 'value')],
     [Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
      Input('add-profile-button', 'n_clicks')],
     [State('auth-status', 'data')],
-    prevent_initial_call=True,
-    allow_duplicate=True
+    prevent_initial_call=True
 )
 def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
     ctx = callback_context
     if not ctx.triggered:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     trigger = ctx.triggered[0]['prop_id']
     # Add new profile clicked → just show empty form
     if trigger.startswith('add-profile-button'):
-        return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
+        return {'display': 'block'}, '', 'whitelist', 'apprise', ''
 
     # Find which edit button was clicked
     try:
         triggered_id = json.loads(trigger.split('.')[0])
     except Exception:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     if not auth_data or not auth_data.get('authenticated'):
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     profile_id = triggered_id.get('profile_id')
     if not profile_id:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     # Load profile from DB
     try:
@@ -830,13 +827,13 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             )
             row = cur.fetchone()
             if not row:
-                return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
+                return {'display': 'block'}, '', 'whitelist', 'apprise', ''
             name, profile_type, ci_list, apprise_urls, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
             urls_text = '\n'.join(apprise_urls or []) if (apprise_urls and method == 'apprise') else ''
-            return {'display': 'block'}, name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or [])
+            return {'display': 'block'}, name or '', (profile_type or 'whitelist'), method, urls_text
     except Exception:
-        return {'display': 'block'}, '', 'whitelist', 'apprise', '', []
+        return {'display': 'block'}, '', 'whitelist', 'apprise', ''
 
 # Register page at the end
 try:
