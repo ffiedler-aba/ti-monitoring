@@ -436,7 +436,7 @@ def handle_delete_account(delete_clicks, confirm_submits, auth_data):
     Output('test-result', 'children'),
     [Input('test-notification-button', 'n_clicks')],
     [State('test-apprise-url', 'value'),
-     State('auth-state-store', 'data')],
+     State('auth-status', 'data')],
     prevent_initial_call=True
 )
 def test_apprise_notification(n_clicks, apprise_url, auth_state):
@@ -445,7 +445,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
         return no_update
 
     if not auth_state or not auth_state.get('authenticated'):
-        return html.Div('Authentifizierung erforderlich.', style={'color': 'red'})
+        return html.Span('Nicht authentifiziert', style=get_error_style(True))
 
     if not apprise_url or not apprise_url.strip():
         return html.Div('Bitte geben Sie eine Apprise-URL zum Testen ein.', style={'color': 'orange'})
