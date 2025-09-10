@@ -48,8 +48,7 @@ def serve_layout():
         # Store for admin status
         dcc.Store(id='admin-root-auth-status'),
 
-        # Check auth status from notifications page (same ID as notifications)
-        dcc.Store(id='auth-status', storage_type='local')
+        # Auth-Status wird global in app.py bereitgestellt
     ])
 
     return layout

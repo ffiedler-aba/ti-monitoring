@@ -120,7 +120,6 @@ def serve_layout():
         }),
 
         # === STORES (Single source of truth) ===
-        dcc.Store(id='auth-status', storage_type='local'),
         dcc.Store(id='auth-state-store', data={'authenticated': False}),
         dcc.Store(id='otp-state-store', data={'step': 'login', 'email': ''}),
         dcc.Store(id='ui-state-store', data={'show_login': True, 'show_otp': False, 'show_settings': False}),
@@ -238,7 +237,9 @@ def update_ui_visibility(ui_state):
     [Input('request-otp-button', 'n_clicks')],
     [State('email-input', 'value'),
      State('otp-state-store', 'data'),
-     State('ui-state-store', 'data')]
+     State('ui-state-store', 'data')],
+    prevent_initial_call=True,
+    allow_duplicate=True
 )
 def handle_otp_request(n_clicks, email, otp_state, ui_state):
     """Handle OTP request (single responsibility)"""
@@ -266,16 +267,45 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
     except Exception as e:
         return [no_update, f'Fehler beim Senden: {str(e)}']
 
+# 2b. Bridge: OTP/Auth state → UI state (OTP nach Request, Settings nach Verifikation)
+@callback(
+    Output('ui-state-store', 'data'),
+    [Input('otp-state-store', 'data'),
+     Input('auth-state-store', 'data')],
+    prevent_initial_call=False
+)
+def sync_ui_from_otp_state(otp_state, auth_state):
+    """Synchronize UI visibility with OTP/Auth flow state.
+
+    - When otp_state.step == 'verify', show OTP input view
+    - When otp_state.step == 'login', show login view
+    - When auth_state.authenticated is True, show settings
+    """
+    # Authenticated user → show settings
+    if auth_state and isinstance(auth_state, dict) and auth_state.get('authenticated'):
+        return {'show_login': False, 'show_otp': False, 'show_settings': True}
+
+    if not otp_state or not isinstance(otp_state, dict):
+        return no_update
+
+    step = otp_state.get('step')
+    if step == 'verify':
+        return {'show_login': False, 'show_otp': True, 'show_settings': False}
+    if step == 'login':
+        return {'show_login': True, 'show_otp': False, 'show_settings': False}
+
+    return no_update
+
 # 3. OTP Verification Handler
 @callback(
     [Output('auth-state-store', 'data'),
      Output('auth-status', 'data'),
-     Output('ui-state-store', 'data'),
      Output('otp-verify-error', 'children'),
      Output('otp-code-input', 'value')],
     [Input('verify-otp-button', 'n_clicks')],
     [State('email-input', 'value'),
-     State('otp-code-input', 'value')]
+     State('otp-code-input', 'value')],
+    prevent_initial_call=True
 )
 def handle_otp_verification(n_clicks, email, otp_code):
     """Handle OTP verification with direct UI update"""
@@ -293,16 +323,15 @@ def handle_otp_verification(n_clicks, email, otp_code):
             return [no_update, no_update, no_update, 'Konto ist gesperrt.', no_update]
 
         if validate_otp(user_id, otp_code):
-            # Success - set auth states AND ui state directly (avoid race condition)
+            # Success - set auth states; UI will switch to settings via bridge
             auth_state = {'authenticated': True, 'user_id': user_id, 'email': email}
-            ui_state = {'show_login': False, 'show_otp': False, 'show_settings': True}
-            print(f"DEBUG: OTP verification successful, setting auth_state: {auth_state}, ui_state: {ui_state}")
-            return [auth_state, auth_state, ui_state, '', '']  # Direct UI update
+            print(f"DEBUG: OTP verification successful, setting auth_state: {auth_state}")
+            return [auth_state, auth_state, '', '']
         else:
-            return [no_update, no_update, no_update, 'Ungültiger OTP-Code.', no_update]
+            return [no_update, no_update, 'Ungültiger OTP-Code.', no_update]
 
     except Exception as e:
-        return [no_update, no_update, no_update, f'Fehler: {str(e)}', no_update]
+        return [no_update, no_update, f'Fehler: {str(e)}', no_update]
 
 # 4. Auth State to UI State Bridge (for initial load only)
 @callback(
@@ -321,11 +350,19 @@ def update_ui_from_auth(auth_state, auth_status):
     if not current_auth or not current_auth.get('authenticated'):
         return ''
 
-    # Authenticated - show user info with logout
+    # Authenticated - show user info with logout and delete account
     email = current_auth.get('email', 'Unbekannt')
     user_info = html.Div([
         html.Span(f'Eingeloggt als: {email}', style={'fontWeight': '500'}),
-        html.Button('Abmelden', id='logout-button-integrated', n_clicks=0, style=get_button_style('secondary'))
+        html.Div([
+            html.Button('Konto löschen', id='delete-account-button', n_clicks=0, style=get_button_style('danger')),
+            html.Button('Abmelden', id='logout-button-integrated', n_clicks=0, style=get_button_style('secondary')),
+            dcc.ConfirmDialog(
+                id='confirm-delete-account',
+                message='Soll Ihr Benutzerkonto mit allen Profilen unwiderruflich gelöscht werden?'
+            ),
+            html.Div(id='delete-account-status', style={'marginLeft': '12px'})
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px'})
     ], style={'display': 'flex', 'justifyContent': 'space-between', 'alignItems': 'center'})
 
     return user_info
@@ -344,6 +381,55 @@ def handle_logout(logout_integrated_clicks):
 
     # Trigger redirect (auth reset will be handled by clientside)
     return {'redirect': True, 'timestamp': str(datetime.now())}
+
+# 7b. Delete account (single callback handling open-confirm and delete)
+@callback(
+    [Output('confirm-delete-account', 'displayed'),
+     Output('delete-account-status', 'children')],
+    [Input('delete-account-button', 'n_clicks'),
+     Input('confirm-delete-account', 'submit_n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def handle_delete_account(delete_clicks, confirm_submits, auth_data):
+    ctx = callback_context
+    if not ctx.triggered:
+        return no_update, no_update
+
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Step 1: Open confirm dialog
+    if trigger_id == 'delete-account-button':
+        return True, no_update
+
+    # Step 2: Perform deletion after confirmation
+    if trigger_id == 'confirm-delete-account':
+        if not auth_data or not auth_data.get('authenticated'):
+            return False, html.Span('Nicht authentifiziert.', style=get_error_style(True))
+
+        user_email = auth_data.get('email')
+        try:
+            user = get_user_by_email(user_email)
+            if not user:
+                return False, html.Span('Benutzer nicht gefunden.', style=get_error_style(True))
+
+            user_id = user[0]
+            # Lösche alle Profile des Benutzers
+            with get_db_conn() as conn, conn.cursor() as cur:
+                cur.execute("""
+                    DELETE FROM notification_profiles
+                    WHERE user_id = %s
+                """, (user_id,))
+                cur.execute("""
+                    DELETE FROM users
+                    WHERE id = %s
+                """, (user_id,))
+
+            return False, html.Span('Konto und Profile wurden gelöscht. Bitte Seite neu laden.', style={'color': '#16a085', 'fontWeight': '500'})
+        except Exception as e:
+            return False, html.Span(f'Fehler beim Löschen: {str(e)}', style=get_error_style(True))
+
+    return no_update, no_update
 
 # 7. Apprise Test Handler
 @callback(
