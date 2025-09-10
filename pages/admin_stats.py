@@ -26,8 +26,7 @@ def serve_layout():
             html.P('Überprüfe Admin-Berechtigung...', style={'textAlign': 'center'})
         ]),
 
-        # Store for auth status
-        dcc.Store(id='auth-status', storage_type='local')
+        # Auth-Status wird global in app.py bereitgestellt
     ])
 
     return layout
