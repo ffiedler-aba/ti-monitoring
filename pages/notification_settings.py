@@ -339,10 +339,11 @@ def handle_otp_verification(n_clicks, email, otp_code):
 @callback(
     Output('user-info', 'children'),
     [Input('auth-state-store', 'data'),
-     Input('auth-status', 'data')],
+     Input('auth-status', 'data'),
+     Input('_pages_location', 'pathname')],
     prevent_initial_call=False
 )
-def update_ui_from_auth(auth_state, auth_status):
+def update_ui_from_auth(auth_state, auth_status, _pathname):
     """Update user info when auth state changes (UI state handled separately)"""
     print(f"DEBUG: update_ui_from_auth called with auth_state: {auth_state}, auth_status: {auth_status}")
     # Use auth_status (persistent) if auth_state is not available
