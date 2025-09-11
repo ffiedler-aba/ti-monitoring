@@ -13,7 +13,7 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 
 ### Was unterscheidet dieses Projekt vom Original
 
-- Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplekte Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
+- Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplexe Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
 - Die E-Mail Benachrichtigung der ursprünglichen App wurde ersetzt durch die Integration von [Apprise](https://github.com/caronc/apprise). Vorteile:
   - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail
   - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
