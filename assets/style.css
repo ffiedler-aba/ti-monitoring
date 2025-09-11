@@ -474,27 +474,31 @@ a:any-link:hover {
 }
 
 /* Hamburger Menu Styles */
-details {
-  position: relative;
-}
 
 details summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 6px 8px;
+  list-style: none !important;
+  cursor: pointer !important;
+  padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  background: #ffffff;
+  border: 2px solid #2563eb;
+  background: #f0f8ff;
   transition: var(--transition-fast);
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 18px;
+  font-weight: bold;
+  color: #2563eb;
 }
 
 details summary:hover {
-  background: #f8f9fa;
-  border-color: #d0d0d0;
+  background: #e0f2fe;
+  border-color: #1976d2;
+  transform: scale(1.05);
 }
 
 details summary::-webkit-details-marker {
@@ -540,13 +544,12 @@ details[open] summary {
   color: var(--primary-color);
 }
 
-/* Both Desktop and Mobile: Show both navigation and hamburger menu */
-.navigation {
-  display: flex;
-}
-
+/* Hamburger Menu - Always visible on all platforms */
 details {
-  display: block;
+  display: block !important;
+  position: relative;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Mobile: Adjust hamburger menu styling */
