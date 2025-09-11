@@ -540,27 +540,17 @@ details[open] summary {
   color: var(--primary-color);
 }
 
-/* Desktop: Hide hamburger menu, show navigation */
-@media (min-width: 769px) {
-  details {
-    display: none;
-  }
-  
-  .navigation {
-    display: flex;
-  }
+/* Both Desktop and Mobile: Show both navigation and hamburger menu */
+.navigation {
+  display: flex;
 }
 
-/* Mobile Hamburger Menu */
+details {
+  display: block;
+}
+
+/* Mobile: Adjust hamburger menu styling */
 @media (max-width: 768px) {
-  .navigation {
-    display: none !important;
-  }
-  
-  details {
-    display: block;
-  }
-  
   details summary {
     padding: 8px 10px;
     font-size: 18px;
