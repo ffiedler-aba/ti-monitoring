@@ -14,45 +14,26 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 ### Was unterscheidet dieses Projekt vom Original
 
 - Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplexe Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
+- Umbau er Datenbank auf Postgresql/timescaledb: ermöglicht Retention, komplexe Abfragen und Statistiken, effiziente Speicherung sowie Benutzerprofile
 - Die E-Mail Benachrichtigung der ursprünglichen App wurde ersetzt durch die Integration von [Apprise](https://github.com/caronc/apprise). Vorteile:
-  - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail
+  - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail u.v.a.m.
   - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
   - Dadurch auch Massenversand an viele Abonnenten auf unterschiedlichen Wegen möglich
-- Benachrichtigungs-Konfiguration per UI über eine eigene passwortgeschützte Webpage
+- Einfache Benutzeranmeldung mit One-Time-Passwort zur Verwaltung eigener Benachrichtigungsprofile
+- Benachrichtigungs-Konfiguration per UI über eine eigene Webpage
 - Auswahl der zu abonnierenden Topics aus der Liste der *Configuration Items* der gematik API, täglich von `cron.py` aktualisiert
 - Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
 - Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
 - Ausführliche Statistiken in den Plots der einzelnen Configuration Items und als Gesamtstatistik unter /stats
 
-### Windows Setup (Inno Setup)
-
-Ein Installer-Projekt befindet sich in `windows-setup-src`.
-
-Build (auf Windows, Adminrechte empfohlen):
-
-1) Inno Setup installieren und folgenden Befehl ausführen:
-
-```
-"C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" windows-setup-src\\TI-Monitoring.iss
-```
-
-Der Installer erledigt zur Laufzeit:
-- Installation per winget: Python, Git, NSSM
-- Clone des Repos `https://github.com/elpatron68/ti-monitoring.git`
-- Erstellen von `.venv` und Installation der Requirements
-- Einrichten von zwei NSSM-Diensten (TIMon-UI, TIMon-Cron)
-- Öffnen der Windows-Firewall für Port 8050
-
-Uninstall entfernt die Dienste und die Firewallregel wieder.
-
 ### Entwicklungsstand
 
-Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls fühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, am liebsten als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
+Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls frühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, bitte ausschließlich als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
 
 ### Öffentliche Demo-Instanz
 
-Diese App unterscheidet sich hauptsächlich durch die Benachrichtigungsoptionen vom Original. Die Konfiguration der Notification Provider ist jedoch höchst individuell und bedarf immer der Eintragung persönlicher Daten wie Passwörter, API-Keys etc.. Aus diesem Grund gibt es von diesem Fork keine öffentliche Instanz.
+Eine öffentliche Demo-Instanz dieser App ist unter https://ti-mon.elpatron.me/ nutzbar. Sie unterliegt allerdings häufigen Änderungen. Keine Gewährleistung für Funktionalität, Verfügbarkeit und Speicher-Persistenz! Wenn Sie diese App in Ihrem unternehmen nutzen möchten, sollten Sie sich eine eigene Instanz einrichten.
 
 ### Disclaimer
 
