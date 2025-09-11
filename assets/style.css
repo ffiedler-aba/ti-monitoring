@@ -473,6 +473,118 @@ a:any-link:hover {
   box-shadow: var(--shadow-md);
 }
 
+/* Hamburger Menu Styles */
+details {
+  position: relative;
+  display: none; /* Hidden on desktop by default */
+}
+
+details summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
+  transition: var(--transition-fast);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+details summary:hover {
+  background: #f8f9fa;
+  border-color: #d0d0d0;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary::marker {
+  display: none;
+}
+
+details[open] summary {
+  background: #f0f8ff;
+  border-color: var(--primary-color);
+}
+
+#hamburger-menu-content {
+  position: absolute;
+  right: 0;
+  margin-top: 8px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 220px;
+  display: grid;
+  row-gap: 4px;
+  z-index: 1001;
+}
+
+#hamburger-menu-content a {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  text-decoration: none;
+  color: #2c3e50;
+  border-radius: 6px;
+  transition: var(--transition-fast);
+}
+
+#hamburger-menu-content a:hover {
+  background: #f8f9fa;
+  color: var(--primary-color);
+}
+
+/* Mobile Hamburger Menu */
+@media (max-width: 768px) {
+  .navigation {
+    display: none !important;
+  }
+  
+  details {
+    display: block;
+  }
+  
+  details summary {
+    padding: 8px 10px;
+    font-size: 18px;
+  }
+  
+  #hamburger-menu-content {
+    right: -10px;
+    min-width: 200px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  
+  #hamburger-menu-content a {
+    padding: 12px 16px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  details summary {
+    padding: 6px 8px;
+    font-size: 16px;
+  }
+  
+  #hamburger-menu-content {
+    right: -15px;
+    min-width: 180px;
+  }
+  
+  #hamburger-menu-content a {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   header {
