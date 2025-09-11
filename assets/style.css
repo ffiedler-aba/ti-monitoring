@@ -476,7 +476,6 @@ a:any-link:hover {
 /* Hamburger Menu Styles */
 details {
   position: relative;
-  display: none; /* Hidden on desktop by default */
 }
 
 details summary {
@@ -539,6 +538,17 @@ details[open] summary {
 #hamburger-menu-content a:hover {
   background: #f8f9fa;
   color: var(--primary-color);
+}
+
+/* Desktop: Hide hamburger menu, show navigation */
+@media (min-width: 769px) {
+  details {
+    display: none;
+  }
+  
+  .navigation {
+    display: flex;
+  }
 }
 
 /* Mobile Hamburger Menu */
