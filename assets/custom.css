@@ -316,6 +316,89 @@ input:focus, textarea:focus {
     }
 }
 
+/* Fix for hamburger menu touch issues on mobile devices */
+details > summary {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    /* Ensure the summary element has proper positioning context */
+    position: relative;
+    z-index: 1001;
+    /* Make sure the element is visible and clickable */
+    display: block;
+}
+
+details > summary:focus {
+    outline: none;
+}
+
+/* Ensure the hamburger menu content is properly positioned on mobile */
+@media (max-width: 768px) {
+    /* Fix header overflow issues that might clip the hamburger menu */
+    header {
+        overflow: visible !important;
+    }
+    
+    #hamburger-menu-content {
+        position: absolute !important;
+        right: 0 !important;
+        margin-top: 8px !important;
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 10px !important;
+        padding: 8px !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+        min-width: 200px !important;
+        max-width: 90vw !important; /* Prevent menu from being too wide on small screens */
+        display: grid !important;
+        row-gap: 4px !important;
+        z-index: 10000 !important; /* Increase z-index to ensure it's above all other elements */
+        /* Add overflow handling for small screens */
+        overflow: hidden;
+        /* Ensure the menu is not clipped by parent containers */
+        transform: translateZ(0); /* Force hardware acceleration */
+    }
+    
+    /* Improve touch targets for mobile */
+    #hamburger-menu-content a {
+        padding: 12px 12px !important;
+        font-size: 16px !important; /* Minimum font size for mobile */
+        /* Ensure links don't overflow */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Make sure links are properly clickable */
+        display: block !important;
+        width: 100%;
+    }
+    
+    /* Ensure the details element doesn't get cut off on small screens */
+    details {
+        position: relative;
+        /* Make sure the details element is not affected by overflow */
+        z-index: 1001;
+    }
+}
+
+/* Additional mobile-specific improvements */
+@media (max-width: 480px) {
+    #hamburger-menu-content {
+        min-width: 160px !important;
+        right: 0 !important; /* Changed from -10px to 0 for better positioning */
+        max-width: 85vw !important; /* Further limit width on very small screens */
+    }
+    
+    /* Ensure the details element doesn't get cut off on small screens */
+    details {
+        position: relative;
+    }
+}
+
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;

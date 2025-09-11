@@ -156,7 +156,8 @@ def serve_layout():
                     html.Details(children=[
                         html.Summary(
                             html.I(className='material-icons', children='menu'),
-                            style={'listStyle': 'none', 'cursor': 'pointer', 'padding': '6px 8px', 'borderRadius': '8px', 'border': '1px solid #e0e0e0'}
+                            style={'listStyle': 'none', 'cursor': 'pointer', 'padding': '6px 8px', 'borderRadius': '8px', 'border': '1px solid #e0e0e0'},
+                            className='hamburger-menu-trigger'  # Add CSS class for easier identification
                         ),
                         html.Div(id='hamburger-menu-content', children=[
                             html.A(
