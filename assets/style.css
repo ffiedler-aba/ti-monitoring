@@ -866,6 +866,86 @@ details {
     color: var(--gray-700);
   }
   
+  /* Dark theme for Dash Input components */
+  input[type="text"], input[type="email"], input[type="password"] {
+    background-color: var(--white) !important;
+    color: var(--gray-800) !important;
+    border: 2px solid var(--gray-200) !important;
+  }
+  
+  input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  input[type="text"]::placeholder, input[type="email"]::placeholder, input[type="password"]::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Dark theme for Dash Textarea components */
+  textarea {
+    background-color: var(--white) !important;
+    color: var(--gray-800) !important;
+    border: 2px solid var(--gray-200) !important;
+  }
+  
+  textarea:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Dark theme for Dash RadioItems */
+  .dash-radio-items {
+    color: var(--gray-800) !important;
+  }
+  
+  .dash-radio-items .dash-radio-item {
+    color: var(--gray-800) !important;
+  }
+  
+  .dash-radio-items .dash-radio-item input[type="radio"] {
+    accent-color: var(--primary-color) !important;
+  }
+  
+  /* Dark theme for Dash Checklist */
+  .dash-checklist {
+    color: var(--gray-800) !important;
+  }
+  
+  .dash-checklist .dash-checklist-item {
+    color: var(--gray-800) !important;
+  }
+  
+  .dash-checklist .dash-checklist-item input[type="checkbox"] {
+    accent-color: var(--primary-color) !important;
+  }
+  
+  /* Dark theme for labels */
+  label {
+    color: var(--gray-800) !important;
+  }
+  
+  /* Dark theme for paragraphs and text */
+  p {
+    color: var(--gray-800) !important;
+  }
+  
+  /* Dark theme for spans */
+  span {
+    color: var(--gray-800) !important;
+  }
+  
+  /* Dark theme for strong/bold text */
+  strong {
+    color: var(--gray-800) !important;
+  }
+  
   /* Dark theme for buttons */
   .button {
     background: var(--primary-color);
@@ -1010,6 +1090,485 @@ details {
   
   .dash-table-container .dash-spreadsheet-container {
     background-color: #1e293b !important;
+  }
+  
+  /* Dark theme for notification settings page */
+  /* Container backgrounds */
+  .notification-settings-container {
+    background-color: var(--white) !important;
+    border: 1px solid var(--gray-200) !important;
+  }
+  
+  /* User info section */
+  .user-info-section {
+    background-color: var(--gray-50) !important;
+    border: 1px solid var(--gray-200) !important;
+    color: var(--gray-800) !important;
+  }
+  
+  /* Specific styling for user-info div */
+  #user-info {
+    background-color: #334155 !important;
+    border: 1px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  
+  #user-info * {
+    color: #f1f5f9 !important;
+  }
+  
+  #user-info span {
+    color: #f1f5f9 !important;
+  }
+  
+  #user-info button {
+    color: white !important;
+  }
+  
+  /* Specific styling for profile-name-input */
+  #profile-name-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #profile-name-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #profile-name-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Comprehensive fix for ALL input fields in notifications page */
+  /* Target all input types specifically */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"] {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="search"]:focus,
+  input[type="url"]:focus,
+  input[type="tel"]:focus,
+  input[type="number"]:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  input[type="text"]::placeholder,
+  input[type="email"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="search"]::placeholder,
+  input[type="url"]::placeholder,
+  input[type="tel"]::placeholder,
+  input[type="number"]::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Target all textarea elements */
+  textarea {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  textarea:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Specific fixes for notification settings page inputs */
+  #ci-filter-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #ci-filter-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #ci-filter-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  #apprise-urls-textarea {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #apprise-urls-textarea:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #apprise-urls-textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  #test-apprise-url {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #test-apprise-url:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #test-apprise-url::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* OTP and email inputs */
+  #email-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #email-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #email-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  #otp-code-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #otp-code-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #otp-code-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Ultra-specific selectors to override inline styles */
+  /* These have higher specificity than inline styles */
+  input[type="text"][style*="padding"],
+  input[type="email"][style*="padding"],
+  input[type="password"][style*="padding"],
+  input[type="search"][style*="padding"],
+  input[type="url"][style*="padding"],
+  input[type="tel"][style*="padding"],
+  input[type="number"][style*="padding"] {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  textarea[style*="padding"] {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  /* Even more specific - target by ID with inline styles */
+  #profile-name-input[style],
+  #ci-filter-input[style],
+  #apprise-urls-textarea[style],
+  #test-apprise-url[style],
+  #email-input[style],
+  #otp-code-input[style] {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  /* Force text color for all input elements */
+  input, textarea {
+    color: #f1f5f9 !important;
+  }
+  
+  /* Override any potential color inheritance */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  textarea {
+    color: #f1f5f9 !important;
+  }
+  
+  /* Nuclear option - force text color on ALL elements that could be inputs */
+  *[id*="input"] {
+    color: #f1f5f9 !important;
+  }
+  
+  *[id*="textarea"] {
+    color: #f1f5f9 !important;
+  }
+  
+  /* Force text color on any element with input-like styling */
+  *[style*="padding"][style*="borderRadius"] {
+    color: #f1f5f9 !important;
+  }
+  
+  /* Target Dash components specifically */
+  .dash-input input,
+  .dash-textarea textarea {
+    color: #f1f5f9 !important;
+    background-color: #1e293b !important;
+  }
+  
+  /* Force override for any remaining cases */
+  input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea {
+    color: #f1f5f9 !important;
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  /* Profile form container */
+  .profile-form-container {
+    background-color: var(--white) !important;
+    border: 1px solid var(--gray-200) !important;
+  }
+  
+  /* CI checkboxes container */
+  .ci-checkboxes-container {
+    background-color: var(--gray-50) !important;
+    border: 1px solid var(--gray-200) !important;
+  }
+  
+  /* Individual CI checkbox items */
+  .ci-checkbox-item {
+    background-color: var(--white) !important;
+    border: 1px solid var(--gray-200) !important;
+    color: var(--gray-800) !important;
+  }
+  
+  /* CI filter info text */
+  .ci-filter-info {
+    color: var(--gray-600) !important;
+  }
+  
+  /* CI load status */
+  .ci-load-status {
+    color: var(--danger-color) !important;
+  }
+  
+  /* Specific fixes for notification settings page elements */
+  /* Make CI checkbox text visible */
+  .ci-checkbox-item label {
+    color: #1e293b !important;
+  }
+  
+  .ci-checkbox-item label strong {
+    color: #1e293b !important;
+  }
+  
+  .ci-checkbox-item label span {
+    color: #475569 !important;
+  }
+  
+  /* Make filter info text visible */
+  .ci-filter-info {
+    color: #475569 !important;
+  }
+  
+  /* Make all text in white containers dark */
+  .profile-form-container p,
+  .profile-form-container span,
+  .profile-form-container div {
+    color: #1e293b !important;
+  }
+  
+  /* Make radio button labels visible */
+  .dash-radio-items label {
+    color: #1e293b !important;
+  }
+  
+  /* Make form labels visible */
+  .profile-form-container label {
+    color: #1e293b !important;
+  }
+  
+  /* Specific Dash component overrides for notification settings */
+  /* Override Dash Input component styles */
+  .dash-input input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  .dash-input input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Override Dash Textarea component styles */
+  .dash-textarea textarea {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  .dash-textarea textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Override Dash RadioItems component styles */
+  .dash-radio-items {
+    color: #1e293b !important;
+  }
+  
+  .dash-radio-items .dash-radio-item {
+    color: #1e293b !important;
+  }
+  
+  .dash-radio-items .dash-radio-item label {
+    color: #1e293b !important;
+  }
+  
+  /* Override Dash Checklist component styles */
+  .dash-checklist {
+    color: #1e293b !important;
+  }
+  
+  .dash-checklist .dash-checklist-item {
+    color: #1e293b !important;
+  }
+  
+  .dash-checklist .dash-checklist-item label {
+    color: #1e293b !important;
+  }
+  
+  /* Very specific selectors for notification settings page */
+  /* Target the exact structure from notification_settings.py */
+  
+  /* RadioItems labels - these are empty in the code, so we need to target the container */
+  .dash-radio-items .dash-radio-item {
+    color: #1e293b !important;
+  }
+  
+  /* Make sure radio button text is visible */
+  .dash-radio-items .dash-radio-item span {
+    color: #1e293b !important;
+  }
+  
+  /* CI checkbox container styling */
+  #ci-checkboxes-container {
+    background-color: #f8f9fa !important;
+  }
+  
+  #ci-checkboxes-container div {
+    background-color: white !important;
+    border: 1px solid #e9ecef !important;
+  }
+  
+  /* CI checkbox labels - these are html.Label elements */
+  #ci-checkboxes-container label {
+    color: #1e293b !important;
+  }
+  
+  #ci-checkboxes-container label strong {
+    color: #1e293b !important;
+  }
+  
+  #ci-checkboxes-container label span {
+    color: #475569 !important;
+  }
+  
+  /* Filter info text */
+  #ci-filter-info {
+    color: #475569 !important;
+  }
+  
+  /* Form labels */
+  #profile-form-container label,
+  #profile-form-container .dash-radio-items,
+  #profile-form-container .dash-checklist {
+    color: #1e293b !important;
+  }
+  
+  /* All text in the profile form container */
+  #profile-form-container * {
+    color: #1e293b !important;
+  }
+  
+  /* Override for specific elements that should be different colors */
+  #profile-form-container input::placeholder,
+  #profile-form-container textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+  
+  #profile-form-container .ci-filter-info {
+    color: #475569 !important;
+  }
+  
+  /* Specific fixes for RadioItems with empty labels */
+  /* The RadioItems in notification_settings.py have empty labels, so we need to add text via CSS */
+  #notification-type-radio .dash-radio-item:first-child::after {
+    content: "Whitelist";
+    color: #1e293b !important;
+    margin-left: 8px;
+  }
+  
+  #notification-type-radio .dash-radio-item:last-child::after {
+    content: "Blacklist";
+    color: #1e293b !important;
+    margin-left: 8px;
+  }
+  
+  #notification-method-radio .dash-radio-item:first-child::after {
+    content: "Apprise (Erweitert)";
+    color: #1e293b !important;
+    margin-left: 8px;
+  }
+  
+  #notification-method-radio .dash-radio-item:last-child::after {
+    content: "E-Mail (Einfach)";
+    color: #1e293b !important;
+    margin-left: 8px;
+  }
+  
+  /* Make sure the radio buttons themselves are visible */
+  #notification-type-radio input[type="radio"],
+  #notification-method-radio input[type="radio"] {
+    accent-color: #60a5fa !important;
+  }
+  
+  /* Make sure checkboxes are visible */
+  #ci-checkboxes-container input[type="checkbox"] {
+    accent-color: #60a5fa !important;
   }
   
   /* Dark theme for logs page */
