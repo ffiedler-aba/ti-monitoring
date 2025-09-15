@@ -10,6 +10,8 @@ import numpy as np
 import pytz
 from datetime import datetime, timedelta
 
+dash.register_page(__name__, path='/plot')
+
 def load_config():
     """Load configuration from YAML file"""
     config_path = os.path.join(os.path.dirname(__file__), '..', 'config.yaml')
@@ -304,39 +306,25 @@ def create_comprehensive_statistics_display(stats, ci):
         ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px'})
     ], style={'marginTop': '30px'})
 
-dash.register_page(__name__, path='/plot')
-
-def serve_layout(ci=None):
+def serve_layout(**kwargs):
     """Serve the plot page layout"""
-    # Get CI from URL parameters if not provided
-    if ci is None:
-        from flask import request
+    # Get CI from URL parameters (kann initial leer sein)
+    from flask import request
+    ci = request.args.get('ci', '') or ''
 
-        # Get CI from URL parameters
-        ci = request.args.get('ci', '')
-
-    if not ci:
-        return html.Div([
-            html.H1("Fehler: Keine CI angegeben"),
-            html.P("Bitte geben Sie eine gültige CI in der URL an (z.B. /plot?ci=CI-0000001)"),
-            html.A("Zurück zur Hauptseite", href="/", className="btn btn-primary")
-        ])
-
-    # Get CI information
+    # Get CI information (optional; Seite rendert auch ohne CI)
     # For TimescaleDB mode, we need to pass None as file_name
-    ci_info = get_data_of_ci(None, ci)
+    ci_info = get_data_of_ci(None, ci) if ci else None
 
-    if ci_info is None or ci_info.empty:
-        return html.Div([
-            html.H1("Komponente nicht gefunden"),
-            html.P(f"Die Komponente {ci} wurde nicht in der Datenbank gefunden."),
-            html.A("Zurück zur Hauptseite", href="/", className="btn btn-primary")
-        ])
-
-    # Extract CI details
-    ci_name = ci_info.iloc[0]['name'] if 'name' in ci_info.columns else ci
-    ci_organization = ci_info.iloc[0]['organization'] if 'organization' in ci_info.columns else 'Unbekannt'
-    ci_product = ci_info.iloc[0]['product'] if 'product' in ci_info.columns else 'Unbekannt'
+    # Extract CI details mit sicheren Fallbacks
+    if ci_info is not None and hasattr(ci_info, 'empty') and not ci_info.empty:
+        ci_name = ci_info.iloc[0]['name'] if 'name' in ci_info.columns else ci
+        ci_organization = ci_info.iloc[0]['organization'] if 'organization' in ci_info.columns else 'Unbekannt'
+        ci_product = ci_info.iloc[0]['product'] if 'product' in ci_info.columns else 'Unbekannt'
+    else:
+        ci_name = ci if ci else 'Unbekannt'
+        ci_organization = 'Unbekannt'
+        ci_product = 'Unbekannt'
 
     # Load core configuration for default hours
     core_config = load_core_config()
@@ -402,28 +390,62 @@ def serve_layout(ci=None):
 
     return layout
 
-# Set the layout for Dash
+# Set the layout for Dash - this will be called by Dash with the current path
 layout = serve_layout
 
+# Consolidated callback - handles both initial load and UI interactions
 @callback(
-    [Output('availability-plot', 'figure'),
+    [Output('url', 'search'),
+     Output('availability-plot', 'figure'),
      Output('comprehensive-statistics', 'children')],
-    [Input('update-button', 'n_clicks'),
+    [Input('url', 'pathname'),
+     Input('update-button', 'n_clicks'),
      Input('hours-input', 'value')],
-    [dash.State('ci-store', 'data')],
+    [dash.State('url', 'search'),
+     dash.State('ci-store', 'data')],
     prevent_initial_call=False
 )
-def update_plot_and_stats(n_clicks, selected_hours, ci):
-    """Update plot and comprehensive statistics based on selected time range"""
-    # Handle case where ci might be None
-    if ci is None:
-        ci = "Unbekannt"
-
-    # Handle case where selected_hours might be None
-    if selected_hours is None:
-        selected_hours = 48
-
-    # Load real availability data
+def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
+    """Handle both initial load and UI interactions for plot updates"""
+    # Resolve CI: prefer store, then URL, then request args
+    if not ci:
+        # Try to parse from URL search
+        if url_search:
+            import urllib.parse
+            params = urllib.parse.parse_qs(url_search.lstrip('?'))
+            parsed_ci = params.get('ci', [None])[0]
+            if parsed_ci:
+                ci = parsed_ci
+        # Fallback to request args
+        if not ci:
+            from flask import request
+            ci = request.args.get('ci', 'Unbekannt')
+    
+    # Determine selected hours based on input priority
+    selected_hours = 48  # default
+    
+    # Priority 1: hours from dropdown input
+    if hours is not None:
+        selected_hours = hours
+    # Priority 2: hours from URL
+    elif url_search:
+        import urllib.parse
+        params = urllib.parse.parse_qs(url_search.lstrip('?'))
+        if 'hours' in params:
+            try:
+                selected_hours = int(params['hours'][0])
+            except (ValueError, IndexError):
+                selected_hours = 48
+    
+    # Update URL with current parameters
+    if hours and ci:
+        new_url = f"?ci={ci}&hours={hours}"
+    elif ci:
+        new_url = f"?ci={ci}"
+    else:
+        new_url = ""
+    
+    # Load and process data
     try:
         ci_data = get_availability_data_of_ci(None, ci)
         
@@ -450,7 +472,7 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
                 html.P('Für diese Komponente sind keine Verfügbarkeitsdaten vorhanden.')
             ])
             
-            return fig, stats_display
+            return new_url, fig, stats_display
         
         # Convert times to datetime if needed
         if not pd.api.types.is_datetime64_any_dtype(ci_data['times']):
@@ -491,7 +513,7 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
                 html.P('Im ausgewählten Zeitraum sind keine Daten verfügbar.')
             ])
             
-            return fig, stats_display
+            return new_url, fig, stats_display
         
         # Create plot with color coding: Red for availability 0, Green for availability 1
         fig = go.Figure()
@@ -577,20 +599,7 @@ def update_plot_and_stats(n_clicks, selected_hours, ci):
             html.P(f'Fehler: {str(e)}'),
             html.P('Bitte versuchen Sie es später erneut.')
         ])
+    
+    return new_url, fig, stats_display
 
-    return fig, stats_display
-
-@callback(
-    Output('url', 'search'),
-    [Input('hours-input', 'value')],
-    [dash.State('ci-store', 'data')],
-    prevent_initial_call=True
-)
-def update_url(hours, ci):
-    """Update URL when hours change"""
-    if hours and ci:
-        return f"?ci={ci}&hours={hours}"
-    elif ci:
-        return f"?ci={ci}"
-    else:
-        return ""
+# Page registration is handled in app.py
