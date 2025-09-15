@@ -395,8 +395,7 @@ layout = serve_layout
 
 # Consolidated callback - handles both initial load and UI interactions
 @callback(
-    [Output('url', 'search'),
-     Output('availability-plot', 'figure'),
+    [Output('availability-plot', 'figure'),
      Output('comprehensive-statistics', 'children'),
      Output('ci-meta', 'children')],
     [Input('url', 'pathname'),
@@ -438,13 +437,7 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             except (ValueError, IndexError):
                 selected_hours = 48
     
-    # Update URL with current parameters
-    if hours and ci:
-        new_url = f"?ci={ci}&hours={hours}"
-    elif ci:
-        new_url = f"?ci={ci}"
-    else:
-        new_url = ""
+    # Do not update URL to avoid full page re-render; only update UI
     
     # Prepare CI meta from metadata table
     try:
@@ -488,7 +481,7 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
                 html.P('Für diese Komponente sind keine Verfügbarkeitsdaten vorhanden.')
             ])
             
-            return new_url, fig, stats_display, ci_meta_text
+            return fig, stats_display, ci_meta_text
         
         # Convert times to datetime if needed
         if not pd.api.types.is_datetime64_any_dtype(ci_data['times']):
@@ -529,7 +522,7 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
                 html.P('Im ausgewählten Zeitraum sind keine Daten verfügbar.')
             ])
             
-            return new_url, fig, stats_display, ci_meta_text
+            return fig, stats_display, ci_meta_text
         
         # Create plot with color coding: Red for availability 0, Green for availability 1
         fig = go.Figure()
@@ -616,6 +609,6 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             html.P('Bitte versuchen Sie es später erneut.')
         ])
     
-    return new_url, fig, stats_display, ci_meta_text
+    return fig, stats_display, ci_meta_text
 
 # Page registration is handled in app.py
