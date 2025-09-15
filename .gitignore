@@ -26,3 +26,4 @@ portable-build/
 windows-setup-src/
 build/
 dist/
+callback_validation_report.json
