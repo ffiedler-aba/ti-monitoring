@@ -214,6 +214,16 @@ header:hover {
   padding: var(--spacing-lg) 0;
 }
 
+/* Plot: spacing inside comprehensive statistics container */
+.comprehensive-stats {
+  padding: var(--spacing-lg);
+}
+
+/* Add inner padding on wrapper to separate its border from inner boxes */
+.comprehensive-stats > div {
+  padding: var(--spacing-lg);
+}
+
 /* Modern Footer */
 #footer {
   display: flex;
@@ -1708,6 +1718,7 @@ details {
     background: var(--white) !important; /* dark card bg in dark mode */
     border: 1px solid var(--gray-200) !important;
     box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg) !important; /* Abstand zwischen Rahmen und Boxen */
   }
 
   /* Eigentliche Boxen (Abschnitte) innerhalb des Wrappers */
