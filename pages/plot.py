@@ -337,7 +337,7 @@ def serve_layout(**kwargs):
             # Page title and CI information
             html.Div(className='page-header', children=[
                 html.H1(f"Verfügbarkeit der Komponente {ci}"),
-                html.P(f"{ci_name}, {ci_organization}, {ci_product}"),
+                html.P(id='ci-meta', children=f"{ci_name}, {ci_organization}, {ci_product}"),
                 html.A("Zurück", href="/", className="btn btn-secondary")
             ]),
 
@@ -397,7 +397,8 @@ layout = serve_layout
 @callback(
     [Output('url', 'search'),
      Output('availability-plot', 'figure'),
-     Output('comprehensive-statistics', 'children')],
+     Output('comprehensive-statistics', 'children'),
+     Output('ci-meta', 'children')],
     [Input('url', 'pathname'),
      Input('update-button', 'n_clicks'),
      Input('hours-input', 'value')],
@@ -445,6 +446,21 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
     else:
         new_url = ""
     
+    # Prepare CI meta from metadata table
+    try:
+        ci_info = get_data_of_ci(None, ci) if ci else None
+        if ci_info is not None and hasattr(ci_info, 'empty') and not ci_info.empty:
+            ci_name = ci_info.iloc[0]['name'] if 'name' in ci_info.columns else ci
+            ci_organization = ci_info.iloc[0]['organization'] if 'organization' in ci_info.columns else 'Unbekannt'
+            ci_product = ci_info.iloc[0]['product'] if 'product' in ci_info.columns else 'Unbekannt'
+        else:
+            ci_name = ci if ci else 'Unbekannt'
+            ci_organization = 'Unbekannt'
+            ci_product = 'Unbekannt'
+        ci_meta_text = f"{ci_name}, {ci_organization}, {ci_product}"
+    except Exception:
+        ci_meta_text = f"{ci if ci else 'Unbekannt'}, Unbekannt, Unbekannt"
+
     # Load and process data
     try:
         ci_data = get_availability_data_of_ci(None, ci)
@@ -472,7 +488,7 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
                 html.P('Für diese Komponente sind keine Verfügbarkeitsdaten vorhanden.')
             ])
             
-            return new_url, fig, stats_display
+            return new_url, fig, stats_display, ci_meta_text
         
         # Convert times to datetime if needed
         if not pd.api.types.is_datetime64_any_dtype(ci_data['times']):
@@ -513,7 +529,7 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
                 html.P('Im ausgewählten Zeitraum sind keine Daten verfügbar.')
             ])
             
-            return new_url, fig, stats_display
+            return new_url, fig, stats_display, ci_meta_text
         
         # Create plot with color coding: Red for availability 0, Green for availability 1
         fig = go.Figure()
@@ -600,6 +616,6 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             html.P('Bitte versuchen Sie es später erneut.')
         ])
     
-    return new_url, fig, stats_display
+    return new_url, fig, stats_display, ci_meta_text
 
 # Page registration is handled in app.py
