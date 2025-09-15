@@ -45,6 +45,12 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
+  
+  /* Light theme table colors for Dash DataTable */
+  --bg-color: #ffffff;
+  --text-color: #1e293b;
+  --border-color: #e2e8f0;
+  --card-bg-color: #f8fafc;
 }
 
 /* Modern Typography */
@@ -754,13 +760,19 @@ details {
     --gray-800: #ffffff;
     --gray-900: #ffffff;
     
-    /* Dark theme specific colors */
-    --primary-color: #60a5fa;
-    --primary-dark: #3b82f6;
-    --primary-light: #93c5fd;
-    --secondary-color: #34d399;
-    --accent-color: #fbbf24;
-    --danger-color: #f87171;
+  /* Dark theme specific colors */
+  --primary-color: #60a5fa;
+  --primary-dark: #3b82f6;
+  --primary-light: #93c5fd;
+  --secondary-color: #34d399;
+  --accent-color: #fbbf24;
+  --danger-color: #f87171;
+  
+  /* Dark theme table colors for Dash DataTable */
+  --bg-color: #1e293b;
+  --text-color: #f1f5f9;
+  --border-color: #475569;
+  --card-bg-color: #334155;
   }
   
   html {
@@ -933,6 +945,71 @@ details {
   
   .downtime-table td:nth-child(3) {
     color: var(--danger-color);
+  }
+  
+  /* Dark theme for Dash DataTable (stats page) - All screen sizes */
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
+    background-color: #334155 !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+    font-weight: bold !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:hover td {
+    background-color: rgba(96, 165, 250, 0.15) !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(even) td {
+    background-color: #334155 !important;
+  }
+  
+  /* Additional specific selectors for better coverage */
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner .dash-header {
+    background-color: #334155 !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner .dash-cell {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner .dash-cell.dash-cell--selected {
+    background-color: rgba(96, 165, 250, 0.2) !important;
+  }
+  
+  /* Override any conflicting styles from custom.css */
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th,
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #475569 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
+    background-color: #334155 !important;
+  }
+  
+  /* Ensure table container itself has proper background */
+  .dash-table-container {
+    background-color: #1e293b !important;
+    border: 1px solid #475569 !important;
+  }
+  
+  .dash-table-container .dash-spreadsheet-container {
+    background-color: #1e293b !important;
   }
   
   /* Dark theme for logs page */

@@ -189,17 +189,23 @@ input:focus, textarea:focus {
     .timestamp { color: #d1d5db; }
 }
 
-/* Dark mode only on small screens: Dash DataTable (stats top table) */
-@media (prefers-color-scheme: dark) and (max-width: 768px) {
+/* Dark mode for Dash DataTable (stats top table) - All screen sizes */
+@media (prefers-color-scheme: dark) {
     .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner th {
-        background-color: #111827 !important;
-        color: #f9fafb !important;
-        border-color: #4b5563 !important;
+        background-color: #334155 !important;
+        color: #f1f5f9 !important;
+        border-color: #475569 !important;
     }
     .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner td {
-        background-color: #0b1220 !important;
-        color: #e5e7eb !important;
-        border-color: #374151 !important;
+        background-color: #1e293b !important;
+        color: #f1f5f9 !important;
+        border-color: #475569 !important;
+    }
+    .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:nth-child(even) td {
+        background-color: #334155 !important;
+    }
+    .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner tr:hover td {
+        background-color: rgba(96, 165, 250, 0.15) !important;
     }
 }
 
