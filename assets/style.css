@@ -1647,4 +1647,54 @@ details {
   .log-file-info .file-status {
     color: var(--secondary-color);
   }
+  
+  /* Dark theme for hours dropdown in plot page */
+  .hours-dropdown .Select-control {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .hours-dropdown .Select-control:hover {
+    border-color: #60a5fa !important;
+  }
+  
+  .hours-dropdown .Select-control .Select-value {
+    color: #f1f5f9 !important;
+  }
+  
+  .hours-dropdown .Select-control .Select-placeholder {
+    color: #94a3b8 !important;
+  }
+  
+  .hours-dropdown .Select-menu-outer {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  .hours-dropdown .Select-option {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .hours-dropdown .Select-option:hover {
+    background-color: #334155 !important;
+  }
+  
+  .hours-dropdown .Select-option.is-selected {
+    background-color: #60a5fa !important;
+    color: #ffffff !important;
+  }
+  
+  .hours-dropdown .Select-option.is-focused {
+    background-color: #334155 !important;
+  }
+  
+  .hours-dropdown .Select-arrow {
+    border-top-color: #f1f5f9 !important;
+  }
+  
+  .hours-dropdown .Select-clear {
+    color: #f1f5f9 !important;
+  }
 }
