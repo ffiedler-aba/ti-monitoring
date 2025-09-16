@@ -351,10 +351,16 @@ def serve_layout(**kwargs):
 
             # Time selection controls
             html.Div(className='time-selection', children=[
-                html.H3("Zeitraum auswählen"),
+                html.H3(children=[
+                    "Zeitraum auswählen",
+                    html.I(className='material-icons', children='info', style={'marginLeft': '8px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='Wählen Sie einen Zeitraum. Kürzere Zeiträume laden schneller, längere zeigen Trends.')
+                ]),
                 html.Div(className='time-controls', children=[
-                    html.Label("Darstellungszeitraum:"),
-                    dcc.Dropdown(
+                    html.Label(children=[
+                        "Darstellungszeitraum:",
+                        html.I(className='material-icons', children='info', style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='Bestimmt, wie viele Stunden rückwirkend angezeigt werden.')
+                    ]),
+                    html.Div(title='Auswahl des rückwirkenden Zeitfensters (z. B. 24h, 48h, 1 Woche).', children=dcc.Dropdown(
                         id='hours-input',
                         options=[
                             {'label': '12 Stunden', 'value': 12},
@@ -370,9 +376,30 @@ def serve_layout(**kwargs):
                         value=default_hours,
                         clearable=False,
                         className='hours-dropdown'
-                    ),
-                    html.Button("Aktualisieren", id='update-button', className='btn btn-primary')
+                    )),
+                    html.Button("Aktualisieren", id='update-button', className='btn btn-primary', title='Aktualisiert den Plot basierend auf Ihrer Auswahl (ohne URL-Änderung).')
                 ]),
+                html.Div(className='trend-controls', children=[
+                    html.Label(children=[
+                        "Trends:",
+                        html.I(
+                            className='material-icons',
+                            children='info',
+                            style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'},
+                            title='EMA (Exponentieller gleitender Durchschnitt / Exponential Moving Average) glättet die Verfügbarkeit (24h/7d). Incident‑Marker zeigen Statuswechsel (Ausfall/Recovery).'
+                        )
+                    ]),
+                    dcc.Checklist(
+                        id='trend-options',
+                        options=[
+                            {'label': 'EMA 24h', 'value': 'ema24'},
+                            {'label': 'EMA 7d', 'value': 'ema168'},
+                            {'label': 'Incident-Marker', 'value': 'incidents'}
+                        ],
+                        value=['ema24'],
+                        labelStyle={'display': 'inline-block', 'marginRight': '12px'}
+                    )
+                ], style={'marginTop': '8px'}),
                 html.P("Wählen Sie einen vordefinierten Zeitraum für die Darstellung der Verfügbarkeitsdaten.", className='help-text')
             ]),
 
@@ -400,12 +427,14 @@ layout = serve_layout
      Output('ci-meta', 'children')],
     [Input('url', 'pathname'),
      Input('update-button', 'n_clicks'),
-     Input('hours-input', 'value')],
+     Input('hours-input', 'value'),
+     Input('trend-options', 'value'),
+     Input('availability-plot', 'relayoutData')],
     [dash.State('url', 'search'),
      dash.State('ci-store', 'data')],
     prevent_initial_call=False
 )
-def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
+def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data, url_search, ci):
     """Handle both initial load and UI interactions for plot updates"""
     # Resolve CI: prefer store, then URL, then request args
     if not ci:
@@ -421,14 +450,41 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             from flask import request
             ci = request.args.get('ci', 'Unbekannt')
     
-    # Determine selected hours based on input priority
-    selected_hours = 48  # default
+    # Determine selected interval/hours
+    selected_hours = 48  # fallback
+    selected_range = None  # (start_ts, end_ts) if user zoomed/panned
     
-    # Priority 1: hours from dropdown input
-    if hours is not None:
+    # Priority 1: react to explicit plot range (zoom/pan)
+    try:
+        if relayout_data and isinstance(relayout_data, dict):
+            # Handle explicit x range from Plotly
+            x0 = relayout_data.get('xaxis.range[0]')
+            x1 = relayout_data.get('xaxis.range[1]')
+            if x0 and x1:
+                start_ts = pd.to_datetime(x0)
+                end_ts = pd.to_datetime(x1)
+                # Normalize timezone to Europe/Berlin
+                if start_ts.tzinfo is None:
+                    start_ts = start_ts.tz_localize('Europe/Berlin')
+                else:
+                    start_ts = start_ts.tz_convert('Europe/Berlin')
+                if end_ts.tzinfo is None:
+                    end_ts = end_ts.tz_localize('Europe/Berlin')
+                else:
+                    end_ts = end_ts.tz_convert('Europe/Berlin')
+                if end_ts > start_ts:
+                    selected_range = (start_ts, end_ts)
+                    selected_hours = max(1, int((end_ts - start_ts).total_seconds() // 3600))
+            # Reset to autorange -> fall back to dropdown/URL
+    except Exception:
+        selected_range = None
+    
+    # Priority 2: hours from dropdown input
+    if selected_range is None and hours is not None:
         selected_hours = hours
-    # Priority 2: hours from URL
-    elif url_search:
+    
+    # Priority 3: hours from URL
+    if selected_range is None and hours is None and url_search:
         import urllib.parse
         params = urllib.parse.parse_qs(url_search.lstrip('?'))
         if 'hours' in params:
@@ -493,11 +549,13 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
         else:
             ci_data['times'] = ci_data['times'].dt.tz_convert('Europe/Berlin')
         
-        # Calculate cutoff time for selected period
-        cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
-        
-        # Filter data for selected period
-        selected_data = ci_data[ci_data['times'] >= cutoff].copy()
+        # Calculate and apply selected time window
+        if selected_range is not None:
+            start_ts, end_ts = selected_range
+            selected_data = ci_data[(ci_data['times'] >= start_ts) & (ci_data['times'] <= end_ts)].copy()
+        else:
+            cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
+            selected_data = ci_data[ci_data['times'] >= cutoff].copy()
         
         if selected_data.empty:
             # No data in selected period
@@ -580,12 +638,185 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             ),
             margin=dict(l=50, r=50, t=80, b=80)
         )
+
+        # --- Trend Overlays ---
+        try:
+            trend_options = trend_options or []
+            selected_data_sorted = selected_data.sort_values('times').copy()
+            # Ensure numeric values
+            selected_data_sorted['values'] = selected_data_sorted['values'].astype(float)
+
+            # EMA helper (window points based on 5-min cadence)
+            points_per_hour = 12
+            if 'ema24' in trend_options:
+                span_24h = int(24 * points_per_hour)
+                if span_24h > 1:
+                    ema24 = selected_data_sorted['values'].ewm(span=span_24h, adjust=False, min_periods=max(5, span_24h // 10)).mean()
+                    fig.add_trace(go.Scatter(
+                        x=selected_data_sorted['times'],
+                        y=ema24,
+                        mode='lines',
+                        name='EMA 24h',
+                        line=dict(color='#60a5fa', width=2, dash='solid'),
+                        hovertemplate='<b>EMA 24h</b><br>Zeit: %{x}<br>Wert: %{y:.3f}<extra></extra>'
+                    ))
+
+            if 'ema168' in trend_options:
+                span_7d = int(7 * 24 * points_per_hour)
+                if span_7d > 1:
+                    ema7d = selected_data_sorted['values'].ewm(span=span_7d, adjust=False, min_periods=max(5, span_7d // 20)).mean()
+                    fig.add_trace(go.Scatter(
+                        x=selected_data_sorted['times'],
+                        y=ema7d,
+                        mode='lines',
+                        name='EMA 7d',
+                        line=dict(color='#3b82f6', width=2, dash='dot'),
+                        hovertemplate='<b>EMA 7d</b><br>Zeit: %{x}<br>Wert: %{y:.3f}<extra></extra>'
+                    ))
+
+            # Incident/Recovery markers
+            if 'incidents' in trend_options:
+                selected_data_sorted['prev'] = selected_data_sorted['values'].shift(1)
+                incident_mask = (selected_data_sorted['prev'] == 1.0) & (selected_data_sorted['values'] == 0.0)
+                recovery_mask = (selected_data_sorted['prev'] == 0.0) & (selected_data_sorted['values'] == 1.0)
+
+                incident_times = selected_data_sorted.loc[incident_mask, 'times']
+                recovery_times = selected_data_sorted.loc[recovery_mask, 'times']
+
+                if not incident_times.empty:
+                    fig.add_trace(go.Scatter(
+                        x=incident_times,
+                        y=[0.0] * len(incident_times),
+                        mode='markers',
+                        name='Incident Start',
+                        marker=dict(color='#ef4444', symbol='triangle-down', size=10),
+                        hovertemplate='<b>Incident-Start</b><br>Zeit: %{x}<extra></extra>'
+                    ))
+                if not recovery_times.empty:
+                    fig.add_trace(go.Scatter(
+                        x=recovery_times,
+                        y=[1.0] * len(recovery_times),
+                        mode='markers',
+                        name='Recovery',
+                        marker=dict(color='#10b981', symbol='triangle-up', size=10),
+                        hovertemplate='<b>Recovery</b><br>Zeit: %{x}<extra></extra>'
+                    ))
+        except Exception:
+            # Trends sind optional; Fehler hier sollen den Basisplot nicht verhindern
+            pass
         
         # Calculate comprehensive statistics
         stats = calculate_comprehensive_statistics(ci_data, selected_hours, None, ci)
         
-        # Create statistics display
-        stats_display = create_comprehensive_statistics_display(stats, ci)
+        # Base statistics display
+        base_stats_display = create_comprehensive_statistics_display(stats, ci)
+
+        # Additional analytics blocks (SLA, prior-period compare, heatmap)
+        extra_blocks = []
+
+        # SLA indicator and prior period comparison
+        try:
+            try:
+                core_cfg = load_core_config()
+                sla_target = float(core_cfg.get('sla_target', 99.9))
+            except Exception:
+                sla_target = 99.9
+
+            # Determine current window
+            if 'times' in selected_data.columns and not selected_data.empty:
+                window_start = selected_data['times'].min()
+                window_end = selected_data['times'].max()
+            else:
+                window_end = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                window_start = window_end - pd.Timedelta(hours=selected_hours)
+
+            # Current availability
+            cur_points = int(len(selected_data))
+            cur_avail_percent = float((selected_data['values'].sum() / cur_points * 100) if cur_points > 0 else 0.0)
+            sla_met = cur_avail_percent >= sla_target
+
+            # Prior period window (same duration directly before)
+            prior_duration = window_end - window_start
+            prior_start = window_start - prior_duration
+            prior_end = window_start
+            prior_data = ci_data[(ci_data['times'] >= prior_start) & (ci_data['times'] <= prior_end)].copy()
+            prior_points = int(len(prior_data))
+            prior_avail_percent = float((prior_data['values'].sum() / prior_points * 100) if prior_points > 0 else 0.0)
+            delta_pp = (cur_avail_percent - prior_avail_percent) if prior_points > 0 else None
+
+            # SLA block
+            extra_blocks.append(
+                html.Div([
+                    html.H4('SLA', style={'color': '#34495e', 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Div([
+                            html.Strong('Ziel (SLA): '),
+                            html.Span(f"{sla_target:.3f}%")
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Aktuell: '),
+                            html.Span(f"{cur_avail_percent:.3f}%", style={'color': '#10b981' if sla_met else '#ef4444'})
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Status: '),
+                            html.Span('erreicht' if sla_met else 'nicht erreicht', style={'color': '#10b981' if sla_met else '#ef4444', 'fontWeight': 600})
+                        ])
+                    ], style={'paddingLeft': '20px'})
+                ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+            )
+
+            # Prior-period comparison block
+            prior_text = f"{prior_avail_percent:.3f}%" if prior_points > 0 else 'N/A'
+            delta_text = (f"{delta_pp:+.3f} pp" if delta_pp is not None else 'N/A')
+            delta_color = '#10b981' if (delta_pp is not None and delta_pp >= 0) else '#ef4444'
+            extra_blocks.append(
+                html.Div([
+                    html.H4('Vergleich zur Vorperiode', style={'color': '#34495e', 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Div([
+                            html.Strong('Vorperiode (gleiche Dauer): '),
+                            html.Span(prior_text)
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Differenz: '),
+                            html.Span(delta_text, style={'color': delta_color})
+                        ], style={'marginBottom': '8px'})
+                    ], style={'paddingLeft': '20px'})
+                ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+            )
+        except Exception:
+            pass
+
+        # Incident heatmap (weekday × hour) within current window
+        try:
+            selected_data_sorted = selected_data.sort_values('times').copy()
+            selected_data_sorted['prev'] = selected_data_sorted['values'].shift(1)
+            incident_mask = (selected_data_sorted['prev'] == 1) & (selected_data_sorted['values'] == 0)
+            incident_times = selected_data_sorted.loc[incident_mask, 'times']
+            if not incident_times.empty:
+                weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+                hours = list(range(24))
+                matrix = [[0 for _ in hours] for _ in weekdays]
+                for ts in incident_times:
+                    try:
+                        wd = int(ts.weekday())  # 0=Mon
+                        hr = int(ts.hour)
+                        matrix[wd][hr] += 1
+                    except Exception:
+                        continue
+                heatmap_fig = go.Figure(data=go.Heatmap(z=matrix, x=hours, y=weekdays, colorscale='Reds', colorbar=dict(title='Incidents')))
+                heatmap_fig.update_layout(title='Incident-Heatmap (Wochentag × Stunde)', xaxis_title='Stunde', yaxis_title='Wochentag', margin=dict(l=50, r=30, t=50, b=50))
+                extra_blocks.append(
+                    html.Div([
+                        html.H4('Incident-Heatmap', style={'color': '#34495e', 'marginBottom': '10px'}),
+                        dcc.Graph(id='incident-heatmap', figure=heatmap_fig, config={'displaylogo': False})
+                    ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+                )
+        except Exception:
+            pass
+
+        # Compose final statistics display
+        stats_display = html.Div([base_stats_display, *extra_blocks])
         
     except Exception as e:
         # Error handling

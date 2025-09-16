@@ -1710,23 +1710,38 @@ details {
 
   /* Dark theme for plot page comprehensive statistics */
   .comprehensive-stats {
-    color: var(--gray-800) !important; /* ensure readable text */
+    color: #f1f5f9 !important; /* bright text */
   }
 
   /* Wrapper direkt unter dem Container */
   .comprehensive-stats > div {
-    background: var(--white) !important; /* dark card bg in dark mode */
-    border: 1px solid var(--gray-200) !important;
+    background-color: #0f172a !important; /* very dark bg */
+    border: 1px solid #334155 !important;
     box-shadow: var(--shadow-md);
     padding: var(--spacing-lg) !important; /* Abstand zwischen Rahmen und Boxen */
+    color: #f1f5f9 !important;
   }
 
   /* Eigentliche Boxen (Abschnitte) innerhalb des Wrappers */
   .comprehensive-stats > div > div {
-    background: var(--white) !important;
-    border: 1px solid var(--gray-200) !important;
+    background-color: #0f172a !important;
+    border: 1px solid #334155 !important;
     box-shadow: var(--shadow-md);
-    color: var(--gray-800) !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Tiefer verschachtelte Boxen ebenfalls abdecken */
+  .comprehensive-stats > div > div > div {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Inline-Styles mit hellem Hintergrund hart übersteuern */
+  .comprehensive-stats [style*="background"],
+  .comprehensive-stats [style*="background-color"] {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
   }
 
   .comprehensive-stats h3,
@@ -1734,7 +1749,7 @@ details {
   .comprehensive-stats p,
   .comprehensive-stats span,
   .comprehensive-stats strong {
-    color: var(--gray-800) !important;
+    color: #f1f5f9 !important;
   }
   
   /* Dark theme for Hamburger menu (high contrast) */
