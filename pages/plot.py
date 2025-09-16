@@ -423,12 +423,13 @@ layout = serve_layout
     [Input('url', 'pathname'),
      Input('update-button', 'n_clicks'),
      Input('hours-input', 'value'),
-     Input('trend-options', 'value')],
+     Input('trend-options', 'value'),
+     Input('availability-plot', 'relayoutData')],
     [dash.State('url', 'search'),
      dash.State('ci-store', 'data')],
     prevent_initial_call=False
 )
-def handle_plot_updates(pathname, n_clicks, hours, trend_options, url_search, ci):
+def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data, url_search, ci):
     """Handle both initial load and UI interactions for plot updates"""
     # Resolve CI: prefer store, then URL, then request args
     if not ci:
@@ -444,14 +445,41 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, url_search, ci
             from flask import request
             ci = request.args.get('ci', 'Unbekannt')
     
-    # Determine selected hours based on input priority
-    selected_hours = 48  # default
+    # Determine selected interval/hours
+    selected_hours = 48  # fallback
+    selected_range = None  # (start_ts, end_ts) if user zoomed/panned
     
-    # Priority 1: hours from dropdown input
-    if hours is not None:
+    # Priority 1: react to explicit plot range (zoom/pan)
+    try:
+        if relayout_data and isinstance(relayout_data, dict):
+            # Handle explicit x range from Plotly
+            x0 = relayout_data.get('xaxis.range[0]')
+            x1 = relayout_data.get('xaxis.range[1]')
+            if x0 and x1:
+                start_ts = pd.to_datetime(x0)
+                end_ts = pd.to_datetime(x1)
+                # Normalize timezone to Europe/Berlin
+                if start_ts.tzinfo is None:
+                    start_ts = start_ts.tz_localize('Europe/Berlin')
+                else:
+                    start_ts = start_ts.tz_convert('Europe/Berlin')
+                if end_ts.tzinfo is None:
+                    end_ts = end_ts.tz_localize('Europe/Berlin')
+                else:
+                    end_ts = end_ts.tz_convert('Europe/Berlin')
+                if end_ts > start_ts:
+                    selected_range = (start_ts, end_ts)
+                    selected_hours = max(1, int((end_ts - start_ts).total_seconds() // 3600))
+            # Reset to autorange -> fall back to dropdown/URL
+    except Exception:
+        selected_range = None
+    
+    # Priority 2: hours from dropdown input
+    if selected_range is None and hours is not None:
         selected_hours = hours
-    # Priority 2: hours from URL
-    elif url_search:
+    
+    # Priority 3: hours from URL
+    if selected_range is None and hours is None and url_search:
         import urllib.parse
         params = urllib.parse.parse_qs(url_search.lstrip('?'))
         if 'hours' in params:
@@ -516,11 +544,13 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, url_search, ci
         else:
             ci_data['times'] = ci_data['times'].dt.tz_convert('Europe/Berlin')
         
-        # Calculate cutoff time for selected period
-        cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
-        
-        # Filter data for selected period
-        selected_data = ci_data[ci_data['times'] >= cutoff].copy()
+        # Calculate and apply selected time window
+        if selected_range is not None:
+            start_ts, end_ts = selected_range
+            selected_data = ci_data[(ci_data['times'] >= start_ts) & (ci_data['times'] <= end_ts)].copy()
+        else:
+            cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
+            selected_data = ci_data[ci_data['times'] >= cutoff].copy()
         
         if selected_data.empty:
             # No data in selected period
