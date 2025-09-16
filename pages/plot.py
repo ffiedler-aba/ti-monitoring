@@ -382,7 +382,12 @@ def serve_layout(**kwargs):
                 html.Div(className='trend-controls', children=[
                     html.Label(children=[
                         "Trends:",
-                        html.I(className='material-icons', children='info', style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='EMA glättet die Verfügbarkeit (24h/7d). Incident‑Marker zeigen Statuswechsel (Ausfall/Recovery).')
+                        html.I(
+                            className='material-icons',
+                            children='info',
+                            style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'},
+                            title='EMA (Exponentieller gleitender Durchschnitt / Exponential Moving Average) glättet die Verfügbarkeit (24h/7d). Incident‑Marker zeigen Statuswechsel (Ausfall/Recovery).'
+                        )
                     ]),
                     dcc.Checklist(
                         id='trend-options',
