@@ -1736,4 +1736,84 @@ details {
   .comprehensive-stats strong {
     color: var(--gray-800) !important;
   }
+  
+  /* Dark theme for Hamburger menu (high contrast) */
+  details summary {
+    background: #0f172a !important;
+    border-color: #60a5fa !important;
+    color: var(--gray-800) !important;
+  }
+  
+  details summary:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+  }
+  
+  details[open] summary {
+    background: #0f172a !important;
+    border-color: #60a5fa !important;
+    color: var(--gray-800) !important;
+  }
+  
+  #hamburger-menu-content {
+    background: #0b1220 !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55) !important;
+  }
+  
+  #hamburger-menu-content a {
+    color: var(--gray-800) !important;
+    background: transparent !important;
+  }
+  
+  #hamburger-menu-content a:hover {
+    background: rgba(96, 165, 250, 0.18) !important;
+    color: #ffffff !important;
+  }
+  
+  #hamburger-menu-content a:focus-visible {
+    outline: 2px solid #93c5fd !important;
+    outline-offset: 2px !important;
+  }
+  
+  #hamburger-menu-content a * {
+    color: inherit !important;
+  }
+
+  /* Increase specificity: scope to header to overrule any other assets */
+  header details summary.hamburger-menu-trigger {
+    background: #0f172a !important;
+    border: 2px solid #60a5fa !important;
+    color: #ffffff !important;
+  }
+
+  header details[open] > summary.hamburger-menu-trigger {
+    background: #0f172a !important;
+    border: 2px solid #60a5fa !important;
+    color: #ffffff !important;
+  }
+
+  header details summary.hamburger-menu-trigger .material-icons {
+    color: inherit !important;
+  }
+
+  header #hamburger-menu-content {
+    background: #0b1220 !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  header #hamburger-menu-content a {
+    color: #e5e7eb !important; /* text */
+  }
+
+  header #hamburger-menu-content a:hover {
+    background: rgba(96, 165, 250, 0.22) !important;
+    color: #ffffff !important;
+  }
+
+  header #hamburger-menu-content a .material-icons,
+  header #hamburger-menu-content a span {
+    color: inherit !important;
+  }
 }
