@@ -351,10 +351,16 @@ def serve_layout(**kwargs):
 
             # Time selection controls
             html.Div(className='time-selection', children=[
-                html.H3("Zeitraum auswählen"),
+                html.H3(children=[
+                    "Zeitraum auswählen",
+                    html.I(className='material-icons', children='info', style={'marginLeft': '8px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='Wählen Sie einen Zeitraum. Kürzere Zeiträume laden schneller, längere zeigen Trends.')
+                ]),
                 html.Div(className='time-controls', children=[
-                    html.Label("Darstellungszeitraum:"),
-                    dcc.Dropdown(
+                    html.Label(children=[
+                        "Darstellungszeitraum:",
+                        html.I(className='material-icons', children='info', style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='Bestimmt, wie viele Stunden rückwirkend angezeigt werden.')
+                    ]),
+                    html.Div(title='Auswahl des rückwirkenden Zeitfensters (z. B. 24h, 48h, 1 Woche).', children=dcc.Dropdown(
                         id='hours-input',
                         options=[
                             {'label': '12 Stunden', 'value': 12},
@@ -370,9 +376,25 @@ def serve_layout(**kwargs):
                         value=default_hours,
                         clearable=False,
                         className='hours-dropdown'
-                    ),
-                    html.Button("Aktualisieren", id='update-button', className='btn btn-primary')
+                    )),
+                    html.Button("Aktualisieren", id='update-button', className='btn btn-primary', title='Aktualisiert den Plot basierend auf Ihrer Auswahl (ohne URL-Änderung).')
                 ]),
+                html.Div(className='trend-controls', children=[
+                    html.Label(children=[
+                        "Trends:",
+                        html.I(className='material-icons', children='info', style={'marginLeft': '6px', 'fontSize': '16px', 'verticalAlign': 'middle'}, title='EMA glättet die Verfügbarkeit (24h/7d). Incident‑Marker zeigen Statuswechsel (Ausfall/Recovery).')
+                    ]),
+                    dcc.Checklist(
+                        id='trend-options',
+                        options=[
+                            {'label': 'EMA 24h', 'value': 'ema24'},
+                            {'label': 'EMA 7d', 'value': 'ema168'},
+                            {'label': 'Incident-Marker', 'value': 'incidents'}
+                        ],
+                        value=['ema24'],
+                        labelStyle={'display': 'inline-block', 'marginRight': '12px'}
+                    )
+                ], style={'marginTop': '8px'}),
                 html.P("Wählen Sie einen vordefinierten Zeitraum für die Darstellung der Verfügbarkeitsdaten.", className='help-text')
             ]),
 
@@ -400,12 +422,13 @@ layout = serve_layout
      Output('ci-meta', 'children')],
     [Input('url', 'pathname'),
      Input('update-button', 'n_clicks'),
-     Input('hours-input', 'value')],
+     Input('hours-input', 'value'),
+     Input('trend-options', 'value')],
     [dash.State('url', 'search'),
      dash.State('ci-store', 'data')],
     prevent_initial_call=False
 )
-def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
+def handle_plot_updates(pathname, n_clicks, hours, trend_options, url_search, ci):
     """Handle both initial load and UI interactions for plot updates"""
     # Resolve CI: prefer store, then URL, then request args
     if not ci:
@@ -580,6 +603,72 @@ def handle_plot_updates(pathname, n_clicks, hours, url_search, ci):
             ),
             margin=dict(l=50, r=50, t=80, b=80)
         )
+
+        # --- Trend Overlays ---
+        try:
+            trend_options = trend_options or []
+            selected_data_sorted = selected_data.sort_values('times').copy()
+            # Ensure numeric values
+            selected_data_sorted['values'] = selected_data_sorted['values'].astype(float)
+
+            # EMA helper (window points based on 5-min cadence)
+            points_per_hour = 12
+            if 'ema24' in trend_options:
+                span_24h = int(24 * points_per_hour)
+                if span_24h > 1:
+                    ema24 = selected_data_sorted['values'].ewm(span=span_24h, adjust=False, min_periods=max(5, span_24h // 10)).mean()
+                    fig.add_trace(go.Scatter(
+                        x=selected_data_sorted['times'],
+                        y=ema24,
+                        mode='lines',
+                        name='EMA 24h',
+                        line=dict(color='#60a5fa', width=2, dash='solid'),
+                        hovertemplate='<b>EMA 24h</b><br>Zeit: %{x}<br>Wert: %{y:.3f}<extra></extra>'
+                    ))
+
+            if 'ema168' in trend_options:
+                span_7d = int(7 * 24 * points_per_hour)
+                if span_7d > 1:
+                    ema7d = selected_data_sorted['values'].ewm(span=span_7d, adjust=False, min_periods=max(5, span_7d // 20)).mean()
+                    fig.add_trace(go.Scatter(
+                        x=selected_data_sorted['times'],
+                        y=ema7d,
+                        mode='lines',
+                        name='EMA 7d',
+                        line=dict(color='#3b82f6', width=2, dash='dot'),
+                        hovertemplate='<b>EMA 7d</b><br>Zeit: %{x}<br>Wert: %{y:.3f}<extra></extra>'
+                    ))
+
+            # Incident/Recovery markers
+            if 'incidents' in trend_options:
+                selected_data_sorted['prev'] = selected_data_sorted['values'].shift(1)
+                incident_mask = (selected_data_sorted['prev'] == 1.0) & (selected_data_sorted['values'] == 0.0)
+                recovery_mask = (selected_data_sorted['prev'] == 0.0) & (selected_data_sorted['values'] == 1.0)
+
+                incident_times = selected_data_sorted.loc[incident_mask, 'times']
+                recovery_times = selected_data_sorted.loc[recovery_mask, 'times']
+
+                if not incident_times.empty:
+                    fig.add_trace(go.Scatter(
+                        x=incident_times,
+                        y=[0.0] * len(incident_times),
+                        mode='markers',
+                        name='Incident Start',
+                        marker=dict(color='#ef4444', symbol='triangle-down', size=10),
+                        hovertemplate='<b>Incident-Start</b><br>Zeit: %{x}<extra></extra>'
+                    ))
+                if not recovery_times.empty:
+                    fig.add_trace(go.Scatter(
+                        x=recovery_times,
+                        y=[1.0] * len(recovery_times),
+                        mode='markers',
+                        name='Recovery',
+                        marker=dict(color='#10b981', symbol='triangle-up', size=10),
+                        hovertemplate='<b>Recovery</b><br>Zeit: %{x}<extra></extra>'
+                    ))
+        except Exception:
+            # Trends sind optional; Fehler hier sollen den Basisplot nicht verhindern
+            pass
         
         # Calculate comprehensive statistics
         stats = calculate_comprehensive_statistics(ci_data, selected_hours, None, ci)
