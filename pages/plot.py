@@ -708,8 +708,115 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         # Calculate comprehensive statistics
         stats = calculate_comprehensive_statistics(ci_data, selected_hours, None, ci)
         
-        # Create statistics display
-        stats_display = create_comprehensive_statistics_display(stats, ci)
+        # Base statistics display
+        base_stats_display = create_comprehensive_statistics_display(stats, ci)
+
+        # Additional analytics blocks (SLA, prior-period compare, heatmap)
+        extra_blocks = []
+
+        # SLA indicator and prior period comparison
+        try:
+            try:
+                core_cfg = load_core_config()
+                sla_target = float(core_cfg.get('sla_target', 99.9))
+            except Exception:
+                sla_target = 99.9
+
+            # Determine current window
+            if 'times' in selected_data.columns and not selected_data.empty:
+                window_start = selected_data['times'].min()
+                window_end = selected_data['times'].max()
+            else:
+                window_end = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin'))
+                window_start = window_end - pd.Timedelta(hours=selected_hours)
+
+            # Current availability
+            cur_points = int(len(selected_data))
+            cur_avail_percent = float((selected_data['values'].sum() / cur_points * 100) if cur_points > 0 else 0.0)
+            sla_met = cur_avail_percent >= sla_target
+
+            # Prior period window (same duration directly before)
+            prior_duration = window_end - window_start
+            prior_start = window_start - prior_duration
+            prior_end = window_start
+            prior_data = ci_data[(ci_data['times'] >= prior_start) & (ci_data['times'] <= prior_end)].copy()
+            prior_points = int(len(prior_data))
+            prior_avail_percent = float((prior_data['values'].sum() / prior_points * 100) if prior_points > 0 else 0.0)
+            delta_pp = (cur_avail_percent - prior_avail_percent) if prior_points > 0 else None
+
+            # SLA block
+            extra_blocks.append(
+                html.Div([
+                    html.H4('SLA', style={'color': '#34495e', 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Div([
+                            html.Strong('Ziel (SLA): '),
+                            html.Span(f"{sla_target:.3f}%")
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Aktuell: '),
+                            html.Span(f"{cur_avail_percent:.3f}%", style={'color': '#10b981' if sla_met else '#ef4444'})
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Status: '),
+                            html.Span('erreicht' if sla_met else 'nicht erreicht', style={'color': '#10b981' if sla_met else '#ef4444', 'fontWeight': 600})
+                        ])
+                    ], style={'paddingLeft': '20px'})
+                ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+            )
+
+            # Prior-period comparison block
+            prior_text = f"{prior_avail_percent:.3f}%" if prior_points > 0 else 'N/A'
+            delta_text = (f"{delta_pp:+.3f} pp" if delta_pp is not None else 'N/A')
+            delta_color = '#10b981' if (delta_pp is not None and delta_pp >= 0) else '#ef4444'
+            extra_blocks.append(
+                html.Div([
+                    html.H4('Vergleich zur Vorperiode', style={'color': '#34495e', 'marginBottom': '15px'}),
+                    html.Div([
+                        html.Div([
+                            html.Strong('Vorperiode (gleiche Dauer): '),
+                            html.Span(prior_text)
+                        ], style={'marginBottom': '8px'}),
+                        html.Div([
+                            html.Strong('Differenz: '),
+                            html.Span(delta_text, style={'color': delta_color})
+                        ], style={'marginBottom': '8px'})
+                    ], style={'paddingLeft': '20px'})
+                ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+            )
+        except Exception:
+            pass
+
+        # Incident heatmap (weekday × hour) within current window
+        try:
+            selected_data_sorted = selected_data.sort_values('times').copy()
+            selected_data_sorted['prev'] = selected_data_sorted['values'].shift(1)
+            incident_mask = (selected_data_sorted['prev'] == 1) & (selected_data_sorted['values'] == 0)
+            incident_times = selected_data_sorted.loc[incident_mask, 'times']
+            if not incident_times.empty:
+                weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+                hours = list(range(24))
+                matrix = [[0 for _ in hours] for _ in weekdays]
+                for ts in incident_times:
+                    try:
+                        wd = int(ts.weekday())  # 0=Mon
+                        hr = int(ts.hour)
+                        matrix[wd][hr] += 1
+                    except Exception:
+                        continue
+                heatmap_fig = go.Figure(data=go.Heatmap(z=matrix, x=hours, y=weekdays, colorscale='Reds', colorbar=dict(title='Incidents')))
+                heatmap_fig.update_layout(title='Incident-Heatmap (Wochentag × Stunde)', xaxis_title='Stunde', yaxis_title='Wochentag', margin=dict(l=50, r=30, t=50, b=50))
+                extra_blocks.append(
+                    html.Div([
+                        html.H4('Incident-Heatmap', style={'color': '#34495e', 'marginBottom': '10px'}),
+                        dcc.Graph(id='incident-heatmap', figure=heatmap_fig, config={'displaylogo': False})
+                    ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'})
+                )
+        except Exception:
+            pass
+
+        # Compose final statistics display
+        stats_display = html.Div([base_stats_display, *extra_blocks])
         
     except Exception as e:
         # Error handling
