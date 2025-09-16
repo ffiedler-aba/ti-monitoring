@@ -1,5 +1,11 @@
 FROM python:3.9-slim
 
+# Build-time version injection
+ARG TI_VERSION="unbekannt"
+ARG TI_COMMIT="unbekannt"
+ENV TI_VERSION=${TI_VERSION}
+ENV TI_COMMIT=${TI_COMMIT}
+
 # Set working directory
 WORKDIR /app
 

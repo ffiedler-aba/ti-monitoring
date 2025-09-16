@@ -17,7 +17,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
   ti-monitoring-web:
-    build: .
+    build:
+      context: .
+      args:
+        TI_VERSION: ${TI_VERSION}
+        TI_COMMIT: ${TI_COMMIT}
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./.env:/app/.env
@@ -40,7 +44,11 @@ services:
       - "8050:8050"
 
   ti-monitoring-cron:
-    build: .
+    build:
+      context: .
+      args:
+        TI_VERSION: ${TI_VERSION}
+        TI_COMMIT: ${TI_COMMIT}
     volumes:
       - ./config.yaml:/app/config.yaml
       - appdata:/app/data

@@ -3,6 +3,7 @@ from dash import Dash, html, dcc, Input, Output, callback
 from mylibrary import *
 import yaml
 import os
+import subprocess
 import functools
 import time
 from flask import jsonify, request
@@ -72,6 +73,43 @@ def load_header_config():
     """Load header configuration from cached config"""
     core_config = load_core_config()
     return core_config.get('header', {})
+
+def get_version_info() -> str:
+    """Return a concise version string with Git tag and short commit id.
+
+    Resolution order:
+    - Environment variables: TI_VERSION and TI_COMMIT
+    - Git (if available): latest tag and short SHA
+    - Fallback: "unbekannt"
+    """
+    # Env first (useful in containerized builds)
+    env_version = os.getenv('TI_VERSION')
+    env_commit = os.getenv('TI_COMMIT')
+    if env_version or env_commit:
+        if env_version and env_commit:
+            return f"{env_version} ({env_commit[:7]})"
+        return env_version or env_commit[:7]
+
+    # Try Git
+    try:
+        tag = None
+        try:
+            tag = subprocess.check_output(
+                ['git', 'describe', '--tags', '--abbrev=0'], stderr=subprocess.DEVNULL
+            ).decode('utf-8').strip()
+        except Exception:
+            # No tag present; fall back to describe always
+            pass
+
+        sha = subprocess.check_output(
+            ['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.DEVNULL
+        ).decode('utf-8').strip()
+
+        if tag:
+            return f"{tag} ({sha})"
+        return sha if sha else "unbekannt"
+    except Exception:
+        return "unbekannt"
 
 def create_footer_element(config_item):
     """Create a footer element based on configuration"""
@@ -214,7 +252,18 @@ def serve_layout():
                     html.Span('.')
                 ]),
             ]),
-            html.Div(id = 'footer', children = footer_elements),
+            html.Div(id = 'footer', children = footer_elements + [
+                html.Div(
+                    get_version_info(),
+                    style={
+                        'fontSize': '0.85rem',
+                        'color': '#64748b',
+                        'marginTop': '6px',
+                        'flexBasis': '100%',
+                        'textAlign': 'center'
+                    }
+                )
+            ]),
             
             # Global auth status store (used across all pages)
             dcc.Store(id='auth-status', storage_type='local')
