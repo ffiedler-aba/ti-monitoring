@@ -214,6 +214,16 @@ header:hover {
   padding: var(--spacing-lg) 0;
 }
 
+/* Plot: spacing inside comprehensive statistics container */
+.comprehensive-stats {
+  padding: var(--spacing-lg);
+}
+
+/* Add inner padding on wrapper to separate its border from inner boxes */
+.comprehensive-stats > div {
+  padding: var(--spacing-lg);
+}
+
 /* Modern Footer */
 #footer {
   display: flex;
@@ -1696,5 +1706,114 @@ details {
   
   .hours-dropdown .Select-clear {
     color: #f1f5f9 !important;
+  }
+
+  /* Dark theme for plot page comprehensive statistics */
+  .comprehensive-stats {
+    color: var(--gray-800) !important; /* ensure readable text */
+  }
+
+  /* Wrapper direkt unter dem Container */
+  .comprehensive-stats > div {
+    background: var(--white) !important; /* dark card bg in dark mode */
+    border: 1px solid var(--gray-200) !important;
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg) !important; /* Abstand zwischen Rahmen und Boxen */
+  }
+
+  /* Eigentliche Boxen (Abschnitte) innerhalb des Wrappers */
+  .comprehensive-stats > div > div {
+    background: var(--white) !important;
+    border: 1px solid var(--gray-200) !important;
+    box-shadow: var(--shadow-md);
+    color: var(--gray-800) !important;
+  }
+
+  .comprehensive-stats h3,
+  .comprehensive-stats h4,
+  .comprehensive-stats p,
+  .comprehensive-stats span,
+  .comprehensive-stats strong {
+    color: var(--gray-800) !important;
+  }
+  
+  /* Dark theme for Hamburger menu (high contrast) */
+  details summary {
+    background: #0f172a !important;
+    border-color: #60a5fa !important;
+    color: var(--gray-800) !important;
+  }
+  
+  details summary:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+  }
+  
+  details[open] summary {
+    background: #0f172a !important;
+    border-color: #60a5fa !important;
+    color: var(--gray-800) !important;
+  }
+  
+  #hamburger-menu-content {
+    background: #0b1220 !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55) !important;
+  }
+  
+  #hamburger-menu-content a {
+    color: var(--gray-800) !important;
+    background: transparent !important;
+  }
+  
+  #hamburger-menu-content a:hover {
+    background: rgba(96, 165, 250, 0.18) !important;
+    color: #ffffff !important;
+  }
+  
+  #hamburger-menu-content a:focus-visible {
+    outline: 2px solid #93c5fd !important;
+    outline-offset: 2px !important;
+  }
+  
+  #hamburger-menu-content a * {
+    color: inherit !important;
+  }
+
+  /* Increase specificity: scope to header to overrule any other assets */
+  header details summary.hamburger-menu-trigger {
+    background: #0f172a !important;
+    border: 2px solid #60a5fa !important;
+    color: #ffffff !important;
+  }
+
+  header details[open] > summary.hamburger-menu-trigger {
+    background: #0f172a !important;
+    border: 2px solid #60a5fa !important;
+    color: #ffffff !important;
+  }
+
+  header details summary.hamburger-menu-trigger .material-icons {
+    color: inherit !important;
+  }
+
+  header #hamburger-menu-content {
+    background: #0b1220 !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  header #hamburger-menu-content a {
+    color: #e5e7eb !important; /* text */
+  }
+
+  header #hamburger-menu-content a:hover {
+    background: rgba(96, 165, 250, 0.22) !important;
+    color: #ffffff !important;
+  }
+
+  header #hamburger-menu-content a .material-icons,
+  header #hamburger-menu-content a span {
+    color: inherit !important;
   }
 }

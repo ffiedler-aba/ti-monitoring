@@ -561,5 +561,7 @@ def toggle_admin_menu_link(auth_data):
     else:
         return {'display': 'none'}
 
+# Pages are automatically registered via dash.register_page in their respective files
+
 if __name__ == '__main__':
     app.run(debug=False)
