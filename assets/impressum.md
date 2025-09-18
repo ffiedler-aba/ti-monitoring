@@ -1,0 +1,106 @@
+# Impressum
+
+## Anbieter
+
+**TI-Monitoring System**  
+Telematik Infrastruktur Monitoring
+
+## Kontakt
+
+**E-Mail**: kontakt@ti-monitoring.de  
+**Web**: https://ti-mon.elpatron.me  
+**Telefon**: +49 (0) XXX XXXXXXX
+
+## Verantwortlich für den Inhalt
+
+**Geschäftsführung**:  
+Max Mustermann  
+Musterstraße 123  
+12345 Musterstadt
+
+## Technische Umsetzung
+
+### Hosting
+**Anbieter**: [Ihr Hosting-Provider]  
+**Serverstandort**: Deutschland  
+**SSL-Verschlüsselung**: Aktiv
+
+### Entwicklung
+**Entwicklungsframework**: Python/Dash  
+**Datenbank**: PostgreSQL/TimescaleDB  
+**Version**: 2.0
+
+## Haftungsausschluss
+
+### 1. Haftung für Inhalte
+
+Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht unter der Verpflichtung, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+
+### 2. Haftung für Links
+
+Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
+
+### 3. Urheberrecht
+
+Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
+
+## Datenschutz
+
+Die Nutzung unserer Webseite ist in der Regel ohne Angabe personenbezogener Daten möglich. Soweit auf unseren Seiten personenbezogene Daten (beispielsweise Name, Anschrift oder eMail-Adressen) erhoben werden, erfolgt dies, soweit möglich, stets auf freiwilliger Basis.
+
+Weitere Informationen finden Sie in unserer [Datenschutzerklärung](/datenschutz).
+
+## Online-Streitbeilegung
+
+Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: https://ec.europa.eu/consumers/odr/
+
+## Verbraucherstreitbeilegung/Universalschlichtungsstelle
+
+Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.
+
+## Technische Informationen
+
+### Systemarchitektur
+- **Frontend**: Dash/Plotly (Python)
+- **Backend**: Python Flask
+- **Datenbank**: PostgreSQL mit TimescaleDB Extension
+- **Monitoring**: CI/CD Pipeline mit automatischen Tests
+- **Backup**: Tägliche automatisierte Backups
+
+### Verfügbarkeit
+- **Zielverfügbarkeit**: 99.5%
+- **Wartungsfenster**: Sonntags 02:00 - 04:00 Uhr
+- **Monitoring**: 24/7 Überwachung
+
+### Sicherheit
+- **Verschlüsselung**: TLS 1.3
+- **Authentifizierung**: Multi-Faktor-Authentifizierung
+- **Updates**: Regelmäßige Sicherheitsupdates
+- **Penetrationstests**: Jährlich durch externe Anbieter
+
+## Kontaktformular
+
+Bei Fragen oder Anregungen können Sie uns gerne kontaktieren:
+
+- **E-Mail**: kontakt@ti-monitoring.de
+- **Support**: support@ti-monitoring.de
+- **Technische Fragen**: tech@ti-monitoring.de
+
+## Geschäftsbedingungen
+
+Die Nutzung dieses Dienstes erfolgt nach folgenden Bedingungen:
+
+1. **Zweckgebundene Nutzung**: Der Dienst dient ausschließlich dem Monitoring von Telematik-Infrastruktur-Komponenten
+2. **Verfügbarkeit**: Wir bemühen uns um eine hohe Verfügbarkeit, können jedoch keine Garantie geben
+3. **Datenintegrität**: Wir übernehmen keine Haftung für die Korrektheit der angezeigten Daten
+4. **Änderungen**: Wir behalten uns vor, den Dienst jederzeit zu ändern oder einzustellen
+
+## Version
+
+**Impressum Version**: 1.0  
+**Stand**: 18. September 2024  
+**Nächste Überprüfung**: 18. März 2025
+
+---
+
+*Dieses Impressum entspricht den gesetzlichen Anforderungen nach TMG und DSGVO.*
