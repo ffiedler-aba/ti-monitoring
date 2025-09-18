@@ -139,7 +139,7 @@ def serve_layout():
                     'Jede verschickte Benachrichtigung enthält zwei Links, mit denen sowohl der jeweilige Benachrichtigungstyp (z.B. "Slack") als auch alle Benachrichtigungen deines Accounts wieder abgeschaltet werden können (unsubscribe).'
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
-                    'Deine E-Mail-Adresse und deine Apprise URLs werden selbstverständlich verschlüsselt (Hash + Salt) gespeichert. Bedenke jedoch, dass insbesondere Apprise URLs sehr schützenswürdige Daten wie z.B. API-Keys enthalten können, die nicht in die Hände Unbefugter gelangen sollten. Bedenke das, bevor du ein Benachrichtigungsprofil anlegst.'
+                    'Deine E-Mail-Adresse und deine Apprise URLs werden selbstverständlich verschlüsselt (Hash + Salt) gespeichert. Beachte jedoch, dass insbesondere Apprise URLs sehr schützenswürdige Daten wie z.B. API-Keys enthalten können, die nicht in die Hände Unbefugter gelangen sollten. Bedenke das, bevor du ein Benachrichtigungsprofil anlegst.'
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
                     'Alternativ kannst du die TI-Stats App auf deinem eigenen Server installieren oder dem Mastodon-Account ',
