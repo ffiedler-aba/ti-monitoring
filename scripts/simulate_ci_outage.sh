@@ -158,10 +158,7 @@ fi
 # Ausfall simulieren (Status auf 0 setzen)
 log_info "Simuliere Ausfall von $CI_ID..."
 TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S')
-docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "
-INSERT INTO measurements (ci, ts, status) 
-VALUES ('$CI_ID', '$TIMESTAMP', 0);
-"
+docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "INSERT INTO measurements (ci, ts, status) VALUES ('$CI_ID', '$TIMESTAMP', 0);"
 
 if [[ $? -eq 0 ]]; then
     log_success "Ausfall von $CI_ID simuliert (Status: 0)"
@@ -273,10 +270,7 @@ echo ""
 # CI wieder verfügbar machen (Status auf 1 setzen)
 log_info "Stelle $CI_ID wieder her (Status: 1)..."
 TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S')
-docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "
-INSERT INTO measurements (ci, ts, status) 
-VALUES ('$CI_ID', '$TIMESTAMP', 1);
-"
+docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "INSERT INTO measurements (ci, ts, status) VALUES ('$CI_ID', '$TIMESTAMP', 1);"
 
 if [[ $? -eq 0 ]]; then
     log_success "CI $CI_ID erfolgreich wiederhergestellt (Status: 1)"
