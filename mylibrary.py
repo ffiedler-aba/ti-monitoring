@@ -1215,7 +1215,7 @@ def create_notification_message(changes, recipient_name, home_url):
         str: HTML formatted message
     """
     message = f'<html lang="de"><body><p>Hallo {recipient_name},</p>'
-    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Komponenten geändert:</p>'
+    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von dir abonierten Komponenten geändert:</p>'
 
     # Kurze Emoji-Zusammenfassung (Anzahl Incidents / Entwarnungen)
     try:
@@ -1234,8 +1234,8 @@ def create_notification_message(changes, recipient_name, home_url):
             message += str(list_item)
         
     if home_url:    
-        message += f'</ul><p>Den aktuellen Status aller Komponenten können Sie unter <a href="{home_url}">{home_url}</a> einsehen.</p>'
-    message += '<p>Weitere Hintergrundinformationen finden Sie im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH</a>.</p>'
+        message += f'</ul><p>Den aktuellen Status aller Komponenten kannst du unter <a href="{home_url}">{home_url}</a> einsehen.</p>'
+    message += '<p>Weitere Hintergrundinformationen findest du im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH</a>.</p>'
     message += '<p>📊 <a href="https://ti-stats.net">ti-stats.net</a> - Weitere TI-Statistiken und Analysen</p>'
     message += '<p>Viele Grüße<br>TI-Monitoring</p></body></html>'
     

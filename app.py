@@ -398,7 +398,7 @@ def unsubscribe(token):
             <head><title>Ungültiger Link</title></head>
             <body>
                 <h2>Ungültiger Link</h2>
-                <p>Der von Ihnen aufgerufene Link ist ungültig oder wurde bereits verwendet.</p>
+                <p>Der von dir aufgerufene Link ist ungültig oder wurde bereits verwendet.</p>
             </body>
             </html>
             ''', 404
@@ -415,7 +415,7 @@ def unsubscribe(token):
                 <body>
                     <h2>Kanal abgemeldet</h2>
                     <p>Die ausgewählte Benachrichtigungs‑URL wurde erfolgreich aus dem Profil "{name}" entfernt.</p>
-                    <p>Sie können die übrigen Kanäle in den <a href="/notifications">Benachrichtigungseinstellungen</a> verwalten.</p>
+                    <p>Du kannst die übrigen Kanäle in den <a href="/notifications">Benachrichtigungseinstellungen</a> verwalten.</p>
                 </body>
                 </html>
                 ''', 200
@@ -440,7 +440,7 @@ def unsubscribe(token):
             <body>
                 <h2>Abmeldung erfolgreich</h2>
                 <p>Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.</p>
-                <p>Sie erhalten keine weiteren Benachrichtigungen von diesem Profil.</p>
+                <p>Du erhältst keine weiteren Benachrichtigungen von diesem Profil.</p>
             </body>
             </html>
             ''', 200
@@ -451,7 +451,7 @@ def unsubscribe(token):
             <head><title>Fehler bei der Abmeldung</title></head>
             <body>
                 <h2>Fehler bei der Abmeldung</h2>
-                <p>Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut.</p>
+                <p>Beim Löschen des Profils ist ein Fehler aufgetreten. Bitte versuche es später erneut.</p>
             </body>
             </html>
             ''', 500
@@ -554,7 +554,7 @@ def validate_otp_api():
         
         # Check if account is locked
         if is_account_locked(user_id):
-            return jsonify({'error': 'Konto ist gesperrt. Bitte versuchen Sie es später erneut.'}), 423
+            return jsonify({'error': 'Konto ist gesperrt. Bitte versuche es später erneut.'}), 423
         
         # Validate OTP
         if validate_otp(user_id, otp_code):

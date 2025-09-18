@@ -165,7 +165,7 @@ def serve_layout():
         # Login container
         html.Div(id='otp-login-container', children=[
             html.H3('OTP-Anmeldung erforderlich'),
-            html.P('Bitte geben Sie Ihre E-Mail-Adresse ein, um einen OTP-Code zu erhalten.'),
+            html.P('Bitte gib deine E-Mail-Adresse ein, um einen OTP-Code zu erhalten.'),
             dcc.Input(id='email-input', type='email', placeholder='E-Mail-Adresse eingeben', style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px'}),
             html.Button('OTP anfordern', id='request-otp-button', n_clicks=0, style=get_button_style('primary')),
             html.Div(id='otp-request-error', style={'color': '#e74c3c', 'marginTop': '15px'})
@@ -174,7 +174,7 @@ def serve_layout():
         # OTP code container
         html.Div(id='otp-code-container', children=[
             html.H3('OTP-Code eingeben'),
-            html.P(id='otp-instructions', children='Bitte geben Sie den 6-stelligen Code ein.'),
+            html.P(id='otp-instructions', children='Bitte gib den 6-stelligen Code ein.'),
             dcc.Input(id='otp-code-input', type='text', placeholder='6-stelliger Code', style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px'}),
             html.Button('Anmelden', id='verify-otp-button', n_clicks=0, style=get_button_style('primary')),
             html.Button('Neuen Code anfordern', id='resend-otp-button', n_clicks=0, style=get_button_style('secondary')),
@@ -236,7 +236,7 @@ def serve_layout():
             # Apprise test section
             html.Hr(style={'margin': '30px 0'}),
             html.H3('Apprise-Benachrichtigung testen'),
-            html.P('Geben Sie eine Apprise-URL ein, um zu testen, ob Ihr Benachrichtigungssystem funktioniert.'),
+            html.P('Gib eine Apprise-URL ein, um zu testen, ob dein Benachrichtigungssystem funktioniert.'),
             dcc.Input(id='test-apprise-url', type='text', placeholder='z.B. mmost://username:password@mattermost.example.org/channel',
                      style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'fontFamily': 'monospace'}),
             html.Button('Benachrichtigung testen', id='test-notification-button', n_clicks=0, style=get_button_style('warning')),
@@ -282,7 +282,7 @@ def handle_otp_request(n_clicks, email, otp_state, ui_state):
     try:
         # Validate email
         if '@' not in email or '.' not in email:
-            return [no_update, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.']
+            return [no_update, 'Bitte gib eine gültige E-Mail-Adresse ein.']
 
         # Call API
         import requests
@@ -382,7 +382,7 @@ def handle_resend_otp(resend_clicks, email):
                                  json={'email': email}, timeout=10)
         if response.status_code == 200:
             # Inform the user that a new code was sent
-            return 'Ein neuer OTP-Code wurde an Ihre E-Mail gesendet.'
+            return 'Ein neuer OTP-Code wurde an deine E-Mail gesendet.'
         else:
             error_msg = response.json().get('error', 'Unbekannter Fehler') if response.content else 'Unbekannter Fehler'
             return f'Fehler beim Senden: {error_msg}'
@@ -505,7 +505,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
         return html.Span('Nicht authentifiziert', style=get_error_style(True))
 
     if not apprise_url or not apprise_url.strip():
-        return html.Div('Bitte geben Sie eine Apprise-URL zum Testen ein.', style={'color': 'orange'})
+        return html.Div('Bitte gib eine Apprise-URL zum Testen ein.', style={'color': 'orange'})
 
     try:
         # Test the URL
@@ -515,7 +515,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
 
         result = apobj.notify(
             title='TI-Monitoring Test-Benachrichtigung',
-            body='Dies ist eine Test-Benachrichtigung. Wenn Sie diese erhalten, funktioniert Ihre Konfiguration!',
+            body='Dies ist eine Test-Benachrichtigung. Wenn du diese erhältst, funktioniert deine Konfiguration!',
             body_format=apprise.NotifyFormat.TEXT
         )
 
@@ -823,7 +823,7 @@ def display_profiles(auth_state, save_clicks, delete_status):
             profiles = cur.fetchall()
 
         if not profiles:
-            return html.P('Keine Benachrichtigungsprofile gefunden. Fügen Sie ein neues Profil hinzu, um zu beginnen.')
+            return html.P('Keine Benachrichtigungsprofile gefunden. Füge ein neues Profil hinzu, um zu beginnen.')
 
         profile_cards = []
         for profile in profiles:
