@@ -309,6 +309,32 @@ def run_db_migrations():
               ON notification_logs(notification_type, delivery_status)
         """)
 
+        # 6) Ensure page_views table for visitor statistics
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS page_views (
+                id SERIAL PRIMARY KEY,
+                page TEXT NOT NULL,
+                session_id TEXT NOT NULL,
+                user_agent_hash TEXT,
+                referrer TEXT,
+                ts TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        
+        # Indexes for page_views performance
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_page_views_ts 
+              ON page_views(ts)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_page_views_page 
+              ON page_views(page)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_page_views_session 
+              ON page_views(session_id)
+        """)
+
         # Sanitize existing PII: replace plain emails with hashes where detectable
         try:
             cur.execute("""
@@ -1457,6 +1483,134 @@ def delete_profile_by_unsubscribe_token(token):
             WHERE unsubscribe_token = %s
         """, (token,))
         return cur.rowcount > 0
+
+def log_page_view(page, session_id, user_agent_hash=None, referrer=None):
+    """Log a page view for visitor statistics"""
+    try:
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO page_views (page, session_id, user_agent_hash, referrer)
+                VALUES (%s, %s, %s, %s)
+            """, (page, session_id, user_agent_hash, referrer))
+            conn.commit()
+    except Exception as e:
+        print(f"Error logging page view: {e}")
+
+def get_visitor_statistics():
+    """Get visitor statistics from page_views table"""
+    try:
+        with get_db_conn() as conn:
+            # Basic visitor stats
+            stats_query = """
+            WITH daily_stats AS (
+                SELECT 
+                    DATE(ts) as date,
+                    COUNT(DISTINCT session_id) as unique_visitors,
+                    COUNT(*) as page_views
+                FROM page_views
+                WHERE ts >= NOW() - INTERVAL '30 days'
+                GROUP BY DATE(ts)
+                ORDER BY date DESC
+            ),
+            page_stats AS (
+                SELECT 
+                    page,
+                    COUNT(*) as views,
+                    COUNT(DISTINCT session_id) as unique_visitors
+                FROM page_views
+                WHERE ts >= NOW() - INTERVAL '30 days'
+                GROUP BY page
+                ORDER BY views DESC
+            ),
+            browser_stats AS (
+                SELECT 
+                    user_agent_hash,
+                    COUNT(*) as views,
+                    COUNT(DISTINCT session_id) as unique_visitors
+                FROM page_views
+                WHERE ts >= NOW() - INTERVAL '30 days'
+                  AND user_agent_hash IS NOT NULL
+                GROUP BY user_agent_hash
+                ORDER BY views DESC
+                LIMIT 10
+            )
+            SELECT 
+                (SELECT COUNT(DISTINCT session_id) FROM page_views WHERE ts >= NOW() - INTERVAL '30 days') as total_unique_visitors_30d,
+                (SELECT COUNT(*) FROM page_views WHERE ts >= NOW() - INTERVAL '30 days') as total_page_views_30d,
+                (SELECT COUNT(DISTINCT session_id) FROM page_views WHERE ts >= CURRENT_DATE) as unique_visitors_today,
+                (SELECT COUNT(*) FROM page_views WHERE ts >= CURRENT_DATE) as page_views_today
+            """
+            
+            with conn.cursor() as cur:
+                cur.execute(stats_query)
+                basic_stats = cur.fetchone()
+                
+                # Get daily breakdown
+                cur.execute("""
+                    SELECT 
+                        DATE(ts) as date,
+                        COUNT(DISTINCT session_id) as unique_visitors,
+                        COUNT(*) as page_views
+                    FROM page_views
+                    WHERE ts >= NOW() - INTERVAL '30 days'
+                    GROUP BY DATE(ts)
+                    ORDER BY date DESC
+                    LIMIT 30
+                """)
+                daily_data = cur.fetchall()
+                
+                # Get page popularity
+                cur.execute("""
+                    SELECT 
+                        page,
+                        COUNT(*) as views,
+                        COUNT(DISTINCT session_id) as unique_visitors
+                    FROM page_views
+                    WHERE ts >= NOW() - INTERVAL '30 days'
+                    GROUP BY page
+                    ORDER BY views DESC
+                    LIMIT 10
+                """)
+                page_data = cur.fetchall()
+                
+                # Get browser stats
+                cur.execute("""
+                    SELECT 
+                        user_agent_hash,
+                        COUNT(*) as views,
+                        COUNT(DISTINCT session_id) as unique_visitors
+                    FROM page_views
+                    WHERE ts >= NOW() - INTERVAL '30 days'
+                      AND user_agent_hash IS NOT NULL
+                    GROUP BY user_agent_hash
+                    ORDER BY views DESC
+                    LIMIT 10
+                """)
+                browser_data = cur.fetchall()
+                
+                return {
+                    'total_unique_visitors_30d': basic_stats[0] or 0,
+                    'total_page_views_30d': basic_stats[1] or 0,
+                    'unique_visitors_today': basic_stats[2] or 0,
+                    'page_views_today': basic_stats[3] or 0,
+                    'daily_breakdown': [{'date': str(row[0]), 'unique_visitors': row[1], 'page_views': row[2]} for row in daily_data],
+                    'popular_pages': [{'page': row[0], 'views': row[1], 'unique_visitors': row[2]} for row in page_data],
+                    'browser_stats': [{'user_agent_hash': row[0], 'views': row[1], 'unique_visitors': row[2]} for row in browser_data],
+                    'calculated_at': time.time()
+                }
+                
+    except Exception as e:
+        print(f"Error getting visitor statistics: {e}")
+        return {
+            'total_unique_visitors_30d': 0,
+            'total_page_views_30d': 0,
+            'unique_visitors_today': 0,
+            'page_views_today': 0,
+            'daily_breakdown': [],
+            'popular_pages': [],
+            'browser_stats': [],
+            'calculated_at': time.time()
+        }
 
 def remove_apprise_url_by_token_and_hash(token: str, url_hash: str) -> bool:
     """Remove a single apprise URL from a profile identified by unsubscribe token using stored url hash.

@@ -7,6 +7,8 @@ import subprocess
 import functools
 import time
 from flask import jsonify, request
+import hashlib
+import secrets
 import psutil
 import gc
 
@@ -266,7 +268,10 @@ def serve_layout():
             ]),
             
             # Global auth status store (used across all pages)
-            dcc.Store(id='auth-status', storage_type='local')
+            dcc.Store(id='auth-status', storage_type='local'),
+            
+            # Visitor tracking script
+            html.Script(src='/assets/visitor-tracking.js')
         ])
         
         _layout_cache_timestamp = current_time
@@ -592,6 +597,38 @@ def list_profiles():
     # In a real implementation, we would check authentication here
     # For now, we'll just return an empty list
     return jsonify([]), 200
+
+# API endpoint for tracking page views
+@server.route('/api/track', methods=['POST'])
+def track_page_view():
+    """Track a page view for visitor statistics"""
+    try:
+        data = request.get_json()
+        if not data or 'page' not in data:
+            return jsonify({'error': 'Missing page parameter'}), 400
+        
+        page = data['page']
+        session_id = data.get('session_id')
+        user_agent = data.get('user_agent', '')
+        referrer = data.get('referrer')
+        
+        # Generate session ID if not provided
+        if not session_id:
+            session_id = secrets.token_urlsafe(32)
+        
+        # Hash user agent for privacy
+        user_agent_hash = None
+        if user_agent:
+            user_agent_hash = hashlib.sha256(user_agent.encode()).hexdigest()[:16]
+        
+        # Log the page view
+        log_page_view(page, session_id, user_agent_hash, referrer)
+        
+        return jsonify({'session_id': session_id, 'status': 'tracked'}), 200
+        
+    except Exception as e:
+        print(f"Error tracking page view: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 # Callback to show/hide admin link in hamburger menu
 @callback(
