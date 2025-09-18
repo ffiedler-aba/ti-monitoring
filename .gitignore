@@ -27,3 +27,6 @@ windows-setup-src/
 build/
 dist/
 callback_validation_report.json
+
+assets/datenschutz.md
+assets/impressum.md

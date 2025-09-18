@@ -107,8 +107,12 @@ Wir behalten uns vor, diese Datenschutzerklärung zu aktualisieren. Wesentliche 
 Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten zu beschweren.
 
 **Zuständige Aufsichtsbehörde**:  
-Landesbeauftragte für Datenschutz und Informationsfreiheit  
-[Ihr Bundesland]
+
+[ULD – Unabhängiges Landeszentrum für Datenschutz Schleswig-Holstein](https://www.datenschutzzentrum.de/)
+
+mail@datenschutzzentrum.de
+
+
 
 ---
 

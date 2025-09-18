@@ -7,14 +7,14 @@ Telematik Infrastruktur Monitoring
 
 ## Kontakt
 
-**E-Mail**: kontakt@ti-monitoring.de  
+**E-Mail**: elpatron@mailbox.org
 **Web**: https://ti-mon.elpatron.me  
 **Telefon**: +49 1522 4575039
 
 ## Verantwortlich für den Inhalt
 
 **Verantwortlich**:  
-Markus Busche  
+Markus F.J. Busche  
 Knorsstr. 16  
 24106 Kiel
 
