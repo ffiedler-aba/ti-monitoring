@@ -1,7 +1,6 @@
 import dash
 from dash import html, dcc
 import os
-import markdown
 from mylibrary import *
 
 # Register the page
@@ -26,12 +25,12 @@ def load_markdown_content(filename):
         with open(file_path, 'r', encoding='utf-8') as f:
             markdown_content = f.read()
 
-        # Convert markdown to HTML
-        html_content = markdown.markdown(markdown_content, extensions=['extra', 'codehilite'])
-
-        # Return the HTML content with proper styling
+        # Use dcc.Markdown for proper rendering in Dash
         return html.Div([
-            html.Div(html_content, dangerouslySetInnerHTML={'__html': html_content}, className='markdown-content')
+            dcc.Markdown(
+                markdown_content,
+                className='markdown-content'
+            )
         ], style={'padding': '20px'})
 
     except Exception as e:
