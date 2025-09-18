@@ -39,19 +39,34 @@ def load_markdown_content(filename):
             html.P(f"Ein Fehler ist beim Laden der Datei aufgetreten: {str(e)}")
         ], style={'padding': '20px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'})
 
+def create_page_header(title):
+    """Create consistent page header with logo"""
+    return html.Header([
+        html.Div([
+            html.Div(id='logo-wrapper', children=[
+                html.A(href='/', children=[
+                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Monitoring Logo', height=50, width=50)
+                ])
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
+            html.H1(title, style={
+                'margin': '0',
+                'fontSize': '1.6rem',
+                'color': '#2c3e50'
+            })
+        ], style={'display': 'flex', 'alignItems': 'center', 'gap': '16px'})
+    ], style={
+        'display': 'flex',
+        'alignItems': 'center',
+        'marginBottom': '30px',
+        'borderBottom': '2px solid #3498db',
+        'paddingBottom': '10px'
+    })
+
 def serve_layout():
     """Serve the datenschutz page layout"""
     return html.Div([
-        # Header section with title
-        html.Div([
-            html.H1('Datenschutz', style={
-                'color': '#2c3e50',
-                'fontWeight': '600',
-                'marginBottom': '30px',
-                'borderBottom': '2px solid #3498db',
-                'paddingBottom': '10px'
-            })
-        ], style={'marginBottom': '30px'}),
+        # Header section with logo and title
+        create_page_header('Datenschutz'),
 
         # Main content area
         html.Div([
