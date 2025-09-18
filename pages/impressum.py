@@ -83,7 +83,7 @@ def serve_layout():
             }),
             html.P([
                 'Stand: ',
-                html.Span(id='last-updated', style={'fontWeight': '500'})
+                html.Span(current_date, style={'fontWeight': '500'})
             ], style={
                 'color': '#6c757d',
                 'fontSize': '12px',
@@ -99,17 +99,8 @@ def serve_layout():
         'flexDirection': 'column'
     })
 
-# Store component for dynamic content updates
-dcc.Store(id='impressum-store', data={'loaded': True})
-
-# Callback to update last updated timestamp
-@callback(
-    Output('last-updated', 'children'),
-    Input('impressum-store', 'data')
-)
-def update_last_updated(data):
-    """Update the last updated timestamp"""
-    from datetime import datetime
-    return datetime.now().strftime('%d.%m.%Y')
+# Static timestamp - no callback needed
+from datetime import datetime
+current_date = datetime.now().strftime('%d.%m.%Y')
 
 layout = serve_layout

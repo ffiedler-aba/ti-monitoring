@@ -9,20 +9,20 @@ Telematik Infrastruktur Monitoring
 
 **E-Mail**: kontakt@ti-monitoring.de  
 **Web**: https://ti-mon.elpatron.me  
-**Telefon**: +49 (0) XXX XXXXXXX
+**Telefon**: +49 1522 4575039
 
 ## Verantwortlich für den Inhalt
 
-**Geschäftsführung**:  
-Max Mustermann  
-Musterstraße 123  
-12345 Musterstadt
+**Verantwortlich**:  
+Markus Busche  
+Knorsstr. 16  
+24106 Kiel
 
 ## Technische Umsetzung
 
 ### Hosting
-**Anbieter**: [Ihr Hosting-Provider]  
-**Serverstandort**: Deutschland  
+**Anbieter**: Hetzner Online GmbH 
+**Serverstandort**: Helsinki/Finnland  
 **SSL-Verschlüsselung**: Aktiv
 
 ### Entwicklung
@@ -98,8 +98,8 @@ Die Nutzung dieses Dienstes erfolgt nach folgenden Bedingungen:
 ## Version
 
 **Impressum Version**: 1.0  
-**Stand**: 18. September 2024  
-**Nächste Überprüfung**: 18. März 2025
+**Stand**: 18. September 2025  
+**Nächste Überprüfung**: 18. März 2026
 
 ---
 

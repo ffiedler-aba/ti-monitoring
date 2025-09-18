@@ -2,10 +2,10 @@
 
 ## 1. Verantwortliche Stelle
 
-**TI-Monitoring System**  
+**TI-Monitoring und -Statistik**  
 Telematik Infrastruktur Monitoring
 
-E-Mail: kontakt@ti-monitoring.de  
+E-Mail: elpatron@mailbox.org  
 Web: https://ti-mon.elpatron.me
 
 ## 2. Datenerhebung und -verwendung
