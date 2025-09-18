@@ -53,6 +53,7 @@ BEISPIELE:
     $0 CI-0000034        # 5 Minuten Ausfall (Standard-Dauer)
 
 VORAUSSETZUNGEN:
+    - Virtuelles Environment aktiviert (.venv)
     - Docker Container laufen (db, ti-monitoring-web, ti-monitoring-cron)
     - APPRISE_TEST_URL in .env konfiguriert
     - CI muss in der Datenbank existieren
