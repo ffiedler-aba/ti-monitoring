@@ -79,7 +79,17 @@ def check_admin_and_load_stats(auth_data):
         ], style={'marginBottom': '20px', 'display': 'flex', 'alignItems': 'center'}),
 
         # Statistics content
-        html.Div(id='notification-stats-display')
+        html.Div(id='notification-stats-display'),
+
+        # Visitor Statistics Section (Admin only)
+        html.Div([
+            html.Hr(style={'margin': '40px 0 20px 0'}),
+            html.H4('👥 Besucher-Statistiken (Admin)'),
+            html.P('Privacy-freundliche Statistiken basierend auf Session-IDs (keine IP-Adressen)'),
+            html.Div(id='admin-visitor-stats-content', children=[
+                html.P('Lade Besucher-Statistiken...')
+            ])
+        ])
     ])
 
 # Callback: Load notification statistics
@@ -326,3 +336,102 @@ def load_apprise_analysis(refresh_clicks, auth_data):
 
     except Exception as e:
         return html.P(f'Fehler bei der Apprise-Analyse: {str(e)}', style={'color': '#e74c3c'})
+
+# Callback: Load visitor statistics (Admin only)
+@callback(
+    Output('admin-visitor-stats-content', 'children'),
+    [Input('refresh-stats-btn', 'n_clicks')],
+    [State('auth-status', 'data')],
+    prevent_initial_call=False
+)
+def load_admin_visitor_stats(refresh_clicks, auth_data):
+    """Load visitor statistics for admin users only"""
+    if not auth_data or not auth_data.get('authenticated'):
+        return html.Div()
+
+    if not is_admin_user(auth_data.get('email', '')):
+        return html.Div()
+
+    try:
+        from mylibrary import get_visitor_statistics
+        import time
+
+        stats = get_visitor_statistics()
+
+        return [
+            # Summary cards
+            html.Div([
+                html.Div([
+                    html.H6('Heute', style={'margin': '0', 'fontSize': '16px', 'color': '#3498db'}),
+                    html.P(f"{stats['unique_visitors_today']} Besucher", style={'margin': '0', 'fontSize': '14px'}),
+                    html.P(f"{stats['page_views_today']} Seitenaufrufe", style={'margin': '0', 'fontSize': '14px', 'color': '#7f8c8d'})
+                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+
+                html.Div([
+                    html.H6('30 Tage', style={'margin': '0', 'fontSize': '16px', 'color': '#3498db'}),
+                    html.P(f"{stats['total_unique_visitors_30d']} Besucher", style={'margin': '0', 'fontSize': '14px'}),
+                    html.P(f"{stats['total_page_views_30d']} Seitenaufrufe", style={'margin': '0', 'fontSize': '14px', 'color': '#7f8c8d'})
+                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'})
+            ], style={'display': 'flex', 'gap': '20px', 'marginBottom': '20px'}),
+
+            # Popular pages table
+            html.Div([
+                html.H6('Beliebte Seiten (30 Tage)', style={'marginBottom': '10px'}),
+                html.Table([
+                    html.Thead([
+                        html.Tr([
+                            html.Th('Seite', style={'padding': '8px', 'backgroundColor': '#f8f9fa'}),
+                            html.Th('Aufrufe', style={'padding': '8px', 'backgroundColor': '#f8f9fa'}),
+                            html.Th('Eindeutige Besucher', style={'padding': '8px', 'backgroundColor': '#f8f9fa'})
+                        ])
+                    ]),
+                    html.Tbody([
+                        html.Tr([
+                            html.Td(page['page'], style={'padding': '8px'}),
+                            html.Td(str(page['views']), style={'padding': '8px', 'textAlign': 'right'}),
+                            html.Td(str(page['unique_visitors']), style={'padding': '8px', 'textAlign': 'right'})
+                        ]) for page in stats['popular_pages'][:10]
+                    ])
+                ], style={
+                    'width': '100%',
+                    'borderCollapse': 'collapse',
+                    'border': '1px solid #ddd',
+                    'fontSize': '12px'
+                })
+            ]) if stats['popular_pages'] else html.P('Keine Besucher-Daten verfügbar', style={'color': '#7f8c8d'}),
+
+            # Browser stats
+            html.Div([
+                html.H6('Browser-Verteilung (30 Tage)', style={'marginBottom': '10px', 'marginTop': '20px'}),
+                html.Table([
+                    html.Thead([
+                        html.Tr([
+                            html.Th('Browser (Hash)', style={'padding': '8px', 'backgroundColor': '#f8f9fa'}),
+                            html.Th('Aufrufe', style={'padding': '8px', 'backgroundColor': '#f8f9fa'}),
+                            html.Th('Eindeutige Besucher', style={'padding': '8px', 'backgroundColor': '#f8f9fa'})
+                        ])
+                    ]),
+                    html.Tbody([
+                        html.Tr([
+                            html.Td(browser['user_agent_hash'][:12] + '...', style={'padding': '8px', 'fontFamily': 'monospace'}),
+                            html.Td(str(browser['views']), style={'padding': '8px', 'textAlign': 'right'}),
+                            html.Td(str(browser['unique_visitors']), style={'padding': '8px', 'textAlign': 'right'})
+                        ]) for browser in stats['browser_stats'][:5]
+                    ])
+                ], style={
+                    'width': '100%',
+                    'borderCollapse': 'collapse',
+                    'border': '1px solid #ddd',
+                    'fontSize': '12px'
+                })
+            ]) if stats['browser_stats'] else html.Div(),
+
+            html.P(f'Letzte Aktualisierung: {time.strftime("%d.%m.%Y %H:%M:%S")}',
+                   style={'fontSize': '11px', 'color': '#666', 'marginTop': '20px', 'fontStyle': 'italic'})
+        ]
+
+    except Exception as e:
+        return html.Div([
+            html.P(f'Fehler beim Laden der Besucher-Statistiken: {str(e)}', style={'color': '#e74c3c'}),
+            html.P('Stelle sicher, dass die page_views Tabelle existiert.', style={'fontSize': '12px'})
+        ])

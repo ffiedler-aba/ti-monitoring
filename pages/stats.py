@@ -574,17 +574,6 @@ def serve_layout():
                     )
                 ])
             ])
-        ]),
-
-        # Visitor Statistics Section
-        html.Div(className='overall-statistics box', children=[
-            html.Div(className='stat-card', children=[
-                html.H4('👥 Besucher-Statistiken'),
-                html.P('Privacy-freundliche Statistiken basierend auf Session-IDs (keine IP-Adressen)'),
-                html.Div(id='visitor-stats-content', children=[
-                    html.P('Lade Besucher-Statistiken...')
-                ])
-            ])
         ])
     ])
 
@@ -595,62 +584,6 @@ layout = serve_layout
 # Add a clientside callback for navigation
 from dash import clientside_callback
 
-# Callback for visitor statistics
-@callback(
-    Output('visitor-stats-content', 'children'),
-    Input('visitor-stats-content', 'id'),  # Dummy input to trigger on load
-    prevent_initial_call=False
-)
-def update_visitor_stats(_):
-    """Update visitor statistics display"""
-    try:
-        stats = get_visitor_statistics()
-
-        return [
-            # Summary cards
-            html.Div(className='stats-grid', children=[
-                html.Div(className='stat-item', children=[
-                    html.H5('Heute'),
-                    html.P(f"{stats['unique_visitors_today']} Besucher"),
-                    html.P(f"{stats['page_views_today']} Seitenaufrufe")
-                ]),
-                html.Div(className='stat-item', children=[
-                    html.H5('30 Tage'),
-                    html.P(f"{stats['total_unique_visitors_30d']} Besucher"),
-                    html.P(f"{stats['total_page_views_30d']} Seitenaufrufe")
-                ])
-            ]),
-
-            # Popular pages
-            html.Div(className='popular-pages', children=[
-                html.H6('Beliebte Seiten (30 Tage)'),
-                html.Table([
-                    html.Thead([
-                        html.Tr([
-                            html.Th('Seite'),
-                            html.Th('Aufrufe'),
-                            html.Th('Eindeutige Besucher')
-                        ])
-                    ]),
-                    html.Tbody([
-                        html.Tr([
-                            html.Td(page['page']),
-                            html.Td(str(page['views'])),
-                            html.Td(str(page['unique_visitors']))
-                        ]) for page in stats['popular_pages'][:5]
-                    ])
-                ])
-            ]) if stats['popular_pages'] else html.P('Keine Daten verfügbar'),
-
-            html.P(f'Letzte Aktualisierung: {time.strftime("%d.%m.%Y %H:%M:%S")}',
-                   style={'fontSize': '12px', 'color': '#666', 'marginTop': '20px'})
-        ]
-
-    except Exception as e:
-        return html.Div([
-            html.P(f'Fehler beim Laden der Besucher-Statistiken: {str(e)}'),
-            html.P('Stelle sicher, dass die page_views Tabelle existiert.')
-        ])
 
 clientside_callback(
     """
