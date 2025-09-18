@@ -137,6 +137,14 @@ def serve_layout():
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
                     'Jede verschickte Benachrichtigung enthält zwei Links, mit denen sowohl der jeweilige Benachrichtigungstyp (z.B. "Slack") als auch alle Benachrichtigungen deines Accounts wieder abgeschaltet werden können (unsubscribe).'
+                ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
+                html.P([
+                    'Deine E-Mail-Adresse und deine Apprise URLs werden selbstverständlich verschlüsselt (Hash + Salt) gespeichert. Bedenke jedoch, dass insbesondere Apprise URLs sehr schützenswürdige Daten wie z.B. API-Keys enthalten können, die nicht in die Hände Unbefugter gelangen sollten. Bedenke das, bevor du ein Benachrichtigungsprofil anlegst.'
+                ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
+                html.P([
+                    'Alternativ kannst du die TI-Stats App auf deinem eigenen Server installieren oder dem Mastodon-Account ',
+                    html.A('@tistatus@mastodon.ti-stats.net', href='https://mastodon.ti-stats.net/@tistatus', target='_blank'),
+                    ' folgen, der Statusänderungen aller CIs zeitnah meldet.'
                 ], style={'marginBottom': '0', 'lineHeight': '1.6'})
             ], style={'padding': '20px'})
         ], style={
