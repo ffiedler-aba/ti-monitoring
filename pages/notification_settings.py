@@ -184,14 +184,14 @@ def serve_layout():
         # Settings container
         html.Div(id='settings-container', children=[
             html.Div(id='user-info', children='', style={'marginBottom': '20px', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'}),
-            html.P('Verwalten Sie Ihre Benachrichtigungsprofile unten.'),
+            html.P('Verwalte deine Benachrichtigungsprofile unten.'),
             html.Div(id='profiles-container'),
             html.Button('Neues Profil hinzufügen', id='add-profile-button', n_clicks=0, style=get_button_style('success')),
 
             # Profile form (hidden by default)
             html.Div(id='profile-form-container', children=[
                 html.H3('Neues Profil erstellen'),
-                dcc.Input(id='profile-name-input', placeholder='Profilname', style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px'}),
+                dcc.Input(id='profile-name-input', placeholder='Profilname', style={'width': '100%', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'boxSizing': 'border-box'}),
                 html.Div([
                     html.Label('Benachrichtigungstyp:'),
                     dcc.RadioItems(id='notification-type-radio', options=[
@@ -212,7 +212,7 @@ def serve_layout():
                     html.Label('Konfigurationsobjekte:'),
                     html.Div([
                         dcc.Input(id='ci-filter-input', type='text', placeholder='CIs filtern (z.B. "CI-0000" oder "gematik")',
-                                style={'flex': '1', 'padding': '8px 12px', 'borderRadius': '6px', 'marginRight': '10px'}),
+                                style={'flex': '1', 'padding': '8px 12px', 'borderRadius': '6px', 'marginRight': '10px', 'boxSizing': 'border-box'}),
                         html.Button('Alle auswählen', id='select-all-cis-button', n_clicks=0, style=get_button_style('secondary')),
                         html.Button('Alle abwählen', id='deselect-all-cis-button', n_clicks=0, style=get_button_style('secondary'))
                     ], style={'display': 'flex', 'gap': '10px', 'marginBottom': '10px'}),
@@ -225,7 +225,7 @@ def serve_layout():
                 ], style={'marginBottom': '15px'}),
 
                 dcc.Textarea(id='apprise-urls-textarea', placeholder='Apprise URLs (eine pro Zeile)',
-                           style={'width': '100%', 'height': '100px', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'fontFamily': 'monospace'}),
+                           style={'width': '100%', 'height': '100px', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'fontFamily': 'monospace', 'boxSizing': 'border-box'}),
                 html.Div(id='form-error', style={'color': '#e74c3c', 'marginBottom': '15px'}),
                 html.Div([
                     html.Button('Profil speichern', id='save-profile-button', n_clicks=0, style=get_button_style('success')),
