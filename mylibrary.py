@@ -1584,6 +1584,23 @@ def send_db_notifications():
                 try:
                     profile_id, user_id, profile_name, profile_type, ci_list, apprise_urls, apprise_urls_hash, apprise_urls_salt, email_notifications, email_encrypted, email_enc_salt = profile
                     
+                    # Check if this user is an admin (for unsubscribe link logic)
+                    is_admin = False
+                    try:
+                        # Get user email for admin check
+                        decrypted_email = None
+                        if email_encrypted and email_enc_salt:
+                            encryption_key = os.getenv('ENCRYPTION_KEY')
+                            if encryption_key:
+                                encryption_key = encryption_key.encode()
+                                decrypted_email = decrypt_data(email_encrypted, email_enc_salt, encryption_key)
+                        
+                        if decrypted_email:
+                            is_admin = is_admin_user(decrypted_email)
+                    except Exception:
+                        # If admin check fails, assume regular user (include unsubscribe links)
+                        pass
+                    
                     # Filter relevant changes
                     if profile_type == 'whitelist':
                         relevant_changes = changes_sorted[changes_sorted['ci'].isin(ci_list)]
@@ -1643,7 +1660,11 @@ def send_db_notifications():
                                     apobj.add(apprise_url)
                                     # Fester Betreff für einfache E-Mail
                                     simple_subject = 'TI-Monitor Statusänderung'
-                                    body = message_with_profile_unsub if unsubscribe_base_url else message
+                                    # For admin users, don't include unsubscribe links
+                                    if is_admin:
+                                        body = message
+                                    else:
+                                        body = message_with_profile_unsub if unsubscribe_base_url else message
                                     apobj.notify(title=simple_subject, body=body, body_format=apprise.NotifyFormat.HTML)
                                 else:
                                     print('otp_apprise_url_template not configured; skipping simple email notification')
@@ -1673,39 +1694,75 @@ def send_db_notifications():
 
                             # Falls Hashes vorhanden sind, pro URL individuellen Opt-Out-Link beilegen
                             if unsubscribe_base_url and apprise_urls_hash and len(apprise_urls_hash) == len(apprise_urls):
-                                for idx, _ in enumerate(apprise_urls):
-                                    try:
-                                        decrypted_url = decrypted_urls[idx]
-                                        if not decrypted_url:
-                                            # Entschlüsselung fehlgeschlagen -> als failed loggen
+                                # For admin users, skip unsubscribe links
+                                if is_admin:
+                                    # Send notifications without unsubscribe links for admin users
+                                    for idx, _ in enumerate(apprise_urls):
+                                        try:
+                                            decrypted_url = decrypted_urls[idx]
+                                            if not decrypted_url:
+                                                # Entschlüsselung fehlgeschlagen -> als failed loggen
+                                                for ci in relevant_changes['ci']:
+                                                    notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                                    log_notification(profile_id, ci, notification_type, 'failed', 'apprise', 'Apprise URL decryption failed')
+                                                continue
+
+                                            # Send notification without unsubscribe links
+                                            body = str(message)
+                                            apobj = apprise.Apprise()
+                                            apobj.add(decrypted_url)
+                                            success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                            
+                                            # Log notification attempt
                                             for ci in relevant_changes['ci']:
                                                 notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
-                                                log_notification(profile_id, ci, notification_type, 'failed', 'apprise', 'Apprise URL decryption failed')
-                                            continue
+                                                log_notification(profile_id, ci, notification_type, 'sent' if success else 'failed', 'apprise', None if success else 'Apprise notify returned False')
+                                                
+                                        except Exception as e:
+                                            print(f'Error sending admin notification to URL {idx} for profile {profile_id}: {e}')
+                                            # Log failed notification
+                                            for ci in relevant_changes['ci']:
+                                                notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                                log_notification(profile_id, ci, notification_type, 'failed', 'apprise', str(e))
+                                else:
+                                    # Send notifications with unsubscribe links for regular users
+                                    for idx, _ in enumerate(apprise_urls):
+                                        try:
+                                            decrypted_url = decrypted_urls[idx]
+                                            if not decrypted_url:
+                                                # Entschlüsselung fehlgeschlagen -> als failed loggen
+                                                for ci in relevant_changes['ci']:
+                                                    notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                                    log_notification(profile_id, ci, notification_type, 'failed', 'apprise', 'Apprise URL decryption failed')
+                                                continue
 
-                                        url_hash = apprise_urls_hash[idx]
-                                        per_url_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}?u={url_hash}"
-                                        body = str(message) + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
-                                        # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
-                                        body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
-                                        apobj = apprise.Apprise()
-                                        apobj.add(decrypted_url)
-                                        success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
-                                        
-                                        # Log notification attempt
-                                        for ci in relevant_changes['ci']:
-                                            notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
-                                            log_notification(profile_id, ci, notification_type, 'sent' if success else 'failed', 'apprise', None if success else 'Apprise notify returned False')
+                                            url_hash = apprise_urls_hash[idx]
+                                            per_url_unsub_link = f"{unsubscribe_base_url}/{unsubscribe_token}?u={url_hash}"
+                                            body = str(message) + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
+                                            # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
+                                            body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
+                                            apobj = apprise.Apprise()
+                                            apobj.add(decrypted_url)
+                                            success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
                                             
-                                    except Exception as e:
-                                        print(f"Error sending per-URL notification for profile {profile_id}: {e}")
-                                        # Log failed notification
-                                        for ci in relevant_changes['ci']:
-                                            notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
-                                            log_notification(profile_id, ci, notification_type, 'failed', 'apprise', str(e))
+                                            # Log notification attempt
+                                            for ci in relevant_changes['ci']:
+                                                notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                                log_notification(profile_id, ci, notification_type, 'sent' if success else 'failed', 'apprise', None if success else 'Apprise notify returned False')
+                                                
+                                        except Exception as e:
+                                            print(f'Error sending notification to URL {idx} for profile {profile_id}: {e}')
+                                            # Log failed notification
+                                            for ci in relevant_changes['ci']:
+                                                notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
+                                                log_notification(profile_id, ci, notification_type, 'failed', 'apprise', str(e))
                             else:
                                 # Fallback: eine Nachricht an alle URLs mit Profil-Opt-Out-Link
-                                body = message_with_profile_unsub if unsubscribe_base_url else message
+                                # For admin users, don't include unsubscribe links
+                                if is_admin:
+                                    body = message
+                                else:
+                                    body = message_with_profile_unsub if unsubscribe_base_url else message
                                 for idx, _ in enumerate(apprise_urls):
                                     try:
                                         decrypted_url = decrypted_urls[idx]

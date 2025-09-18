@@ -119,6 +119,34 @@ def serve_layout():
             'paddingBottom': '10px'
         }),
 
+        # Info-Box über Benachrichtigungsfunktionen
+        html.Div([
+            html.Div([
+                html.H4('ℹ️ Über diese Funktion', style={
+                    'color': '#2c3e50',
+                    'marginBottom': '15px',
+                    'fontSize': '18px'
+                }),
+                html.P([
+                    'Du hast hier die Möglichkeit, dich bei Ausfällen und Wiederverfügbarkeit von Kompontenten der Telematik Infrastruktur informieren zu lassen. ',
+                    'Dabei stehen dir von AWS bis Zulip über 100 verschiedene Wege zur Verfügung, unter anderem natürlich auch E-Mail oder SMS, Teams, Whatsapp, Slack, Telegram.'
+                ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
+                html.P([
+                    'Um deine persönlichen Benachrichtigungen zu verwalten, musst du dir hier einen Account per One-Time-Passwort anlegen. ',
+                    'Anschließend kannst du Benachrichtigungen für die Telematik-Komponenten ("Configuration-Items"), die dich interessieren, konfigurieren.'
+                ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
+                html.P([
+                    'Jede verschickte Benachrichtigung enthält zwei Links, mit denen sowohl der jeweilige Benachrichtigungstyp (z.B. "Slack") als auch alle Benachrichtigungen deines Accounts wieder abgeschaltet werden können (unsubscribe).'
+                ], style={'marginBottom': '0', 'lineHeight': '1.6'})
+            ], style={'padding': '20px'})
+        ], style={
+            'backgroundColor': '#e8f4fd',
+            'border': '1px solid #3498db',
+            'borderRadius': '12px',
+            'marginBottom': '30px',
+            'boxShadow': '0 2px 4px rgba(52, 152, 219, 0.1)'
+        }),
+
         # === STORES (Single source of truth) ===
         dcc.Store(id='auth-state-store', data={'authenticated': False}),
         dcc.Store(id='otp-state-store', data={'step': 'login', 'email': ''}),
