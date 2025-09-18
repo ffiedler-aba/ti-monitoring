@@ -46,7 +46,35 @@ source .venv/bin/activate && python scripts/validate_callbacks.py
 🎉 Alle Callbacks sind korrekt!
 ```
 
-### 2. callback_registry.py
+### 2. simulate_ci_outage.sh
+**Zweck**: Simuliert CI-Ausfälle und sendet Test-Benachrichtigungen
+
+**Verwendung**:
+```bash
+# 5 Minuten Ausfall für CI-0000034
+./scripts/simulate_ci_outage.sh CI-0000034 5
+
+# Standard-Ausfalldauer (5 Minuten)
+./scripts/simulate_ci_outage.sh CI-0000034
+
+# Hilfe anzeigen
+./scripts/simulate_ci_outage.sh --help
+```
+
+**Features**:
+- CI-Ausfall-Simulation (Status auf 0 setzen)
+- Test-Benachrichtigungen über APPRISE_TEST_URL
+- Automatische Wiederherstellung nach definierter Zeit
+- Validierung von Docker-Containern und Datenbank
+- Detaillierte Logs mit Farbkodierung
+- Unterstützung für 90+ Benachrichtigungsdienste
+
+**Voraussetzungen**:
+- Docker Container laufen
+- APPRISE_TEST_URL in .env konfiguriert
+- CI muss in Datenbank existieren
+
+### 3. callback_registry.py
 **Zweck**: Registry-System für Callback-Organisation und -Validierung
 
 **Verwendung**:
@@ -85,6 +113,7 @@ repos:
 
 - **Callback-Architektur**: `docs/callback-architecture.md`
 - **Modulare Struktur**: `docs/modular-callback-structure.md`
+- **CI-Ausfall-Simulation**: `docs/CI_OUTAGE_SIMULATION.md`
 - **Quest-Dokumentation**: `.qoder/quests/multi-user-otp-notification.md`
 
 ## 🚨 Häufige Probleme und Lösungen
