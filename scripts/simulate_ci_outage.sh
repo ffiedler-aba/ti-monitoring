@@ -100,11 +100,25 @@ fi
 
 # Docker Container Status prüfen
 log_info "Prüfe Docker Container Status..."
-if ! docker compose ps --format json | jq -e '.services | has("db") and has("ti-monitoring-web") and has("ti-monitoring-cron")' > /dev/null 2>&1; then
-    log_error "Docker Container sind nicht alle gestartet. Bitte starten Sie die Container mit:"
+CONTAINER_STATUS=$(docker compose ps --format "table {{.Service}}\t{{.Status}}" | grep -E "(db|ti-monitoring-web|ti-monitoring-cron)" | wc -l)
+if [[ "$CONTAINER_STATUS" -lt 3 ]]; then
+    log_error "Nicht alle erforderlichen Container sind gestartet"
+    log_info "Aktueller Status:"
+    docker compose ps
+    log_info "Bitte starten Sie die Container mit:"
     log_info "scripts/docker-rebuild-dev.sh"
     exit 1
 fi
+
+# Prüfe ob Container tatsächlich laufen (nicht nur existieren)
+RUNNING_CONTAINERS=$(docker compose ps --format "table {{.Service}}\t{{.Status}}" | grep -E "(db|ti-monitoring-web|ti-monitoring-cron)" | grep -E "(Up|healthy)" | wc -l)
+if [[ "$RUNNING_CONTAINERS" -lt 3 ]]; then
+    log_error "Nicht alle Container laufen ordnungsgemäß"
+    log_info "Aktueller Status:"
+    docker compose ps
+    exit 1
+fi
+log_success "Alle Docker Container laufen ordnungsgemäß"
 
 # Datenbankverbindung testen
 log_info "Teste Datenbankverbindung..."
