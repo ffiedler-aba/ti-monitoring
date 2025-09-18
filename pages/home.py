@@ -276,7 +276,17 @@ def serve_layout():
     incidents_table = create_incidents_table(incidents_data, show_all=False)
 
     layout = html.Div([
-        html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
+        html.P([
+            'ti-stats.net basiert auf Lukas Schmidt-Russnaks ',
+            html.A('TI-Monitoring', href='https://ti-monitoring.de'),
+            '. Die Seite wurde mit Statistiken, Benachrichtigungen etc. von Grund auf erweitert und angepasst. Daten werden alle 5 Minuten aktualisiert und für 6 Monate gespeichert.'
+        ]),
+
+        html.P([
+            'Du hast auch die Möglichkeit, Benachrichtigungen individuell zu ',
+            html.A('abonnieren', href='/notifications'),
+            '. Diese werden dir über deinen persönlichen Apprise-Link gesendet, wenn sich der Status einer der abonierten Komponenten ändert.'
+        ]),
 
         # Incidents section
         html.Div([
@@ -286,6 +296,9 @@ def serve_layout():
                 html.Div(id='incidents-table-container', children=incidents_table)
             ], className='incidents-container')
         ], className='incidents-section'),
+
+        html.P('Hier finden Sie eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Laden Sie die Seite neu, um die Ansicht zu aktualisieren.'),
+
 
         # CI Groups section
         html.Div([
