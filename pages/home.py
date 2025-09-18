@@ -45,14 +45,6 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
-
-
-
-
-
-
-
-
 dash.register_page(__name__, path='/')
 
 # No callback needed - table is scrollable
