@@ -1216,52 +1216,7 @@ def create_notification_message(changes, recipient_name, home_url):
     return message
 
 # Legacy file-based notifications removed (notifications.json)
-
-def send_notifications(file_name, notifications_config_file, smtp_settings, home_url):
-    """
-    Sends email notifications for each notification configuration about all
-    changes that are relevant for the respective configuration
-
-    Args:
-        file_name (str): Path to hdf5 file
-        notifications_config_file (str): Path to json file with notification configurations
-        smtp_settings (dict): host, port, username, password and sender address (from)
-        home_url (str): base url of dash app
-
-    Returns:
-        None
-    """
-    # get notification config
-    with open(notifications_config_file, 'r', encoding='utf-8') as f:
-        notification_config = json.load(f)
-    # get changes 
-    ci_data = get_data_of_all_cis(file_name)
-    changes = ci_data[ci_data['availability_difference']!=0]
-    changes_sorted = changes.sort_values(by = 'availability_difference')
-    # filter relevant changes for each config and send mails
-    for config in notification_config:
-        try:
-            if (config['type'] == 'whitelist'):
-                relevant_changes = changes_sorted[changes_sorted['ci'].isin(config['ci_list'])]
-            elif (config['type'] == 'blacklist'):
-                relevant_changes = changes_sorted[~changes_sorted['ci'].isin(config['ci_list'])]
-            number_of_relevant_changes = len(relevant_changes)
-            if number_of_relevant_changes > 0:
-                message = '<html lang="de"><body><p>Hallo ' + str(config['name']) + ',</p>'
-                message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von Ihnen abonierten Komponenten geändert:</p><ul>'
-                for index, change in relevant_changes.iterrows():
-                    message += create_html_list_item_for_change(change, home_url)
-                if home_url:    
-                    message += '</ul><p>Den aktuellen Status aller Komponenten können Sie unter <a href="' + home_url + '">' + home_url + '</a> einsehen.</p>'
-                message += '<p>Weitere Hintergrundinformationen finden Sie im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH</a>.</p>'
-                message += '<p>📊 <a href="https://ti-stats.net">ti-stats.net</a> - Weitere TI-Statistiken und Analysen</p>'
-                message += '<p>Viele Grüße<br>TI-Monitoring</p></body></html>'
-                subject = 'TI-Monitoring: ' + str(number_of_relevant_changes) + ' Änderungen der Verfügbarkeit'
-                recipients = config['recipients']
-                send_mail(smtp_settings, recipients, subject, message)
-        except:
-            print('Sending notification for profile failed. Please check notifications config file.')
-            pass
+# Legacy send_notifications() function removed - only send_db_notifications() is used now
 
 def load_env_file():
     """
