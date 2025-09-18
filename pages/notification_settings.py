@@ -514,7 +514,7 @@ def test_apprise_notification(n_clicks, apprise_url, auth_state):
             return html.Div('Ungültiges Apprise-URL-Format.', style={'color': 'red'})
 
         result = apobj.notify(
-            title='TI-Monitoring Test-Benachrichtigung',
+            title='TI-Stats Test-Benachrichtigung',
             body='Dies ist eine Test-Benachrichtigung. Wenn du diese erhältst, funktioniert deine Konfiguration!',
             body_format=apprise.NotifyFormat.TEXT
         )

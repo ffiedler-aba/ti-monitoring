@@ -8,7 +8,7 @@ def create_admin_header(title):
         html.Div([
             html.Div(id='logo-wrapper', children=[
                 html.A(href='/', children=[
-                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Monitoring Logo', height=50, width=50)
+                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Stats Logo', height=50, width=50)
                 ])
             ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
             html.H1(title, style={

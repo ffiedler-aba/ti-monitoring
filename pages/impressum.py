@@ -45,7 +45,7 @@ def create_page_header(title):
         html.Div([
             html.Div(id='logo-wrapper', children=[
                 html.A(href='/', children=[
-                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Monitoring Logo', height=50, width=50)
+                    html.Img(id='logo', src='/assets/logo.svg', alt='TI-Stats Logo', height=50, width=50)
                 ])
             ], style={'display': 'flex', 'alignItems': 'center', 'gap': '12px'}),
             html.H1(title, style={
@@ -83,7 +83,7 @@ def serve_layout():
             html.Hr(style={'borderColor': '#e9ecef', 'margin': '40px 0 20px 0'}),
             html.P([
                 'Dieses Impressum ist Teil des ',
-                html.A('TI-Monitoring Systems', href='/', style={'color': '#3498db', 'textDecoration': 'none'}),
+                html.A('TI-Stats System', href='/', style={'color': '#3498db', 'textDecoration': 'none'}),
                 '. Für weitere Informationen besuchen Sie bitte unsere ',
                 html.A('Startseite', href='/', style={'color': '#3498db', 'textDecoration': 'none'}),
                 ' oder die ',

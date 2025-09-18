@@ -1237,7 +1237,7 @@ def create_notification_message(changes, recipient_name, home_url):
         message += f'</ul><p>Den aktuellen Status aller Komponenten kannst du unter <a href="{home_url}">{home_url}</a> einsehen.</p>'
     message += '<p>Weitere Hintergrundinformationen findest du im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH</a>.</p>'
     message += '<p>📊 <a href="https://ti-stats.net">ti-stats.net</a> - Weitere TI-Statistiken und Analysen</p>'
-    message += '<p>Viele Grüße<br>TI-Monitoring</p></body></html>'
+    message += '<p>Viele Grüße<br>TI-Stats</p></body></html>'
     
     return message
 
@@ -1727,7 +1727,7 @@ def send_db_notifications():
                     if number_of_relevant_changes > 0:
                         # Create notification message
                         message = create_notification_message(relevant_changes, profile_name, '')
-                        subject = f'TI-Monitoring: {str(number_of_relevant_changes)} Änderungen der Verfügbarkeit'
+                        subject = f'TI-Stats: {str(number_of_relevant_changes)} Änderungen der Verfügbarkeit'
                         
                         # Prepare base unsubscribe token/link (profile-level)
                         config = load_config()

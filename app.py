@@ -19,7 +19,7 @@ except Exception as _e:
     # Avoid blocking startup; errors will be visible in logs
     print(f"DB migration warning: {_e}")
 
-app = Dash(__name__, use_pages=True, title='TI-Monitoring', suppress_callback_exceptions=True)
+app = Dash(__name__, use_pages=True, title='TI-Stats', suppress_callback_exceptions=True)
 server = app.server
 
 # Add local CSS for Material Icons
@@ -160,7 +160,7 @@ def serve_layout():
         app_home_url = '/'
         
         # Get header configurations
-        header_title = header_config.get('title', 'TI-Monitoring')
+        header_title = header_config.get('title', 'TI-Stats')
         logo_config = header_config.get('logo', {})
         logo_path = logo_config.get('path', 'assets/logo.svg')
         logo_alt = logo_config.get('alt', 'Logo')
@@ -521,8 +521,8 @@ def request_otp():
             apobj = apprise.Apprise()
             apobj.add(apprise_url)
             apobj.notify(
-                title='TI-Monitoring OTP-Code',
-                body=f'Ihr OTP-Code für TI-Monitoring lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
+                title='TI-Stats OTP-Code',
+                body=f'Ihr OTP-Code für TI-Stats lautet: {otp}\n\nDieser Code ist 10 Minuten gültig.',
                 body_format=apprise.NotifyFormat.TEXT
             )
         except Exception as e:
