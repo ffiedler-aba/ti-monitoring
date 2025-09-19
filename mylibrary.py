@@ -673,6 +673,8 @@ from email.mime.text import MIMEText
 import apprise
 import threading
 from collections import OrderedDict
+import re
+import html as htmllib
 
 # Add dotenv import
 from dotenv import load_dotenv
@@ -1611,6 +1613,81 @@ def get_visitor_statistics():
             'calculated_at': time.time()
         }
 
+# ------------------------------
+# Message formatting helpers for Apprise channels
+# ------------------------------
+
+def extract_apprise_scheme(apprise_url: str) -> str:
+    """Return lower-case scheme of an Apprise URL (text before ://)."""
+    try:
+        if not apprise_url:
+            return ''
+        return str(apprise_url).split('://', 1)[0].lower()
+    except Exception:
+        return ''
+
+def _convert_html_links_to_text(html_str: str) -> str:
+    """Convert <a href="..">text</a> to 'text (URL)' for plain text/markdown."""
+    try:
+        def repl(match):
+            url = match.group(1)
+            text = match.group(2)
+            return f"{text} ({url})"
+        return re.sub(r"<a [^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", repl, html_str, flags=re.IGNORECASE|re.DOTALL)
+    except Exception:
+        return html_str
+
+def convert_html_to_text(html_str: str) -> str:
+    """Very small HTML→text converter for notifications (no external deps)."""
+    s = html_str or ''
+    # Links -> text (URL)
+    s = _convert_html_links_to_text(s)
+    # Line breaks / paragraphs / list items
+    s = re.sub(r"<\s*br\s*/?\s*>", "\n", s, flags=re.IGNORECASE)
+    s = re.sub(r"</\s*p\s*>", "\n\n", s, flags=re.IGNORECASE)
+    s = re.sub(r"<\s*p\s*[^>]*>", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"<\s*li\s*[^>]*>", "- ", s, flags=re.IGNORECASE)
+    s = re.sub(r"</\s*li\s*>", "\n", s, flags=re.IGNORECASE)
+    # Strip remaining tags
+    s = re.sub(r"<[^>]+>", "", s)
+    # Unescape HTML entities
+    try:
+        s = htmllib.unescape(s)
+    except Exception:
+        pass
+    # Collapse excessive blank lines
+    s = re.sub(r"\n{3,}", "\n\n", s).strip()
+    return s
+
+def convert_html_to_markdown(html_str: str) -> str:
+    """Crude HTML→Markdown conversion sufficient for short alerts."""
+    # For our simple messages, plain text with leading '-' acts fine as Markdown
+    return convert_html_to_text(html_str)
+
+def sanitize_message_for_apprise(body_html: str, scheme: str):
+    """Return (body, apprise.NotifyFormat) suitable for given scheme.
+
+    - Email-like schemes keep HTML
+    - Mastodon/Toots use TEXT (no HTML)
+    - Others use MARKDOWN (HTML stripped)
+    """
+    email_schemes = { 'mailto', 'gmail', 'ses', 'sendgrid', 'outlook', 'resend' }
+    mastodon_schemes = { 'toots', 'mastodon' }
+
+    if scheme in email_schemes:
+        return body_html or '', apprise.NotifyFormat.HTML
+
+    if scheme in mastodon_schemes:
+        txt = convert_html_to_text(body_html or '')
+        # Keep toot short; many servers default to ~500 chars
+        if len(txt) > 480:
+            txt = txt[:480].rstrip() + '…'
+        return txt, apprise.NotifyFormat.TEXT
+
+    # Default: Markdown
+    md = convert_html_to_markdown(body_html or '')
+    return md, apprise.NotifyFormat.MARKDOWN
+
 def remove_apprise_url_by_token_and_hash(token: str, url_hash: str) -> bool:
     """Remove a single apprise URL from a profile identified by unsubscribe token using stored url hash.
 
@@ -1821,9 +1898,11 @@ def send_db_notifications():
 
                                             # Send notification without unsubscribe links
                                             body = str(message)
+                                            scheme = extract_apprise_scheme(decrypted_url)
+                                            body_sanitized, body_fmt = sanitize_message_for_apprise(body, scheme)
                                             apobj = apprise.Apprise()
                                             apobj.add(decrypted_url)
-                                            success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                            success = apobj.notify(title=subject, body=body_sanitized, body_format=body_fmt)
                                             
                                             # Log notification attempt
                                             for ci in relevant_changes['ci']:
@@ -1853,9 +1932,11 @@ def send_db_notifications():
                                             body = str(message) + f'<p><a href="{per_url_unsub_link}">Abmelden nur für diesen Kanal</a></p>'
                                             # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
                                             body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
+                                            scheme = extract_apprise_scheme(decrypted_url)
+                                            body_sanitized, body_fmt = sanitize_message_for_apprise(body, scheme)
                                             apobj = apprise.Apprise()
                                             apobj.add(decrypted_url)
-                                            success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                            success = apobj.notify(title=subject, body=body_sanitized, body_format=body_fmt)
                                             
                                             # Log notification attempt
                                             for ci in relevant_changes['ci']:
@@ -1883,9 +1964,11 @@ def send_db_notifications():
                                                 notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
                                                 log_notification(profile_id, ci, notification_type, 'failed', 'apprise', 'Apprise URL decryption failed')
                                             continue
+                                        scheme = extract_apprise_scheme(decrypted_url)
+                                        body_sanitized, body_fmt = sanitize_message_for_apprise(body, scheme)
                                         apobj = apprise.Apprise()
                                         apobj.add(decrypted_url)
-                                        success = apobj.notify(title=subject, body=body, body_format=apprise.NotifyFormat.HTML)
+                                        success = apobj.notify(title=subject, body=body_sanitized, body_format=body_fmt)
                                         for ci in relevant_changes['ci']:
                                             notification_type = 'incident' if relevant_changes[relevant_changes['ci'] == ci]['availability_difference'].iloc[0] == -1 else 'recovery'
                                             log_notification(profile_id, ci, notification_type, 'sent' if success else 'failed', 'apprise', None if success else 'Apprise notify returned False')
