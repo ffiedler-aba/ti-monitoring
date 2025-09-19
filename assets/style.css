@@ -2647,6 +2647,34 @@ details {
     color: #93c5fd !important;
     text-decoration: underline !important;
   }
+
+  /* Dark mode container styling for wiki link */
+  .apprise-wiki-link,
+  #apprise-wiki-link {
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #334155 !important;
+    color: #cbd5e1 !important;
+  }
+  .apprise-wiki-link a:visited,
+  #apprise-wiki-link a:visited {
+    color: #60a5fa !important;
+  }
+  .apprise-wiki-link a:focus-visible,
+  #apprise-wiki-link a:focus-visible {
+    outline: 2px solid #93c5fd !important;
+    outline-offset: 2px !important;
+    border-radius: 4px !important;
+  }
+  /* Force high-contrast link/text color inside wiki link container */
+  #apprise-wiki-link,
+  #apprise-wiki-link *,
+  #apprise-wiki-link a {
+    color: #93c5fd !important;
+  }
+  #apprise-wiki-link a:hover {
+    color: #bfdbfe !important;
+  }
   
   /* Dark theme for users table with class */
   .users-table {

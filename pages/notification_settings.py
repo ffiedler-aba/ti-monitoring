@@ -252,7 +252,7 @@ def serve_layout():
                         placeholder='Service auswählen...',
                         style={'marginBottom': '10px'}
                     ),
-                    html.Div(id='apprise-wiki-link', style={'marginBottom': '10px'}),
+                    html.Div(id='apprise-wiki-link', style={'marginBottom': '10px'}, className='apprise-wiki-link'),
                     html.Div([
                         dcc.Input(
                             id='apprise-url-input',
