@@ -168,27 +168,27 @@ def load_user_statistics(auth_data, refresh_clicks):
                 html.Div([
                     html.H5(f'{total_users}', style={'margin': '0', 'fontSize': '24px', 'color': '#3498db'}),
                     html.P('Benutzer gesamt', style={'margin': '0', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='stat-card'),
 
                 html.Div([
                     html.H5(f'{total_profiles}', style={'margin': '0', 'fontSize': '24px', 'color': '#27ae60'}),
                     html.P('Profile gesamt', style={'margin': '0', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='stat-card'),
 
                 html.Div([
                     html.H5(f'{email_profiles}', style={'margin': '0', 'fontSize': '24px', 'color': '#f39c12'}),
                     html.P('E-Mail Profile', style={'margin': '0', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='stat-card'),
 
                 html.Div([
                     html.H5(f'{apprise_profiles}', style={'margin': '0', 'fontSize': '24px', 'color': '#9b59b6'}),
                     html.P('Apprise Profile', style={'margin': '0', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='stat-card'),
 
                 html.Div([
                     html.H5(f'{new_users_24h}', style={'margin': '0', 'fontSize': '24px', 'color': '#e74c3c'}),
                     html.P('Neue (24h)', style={'margin': '0', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'})
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='stat-card')
             ], style={'display': 'flex', 'gap': '15px', 'flexWrap': 'wrap'})
         ], style={'marginBottom': '30px'})
 
@@ -264,11 +264,9 @@ def search_user(search_clicks, email, auth_data):
                 ),
                 html.Div(id='delete-user-status', style={'marginTop': '10px'})
             ], style={
-                'border': '1px solid #ddd',
                 'borderRadius': '8px',
-                'padding': '15px',
-                'backgroundColor': '#f8f9fa'
-            })
+                'padding': '15px'
+            }, className='user-search-result')
 
             return user_info
         else:
@@ -338,9 +336,8 @@ def load_all_users(refresh_clicks, auth_data):
                 ])
             ], style={
                 'width': '100%',
-                'borderCollapse': 'collapse',
-                'border': '1px solid #ddd'
-            })
+                'borderCollapse': 'collapse'
+            }, className='users-table')
         ])
 
         return users_list

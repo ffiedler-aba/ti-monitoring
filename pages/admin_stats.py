@@ -149,22 +149,22 @@ def load_notification_stats(refresh_clicks, timeframe_hours, auth_data):
                     html.Div([
                         html.H6(f'{total}', style={'margin': '0', 'fontSize': '20px', 'color': '#3498db'}),
                         html.P('Gesamt', style={'margin': '0', 'color': '#7f8c8d'})
-                    ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '100px'}),
+                    ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '100px'}, className='notification-stat-card'),
 
                     html.Div([
                         html.H6(f'{sent}', style={'margin': '0', 'fontSize': '20px', 'color': '#27ae60'}),
                         html.P('Erfolgreich', style={'margin': '0', 'color': '#7f8c8d'})
-                    ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '100px'}),
+                    ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '100px'}, className='notification-stat-card'),
 
                     html.Div([
                         html.H6(f'{failed}', style={'margin': '0', 'fontSize': '20px', 'color': '#e74c3c'}),
                         html.P('Fehlgeschlagen', style={'margin': '0', 'color': '#7f8c8d'})
-                    ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '100px'}),
+                    ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '100px'}, className='notification-stat-card'),
 
                     html.Div([
                         html.H6(f'{success_rate:.1f}%', style={'margin': '0', 'fontSize': '20px', 'color': '#f39c12'}),
                         html.P('Erfolgsrate', style={'margin': '0', 'color': '#7f8c8d'})
-                    ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '100px'})
+                    ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '100px'}, className='notification-stat-card')
                 ], style={'display': 'flex', 'gap': '15px', 'flexWrap': 'wrap', 'marginBottom': '20px'}),
 
                 # Type breakdown
@@ -255,9 +255,8 @@ def load_recent_notifications(refresh_clicks, timeframe_hours, auth_data):
             ], style={
                 'width': '100%',
                 'borderCollapse': 'collapse',
-                'border': '1px solid #ddd',
                 'fontSize': '12px'
-            })
+            }, className='notifications-table')
 
             return table
 
@@ -365,13 +364,13 @@ def load_admin_visitor_stats(refresh_clicks, auth_data):
                     html.H6('Heute', style={'margin': '0', 'fontSize': '16px', 'color': '#3498db'}),
                     html.P(f"{stats['unique_visitors_today']} Besucher", style={'margin': '0', 'fontSize': '14px'}),
                     html.P(f"{stats['page_views_today']} Seitenaufrufe", style={'margin': '0', 'fontSize': '14px', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'}),
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='visitor-stat-card'),
 
                 html.Div([
                     html.H6('30 Tage', style={'margin': '0', 'fontSize': '16px', 'color': '#3498db'}),
                     html.P(f"{stats['total_unique_visitors_30d']} Besucher", style={'margin': '0', 'fontSize': '14px'}),
                     html.P(f"{stats['total_page_views_30d']} Seitenaufrufe", style={'margin': '0', 'fontSize': '14px', 'color': '#7f8c8d'})
-                ], style={'textAlign': 'center', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px', 'minWidth': '120px'})
+                ], style={'textAlign': 'center', 'padding': '15px', 'borderRadius': '8px', 'minWidth': '120px'}, className='visitor-stat-card')
             ], style={'display': 'flex', 'gap': '20px', 'marginBottom': '20px'}),
 
             # Popular pages table
@@ -395,9 +394,8 @@ def load_admin_visitor_stats(refresh_clicks, auth_data):
                 ], style={
                     'width': '100%',
                     'borderCollapse': 'collapse',
-                    'border': '1px solid #ddd',
                     'fontSize': '12px'
-                })
+                }, className='visitor-stats-table')
             ]) if stats['popular_pages'] else html.P('Keine Besucher-Daten verfügbar', style={'color': '#7f8c8d'}),
 
             # Browser stats
@@ -421,9 +419,8 @@ def load_admin_visitor_stats(refresh_clicks, auth_data):
                 ], style={
                     'width': '100%',
                     'borderCollapse': 'collapse',
-                    'border': '1px solid #ddd',
                     'fontSize': '12px'
-                })
+                }, className='visitor-stats-table')
             ]) if stats['browser_stats'] else html.Div(),
 
             html.P(f'Letzte Aktualisierung: {time.strftime("%d.%m.%Y %H:%M:%S")}',

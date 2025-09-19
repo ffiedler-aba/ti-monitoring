@@ -153,7 +153,7 @@ def serve_layout():
             'borderRadius': '12px',
             'marginBottom': '30px',
             'boxShadow': '0 2px 4px rgba(52, 152, 219, 0.1)'
-        }),
+        }, className='info-box'),
 
         # === STORES (Single source of truth) ===
         dcc.Store(id='auth-state-store', data={'authenticated': False}),
@@ -191,7 +191,7 @@ def serve_layout():
 
         # Settings container
         html.Div(id='settings-container', children=[
-            html.Div(id='user-info', children='', style={'marginBottom': '20px', 'padding': '15px', 'backgroundColor': '#f8f9fa', 'borderRadius': '8px'}),
+            html.Div(id='user-info', children='', style={'marginBottom': '20px', 'padding': '15px', 'borderRadius': '8px'}, className='user-info-card'),
             html.P('Verwalte deine Benachrichtigungsprofile unten.'),
             html.Div(id='profiles-container'),
             html.Button('Neues Profil hinzufügen', id='add-profile-button', n_clicks=0, style=get_button_style('success')),
@@ -227,9 +227,9 @@ def serve_layout():
                     html.Div(id='ci-filter-info', style={'fontSize': '12px', 'color': '#7f8c8d', 'marginBottom': '8px'}),
                     html.Div(id='ci-load-status', style={'fontSize': '12px', 'color': '#e74c3c', 'marginBottom': '8px'}),
                     html.Div(id='ci-checkboxes-container', style={
-                        'maxHeight': '200px', 'overflowY': 'auto', 'border': '1px solid #e9ecef',
-                        'borderRadius': '8px', 'padding': '15px', 'backgroundColor': '#f8f9fa'
-                    })
+                        'maxHeight': '200px', 'overflowY': 'auto',
+                        'borderRadius': '8px', 'padding': '15px'
+                    }, className='ci-checkboxes-container')
                 ], style={'marginBottom': '15px'}),
 
                 dcc.Textarea(id='apprise-urls-textarea', placeholder='Apprise URLs (eine pro Zeile)',
@@ -859,10 +859,9 @@ def display_profiles(auth_state, save_clicks, delete_status):
                     )
                 ], style={'display': 'flex', 'gap': '10px', 'justifyContent': 'flex-end'})
             ], style={
-                'backgroundColor': 'white', 'padding': '20px', 'borderRadius': '12px',
-                'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)', 'marginBottom': '15px',
-                'border': '1px solid #e9ecef'
-            })
+                'padding': '20px', 'borderRadius': '12px',
+                'boxShadow': '0 2px 4px rgba(0, 0, 0, 0.1)', 'marginBottom': '15px'
+            }, className='profile-card')
 
             profile_cards.append(card)
 

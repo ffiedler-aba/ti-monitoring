@@ -186,8 +186,6 @@ def check_admin_and_load_logs(auth_data):
         }),
 
         html.Div(id='admin-log-content-display', style={
-            'backgroundColor': '#f8f9fa',
-            'border': '1px solid #dee2e6',
             'borderRadius': '4px',
             'padding': '15px',
             'fontFamily': 'monospace',
@@ -195,7 +193,7 @@ def check_admin_and_load_logs(auth_data):
             'maxHeight': '600px',
             'overflowY': 'auto',
             'whiteSpace': 'pre-wrap'
-        })
+        }, className='admin-log-display')
     ])
 
 # Callback: Update log content
