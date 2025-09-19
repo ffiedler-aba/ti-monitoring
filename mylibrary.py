@@ -1236,7 +1236,7 @@ def create_notification_message(changes, recipient_name, home_url):
     if home_url:    
         message += f'</ul><p>Den aktuellen Status aller Komponenten kannst du unter <a href="{home_url}">{home_url}</a> einsehen.</p>'
     message += '<p>Weitere Hintergrundinformationen findest du im <a href="https://fachportal.gematik.de/ti-status">Fachportal der gematik GmbH</a>.</p>'
-    message += '<p>📊 <a href="https://ti-stats.net">@https://ti-stats.net</a></p></body></html>'
+    message += '<p>👉 <a href="https://ti-stats.net">https://ti-stats.net</a></p></body></html>'
     
     return message
 
