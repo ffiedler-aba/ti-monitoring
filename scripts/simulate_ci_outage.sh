@@ -177,6 +177,8 @@ import os
 import sys
 import apprise
 from datetime import datetime
+import re
+import html as htmllib
 
 def send_test_notification():
     try:
@@ -196,7 +198,7 @@ def send_test_notification():
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         subject = f"TI-Monitoring Test-Benachrichtigung - CI-Ausfall Simulation"
         
-        body = f"""
+        body_html = f"""
 <h2>🔧 TI-Monitoring Test-Benachrichtigung</h2>
 
 <p><strong>Zeit:</strong> {timestamp}</p>
@@ -213,17 +215,54 @@ def send_test_notification():
     <li><strong>Skript:</strong> simulate_ci_outage.sh</li>
     <li><strong>APPRISE_URL:</strong> {apprise_url[:50]}...</li>
     <li><strong>Simulation ID:</strong> test-{int(datetime.now().timestamp())}</li>
+    <li><a href="https://ti-stats.net">Zur App</a></li>
+    <li><a href="https://mastodon.ti-stats.net/@tistatus">Unser Mastodon</a></li>
+    
 </ul>
 
 <hr>
 <p><em>Diese Nachricht wurde automatisch vom TI-Monitoring CI-Ausfall-Simulator generiert.</em></p>
 """
+
+        def html_to_text(s: str) -> str:
+            def repl_a(m):
+                href, text = m.group(1), m.group(2)
+                return f"{text} ({href})"
+            s = re.sub(r"<a [^>]*href=\"([^\"]+)\"[^>]*>(.*?)</a>", repl_a, s, flags=re.I|re.S)
+            s = re.sub(r"<\s*br\s*/?\s*>", "\n", s, flags=re.I)
+            s = re.sub(r"</\s*p\s*>", "\n\n", s, flags=re.I)
+            s = re.sub(r"<\s*p\s*[^>]*>", "", s, flags=re.I)
+            s = re.sub(r"<\s*li\s*[^>]*>", "- ", s, flags=re.I)
+            s = re.sub(r"</\s*li\s*>", "\n", s, flags=re.I)
+            s = re.sub(r"<[^>]+>", "", s)
+            try:
+                s = htmllib.unescape(s)
+            except Exception:
+                pass
+            s = re.sub(r"\n{3,}", "\n\n", s).strip()
+            return s
+
+        scheme = apprise_url.split('://', 1)[0].lower()
+        email_schemes = { 'mailto', 'gmail', 'ses', 'sendgrid', 'outlook', 'resend' }
+        mastodon_schemes = { 'toots', 'mastodon', 'mastodons' }
+
+        if scheme in email_schemes:
+            body = body_html
+            body_fmt = apprise.NotifyFormat.HTML
+        elif scheme in mastodon_schemes:
+            body = html_to_text(body_html)
+            if len(body) > 480:
+                body = body[:480].rstrip() + '…'
+            body_fmt = apprise.NotifyFormat.TEXT
+        else:
+            body = html_to_text(body_html)
+            body_fmt = apprise.NotifyFormat.MARKDOWN
         
         # Benachrichtigung senden
         success = apobj.notify(
             title=subject,
             body=body,
-            body_format=apprise.NotifyFormat.HTML
+            body_format=body_fmt
         )
         
         if success:
