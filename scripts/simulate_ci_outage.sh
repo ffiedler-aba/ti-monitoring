@@ -179,6 +179,8 @@ import apprise
 from datetime import datetime
 import re
 import html as htmllib
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 def send_test_notification():
     try:
@@ -246,24 +248,32 @@ def send_test_notification():
         email_schemes = { 'mailto', 'gmail', 'ses', 'sendgrid', 'outlook', 'resend' }
         mastodon_schemes = { 'toots', 'mastodon', 'mastodons' }
 
+        print(f"Scheme: {scheme}")
         if scheme in email_schemes:
             body = body_html
             body_fmt = apprise.NotifyFormat.HTML
+            title_to_send = subject
         elif scheme in mastodon_schemes:
-            body = html_to_text(body_html)
-            if len(body) > 480:
-                body = body[:480].rstrip() + '…'
+            # Merge title into body and trim aggressively
+            body = html_to_text((subject + "\n\n" + body_html).strip())
+            max_len = 460
+            if len(body) > max_len:
+                body = body[:max_len].rstrip() + '…'
             body_fmt = apprise.NotifyFormat.TEXT
+            title_to_send = ''
         else:
             body = html_to_text(body_html)
             body_fmt = apprise.NotifyFormat.MARKDOWN
+            title_to_send = subject
+        print(f"Body format: {body_fmt}; length={len(body)} title_len={len(title_to_send)}")
         
         # Benachrichtigung senden
         success = apobj.notify(
-            title=subject,
+            title=title_to_send,
             body=body,
             body_format=body_fmt
         )
+        print(f"notify() returned: {success}")
         
         if success:
             print("SUCCESS: Test-Benachrichtigung erfolgreich gesendet")
@@ -281,9 +291,9 @@ if __name__ == "__main__":
     sys.exit(0 if success else 1)
 EOF
 
-# Python-Script ausführen
+# Python-Script ausführen (immer .venv nutzen)
 export CI_ID DURATION_MINUTES APPRISE_TEST_URL
-if python3 /tmp/test_notification.py; then
+if .venv/bin/python /tmp/test_notification.py; then
     log_success "Test-Benachrichtigung erfolgreich gesendet"
 else
     log_error "Fehler beim Senden der Test-Benachrichtigung"
