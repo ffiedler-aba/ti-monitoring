@@ -1853,9 +1853,9 @@ def send_db_notifications():
                         # Detail-URL für öffentliche Ansicht ermitteln
                         try:
                             cfg_links = load_config().get('core', {}) or {}
-                            detail_url = cfg_links.get('public_base_url') or cfg_links.get('home_url') or 'https://ti-stats.net'
+                            detail_base = cfg_links.get('public_base_url') or cfg_links.get('home_url') or 'https://ti-stats.net'
                         except Exception:
-                            detail_url = 'https://ti-stats.net'
+                            detail_base = 'https://ti-stats.net'
 
                         if email_notifications:
                             # Senden über otp_apprise_url_template (ohne OTP, mit Empfänger-E-Mail)
@@ -1933,7 +1933,13 @@ def send_db_notifications():
 
                                             # Send notification without unsubscribe links
                                             scheme = extract_apprise_scheme(decrypted_url)
-                                            title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(str(message), subject, scheme, detail_url)
+                                            # Ersten relevanten CI für Detail-Link ermitteln
+                                            try:
+                                                primary_ci = str(relevant_changes['ci'].iloc[0]) if not relevant_changes.empty else ''
+                                            except Exception:
+                                                primary_ci = ''
+                                            ci_detail_url = f"{detail_base.rstrip('/')}/plot?ci={primary_ci}" if primary_ci else detail_base
+                                            title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(str(message), subject, scheme, ci_detail_url)
                                             apobj = apprise.Apprise()
                                             apobj.add(decrypted_url)
                                             success = apobj.notify(title=title_to_send, body=body_sanitized, body_format=body_fmt)
@@ -1967,7 +1973,12 @@ def send_db_notifications():
                                             # Zusätzlich Profil-Opt-Out-Link anbieten, falls vorhanden
                                             body += f'<p style="margin-top:6px;"><a href="{profile_unsub_link}">Alle Benachrichtigungen dieses Profils abmelden</a></p>'
                                             scheme = extract_apprise_scheme(decrypted_url)
-                                            title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(body, subject, scheme, detail_url)
+                                            try:
+                                                primary_ci = str(relevant_changes['ci'].iloc[0]) if not relevant_changes.empty else ''
+                                            except Exception:
+                                                primary_ci = ''
+                                            ci_detail_url = f"{detail_base.rstrip('/')}/plot?ci={primary_ci}" if primary_ci else detail_base
+                                            title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(body, subject, scheme, ci_detail_url)
                                             apobj = apprise.Apprise()
                                             apobj.add(decrypted_url)
                                             success = apobj.notify(title=title_to_send, body=body_sanitized, body_format=body_fmt)
@@ -1999,7 +2010,12 @@ def send_db_notifications():
                                                 log_notification(profile_id, ci, notification_type, 'failed', 'apprise', 'Apprise URL decryption failed')
                                             continue
                                         scheme = extract_apprise_scheme(decrypted_url)
-                                        title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(str(body), subject, scheme, detail_url)
+                                        try:
+                                            primary_ci = str(relevant_changes['ci'].iloc[0]) if not relevant_changes.empty else ''
+                                        except Exception:
+                                            primary_ci = ''
+                                        ci_detail_url = f"{detail_base.rstrip('/')}/plot?ci={primary_ci}" if primary_ci else detail_base
+                                        title_to_send, body_sanitized, body_fmt = prepare_apprise_payload(str(body), subject, scheme, ci_detail_url)
                                         apobj = apprise.Apprise()
                                         apobj.add(decrypted_url)
                                         success = apobj.notify(title=title_to_send, body=body_sanitized, body_format=body_fmt)
