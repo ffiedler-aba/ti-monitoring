@@ -29,6 +29,33 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
+def generate_synthetic_availability(hours: int = 24, timezone: str = 'Europe/Berlin'):
+    """Generate synthetic availability data with clear outage segments for demo/testing.
+
+    - 5‑Minutentakt
+    - enthält 2 Ausfälle (je ~30–45 Minuten), sodass Linien sichtbar unterbrochen werden
+    """
+    try:
+        hours = int(max(1, hours))
+    except Exception:
+        hours = 24
+
+    now_ts = pd.Timestamp.now(tz=pytz.timezone(timezone)).floor('min')
+    start_ts = now_ts - pd.Timedelta(hours=hours)
+    idx = pd.date_range(start=start_ts, end=now_ts, freq='5min', tz=pytz.timezone(timezone))
+
+    values = np.ones(len(idx), dtype=int)
+    if len(idx) > 30:
+        # erster Ausfall: mittig
+        mid = len(idx) // 2
+        values[max(0, mid - 6): min(len(values), mid + 6)] = 0  # ~60 Minuten
+    if len(idx) > 80:
+        # zweiter Ausfall: im ersten Drittel
+        third = len(idx) // 3
+        values[max(0, third - 4): min(len(values), third + 5)] = 0  # ~45 Minuten
+
+    return pd.DataFrame({'times': idx, 'values': values})
+
 def format_duration(hours):
     """Format duration in a human-readable way"""
     if hours < 1:
@@ -200,10 +227,10 @@ def create_comprehensive_statistics_display(stats, ci):
     selected_period = stats['selected_period']
     overall_record = stats['overall_record']
     downtime_stats = stats['downtime_stats']
-    
+
     return html.Div([
         html.H3('Detaillierte Statistiken', style={'color': '#2c3e50', 'marginBottom': '20px'}),
-        
+
         # Selected Period Statistics
         html.Div([
             html.H4('Ausgewählter Zeitraum', style={'color': '#34495e', 'marginBottom': '15px'}),
@@ -218,7 +245,7 @@ def create_comprehensive_statistics_display(stats, ci):
                 ], style={'marginBottom': '8px'}),
                 html.Div([
                     html.Strong('Verfügbarkeit: '),
-                    html.Span(f"{selected_period['availability_percent']:.2f}%", 
+                    html.Span(f"{selected_period['availability_percent']:.2f}%",
                              style={'color': '#10b981' if selected_period['availability_percent'] >= 99 else '#ef4444'})
                 ], style={'marginBottom': '8px'}),
                 html.Div([
@@ -227,7 +254,7 @@ def create_comprehensive_statistics_display(stats, ci):
                 ], style={'marginBottom': '8px'})
             ], style={'paddingLeft': '20px'})
         ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'}),
-        
+
         # Downtime Statistics
         html.Div([
             html.H4('Ausfallstatistiken', style={'color': '#34495e', 'marginBottom': '15px'}),
@@ -262,7 +289,7 @@ def create_comprehensive_statistics_display(stats, ci):
                 ], style={'marginBottom': '8px'})
             ], style={'paddingLeft': '20px'})
         ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'}),
-        
+
         # MTTR/MTBF Statistics
         html.Div([
             html.H4('MTTR/MTBF Statistiken', style={'color': '#34495e', 'marginBottom': '15px'}),
@@ -281,7 +308,7 @@ def create_comprehensive_statistics_display(stats, ci):
                 ], style={'marginBottom': '8px'})
             ], style={'paddingLeft': '20px'})
         ], style={'backgroundColor': '#f8f9fa', 'padding': '15px', 'borderRadius': '8px', 'marginBottom': '20px'}),
-        
+
         # Overall Record Statistics
         html.Div([
             html.H4('Gesamter Datensatz', style={'color': '#34495e', 'marginBottom': '15px'}),
@@ -449,11 +476,11 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         if not ci:
             from flask import request
             ci = request.args.get('ci', 'Unbekannt')
-    
+
     # Determine selected interval/hours
     selected_hours = 48  # fallback
     selected_range = None  # (start_ts, end_ts) if user zoomed/panned
-    
+
     # Priority 1: react to explicit plot range (zoom/pan)
     try:
         if relayout_data and isinstance(relayout_data, dict):
@@ -478,11 +505,11 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
             # Reset to autorange -> fall back to dropdown/URL
     except Exception:
         selected_range = None
-    
+
     # Priority 2: hours from dropdown input
     if selected_range is None and hours is not None:
         selected_hours = hours
-    
+
     # Priority 3: hours from URL
     if selected_range is None and hours is None and url_search:
         import urllib.parse
@@ -492,9 +519,9 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
                 selected_hours = int(params['hours'][0])
             except (ValueError, IndexError):
                 selected_hours = 48
-    
+
     # Do not update URL to avoid full page re-render; only update UI
-    
+
     # Prepare CI meta from metadata table
     try:
         ci_info = get_data_of_ci(None, ci) if ci else None
@@ -512,8 +539,32 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
 
     # Load and process data
     try:
-        ci_data = get_availability_data_of_ci(None, ci)
-        
+        # Parse demo flag once and reuse
+        demo_mode = False
+        try:
+            if url_search:
+                import urllib.parse
+                params = urllib.parse.parse_qs(url_search.lstrip('?'))
+                demo_mode = params.get('demo', ['0'])[0] in ['1', 'true', 'True']
+        except Exception:
+            demo_mode = False
+
+        # If demo mode is requested, generate synthetic data regardless of DB
+        if demo_mode:
+            ci_data = generate_synthetic_availability(hours=selected_hours)
+        else:
+            ci_data = get_availability_data_of_ci(None, ci)
+
+        if ci_data.empty:
+            # Fallback auf synthetische Testdaten, wenn gewünscht (per URL-Flag demo=1)
+            try:
+                if demo_mode:
+                    ci_data = generate_synthetic_availability(hours=selected_hours)
+                else:
+                    raise ValueError('no_data')
+            except Exception:
+                pass
+
         if ci_data.empty:
             # No data available
             fig = go.Figure()
@@ -529,26 +580,27 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
                 yaxis_title="Verfügbarkeit",
                 yaxis=dict(range=[-0.1, 1.1], tickvals=[0, 1], ticktext=['Nicht verfügbar', 'Verfügbar'])
             )
-            
+
             stats_display = html.Div([
                 html.H3('Keine Daten verfügbar'),
                 html.P(f'CI: {ci}'),
                 html.P(f'Zeitraum: {selected_hours} Stunden'),
-                html.P('Für diese Komponente sind keine Verfügbarkeitsdaten vorhanden.')
+                html.P('Für diese Komponente sind keine Verfügbarkeitsdaten vorhanden.'),
+                html.P('Tipp: Fügen Sie der URL "&demo=1" hinzu, um Testdaten mit Ausfällen anzuzeigen.')
             ])
-            
+
             return fig, stats_display, ci_meta_text
-        
+
         # Convert times to datetime if needed
         if not pd.api.types.is_datetime64_any_dtype(ci_data['times']):
             ci_data['times'] = pd.to_datetime(ci_data['times'])
-        
+
         # Ensure timezone-aware
         if ci_data['times'].dt.tz is None:
             ci_data['times'] = ci_data['times'].dt.tz_localize('Europe/Berlin')
         else:
             ci_data['times'] = ci_data['times'].dt.tz_convert('Europe/Berlin')
-        
+
         # Calculate and apply selected time window
         if selected_range is not None:
             start_ts, end_ts = selected_range
@@ -556,7 +608,20 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         else:
             cutoff = pd.Timestamp.now(tz=pytz.timezone('Europe/Berlin')) - pd.Timedelta(hours=selected_hours)
             selected_data = ci_data[ci_data['times'] >= cutoff].copy()
-        
+
+        if selected_data.empty:
+            # Try demo mode within selected window
+            try:
+                demo_mode = False
+                if url_search:
+                    import urllib.parse
+                    params = urllib.parse.parse_qs(url_search.lstrip('?'))
+                    demo_mode = params.get('demo', ['0'])[0] in ['1', 'true', 'True']
+                if demo_mode:
+                    selected_data = generate_synthetic_availability(hours=selected_hours)
+            except Exception:
+                pass
+
         if selected_data.empty:
             # No data in selected period
             fig = go.Figure()
@@ -572,55 +637,63 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
                 yaxis_title="Verfügbarkeit",
                 yaxis=dict(range=[-0.1, 1.1], tickvals=[0, 1], ticktext=['Nicht verfügbar', 'Verfügbar'])
             )
-            
+
             stats_display = html.Div([
                 html.H3('Keine Daten im Zeitraum'),
                 html.P(f'CI: {ci}'),
                 html.P(f'Zeitraum: {selected_hours} Stunden'),
-                html.P('Im ausgewählten Zeitraum sind keine Daten verfügbar.')
+                html.P('Im ausgewählten Zeitraum sind keine Daten verfügbar.'),
+                html.P('Tipp: Fügen Sie der URL "&demo=1" hinzu, um Testdaten mit Ausfällen anzuzeigen.')
             ])
-            
+
             return fig, stats_display, ci_meta_text
-        
+
         # Create plot with color coding: Red for availability 0, Green for availability 1
+        # IMPORTANT: Do not connect green line across downtime. We achieve this by
+        # masking opposite values to NaN so Plotly breaks the line between segments.
         fig = go.Figure()
-        
-        # Separate data points by availability value
-        available_data = selected_data[selected_data['values'] == 1]
-        unavailable_data = selected_data[selected_data['values'] == 0]
-        
-        # Add trace for available periods (green)
-        if not available_data.empty:
-            fig.add_trace(go.Scatter(
-                x=available_data['times'],
-                y=available_data['values'],
-                mode='lines+markers',
-                name='Verfügbar',
-                line=dict(color='#10b981', width=3),  # Green color
-                marker=dict(color='#10b981', size=6),
-                hovertemplate='<b>Verfügbar</b><br>Zeit: %{x}<br>Status: %{y}<extra></extra>'
-            ))
-        
-        # Add trace for unavailable periods (red)
-        if not unavailable_data.empty:
-            fig.add_trace(go.Scatter(
-                x=unavailable_data['times'],
-                y=unavailable_data['values'],
-                mode='lines+markers',
-                name='Nicht verfügbar',
-                line=dict(color='#ef4444', width=3),  # Red color
-                marker=dict(color='#ef4444', size=6),
-                hovertemplate='<b>Nicht verfügbar</b><br>Zeit: %{x}<br>Status: %{y}<extra></extra>'
-            ))
-        
+
+        selected_data_sorted = selected_data.sort_values('times').copy()
+
+        # Build masked series so that lines break across gaps (None/NaN)
+        # Use a small epsilon for unavailable to avoid clipping at y=0 baseline
+        eps = 0.05
+        vals = selected_data_sorted['values'].astype(float).tolist()
+        avail_y = [1.0 if v == 1.0 else None for v in vals]
+        unavail_y = [eps if v == 0.0 else None for v in vals]
+
+        # Available (green) – gaps over downtime
+        fig.add_trace(go.Scatter(
+            x=selected_data_sorted['times'],
+            y=avail_y,
+            mode='lines+markers',
+            name='Verfügbar',
+            line=dict(color='#10b981', width=3),
+            marker=dict(color='#10b981', size=6),
+            connectgaps=False,
+            hovertemplate='<b>Verfügbar</b><br>Zeit: %{x}<br>Status: %{y}<extra></extra>'
+        ))
+
+        # Unavailable (red) – gaps over uptime
+        fig.add_trace(go.Scatter(
+            x=selected_data_sorted['times'],
+            y=unavail_y,
+            mode='lines+markers',
+            name='Nicht verfügbar',
+            line=dict(color='#ef4444', width=4, shape='hv'),
+            marker=dict(color='#ef4444', size=6, symbol='square'),
+            connectgaps=False,
+            hovertemplate='<b>Nicht verfügbar</b><br>Zeit: %{x}<br>Status: %{y}<extra></extra>'
+        ))
+
         # Update layout
         fig.update_layout(
             title=f'Verfügbarkeit der Komponente {ci}',
             xaxis_title="Zeit",
             yaxis_title="Verfügbarkeit",
             yaxis=dict(
-                range=[-0.1, 1.1], 
-                tickvals=[0, 1], 
+                range=[-0.2, 1.1],
+                tickvals=[0, 1],
                 ticktext=['Nicht verfügbar', 'Verfügbar'],
                 tickfont=dict(size=12)
             ),
@@ -641,7 +714,7 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
 
         # --- Trend Overlays ---
         try:
-            trend_options = trend_options or []
+            trend_options = trend_options or ['ema24']
             selected_data_sorted = selected_data.sort_values('times').copy()
             # Ensure numeric values
             selected_data_sorted['values'] = selected_data_sorted['values'].astype(float)
@@ -704,10 +777,10 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         except Exception:
             # Trends sind optional; Fehler hier sollen den Basisplot nicht verhindern
             pass
-        
+
         # Calculate comprehensive statistics
         stats = calculate_comprehensive_statistics(ci_data, selected_hours, None, ci)
-        
+
         # Base statistics display
         base_stats_display = create_comprehensive_statistics_display(stats, ci)
 
@@ -817,7 +890,7 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
 
         # Compose final statistics display
         stats_display = html.Div([base_stats_display, *extra_blocks])
-        
+
     except Exception as e:
         # Error handling
         fig = go.Figure()
@@ -832,14 +905,14 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
             xaxis_title="Zeit",
             yaxis_title="Verfügbarkeit"
         )
-        
+
         stats_display = html.Div([
             html.H3('Fehler beim Laden der Daten'),
             html.P(f'CI: {ci}'),
             html.P(f'Fehler: {str(e)}'),
             html.P('Bitte versuchen Sie es später erneut.')
         ])
-    
+
     return fig, stats_display, ci_meta_text
 
 # Page registration is handled in app.py
