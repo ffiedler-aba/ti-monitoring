@@ -2357,6 +2357,69 @@ details {
     color: #e2e8f0 !important;
   }
   
+  /* Additional styling for user search results */
+  .user-search-result {
+    margin-bottom: 20px !important;
+  }
+  
+  .user-search-result h5 {
+    margin-bottom: 10px !important;
+    font-size: 18px !important;
+  }
+  
+  .user-search-result h6 {
+    margin-top: 15px !important;
+    margin-bottom: 8px !important;
+    font-size: 16px !important;
+  }
+  
+  .user-search-result p {
+    margin-bottom: 8px !important;
+    line-height: 1.4 !important;
+  }
+  
+  .user-search-result ul {
+    margin-left: 20px !important;
+    margin-bottom: 15px !important;
+  }
+  
+  .user-search-result li {
+    margin-bottom: 4px !important;
+  }
+  
+  .user-search-result button {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+  }
+  
+  .user-search-result button:hover {
+    background-color: #b91c1c !important;
+  }
+  
+  /* Dark theme for user search input */
+  .user-search-input {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .user-search-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+    outline: none !important;
+  }
+  
+  .user-search-input::placeholder {
+    color: #94a3b8 !important;
+  }
+  
   /* Dark theme for users table with class */
   .users-table {
     background-color: #1e293b !important;
@@ -2382,6 +2445,37 @@ details {
   
   .users-table tr:hover td {
     background-color: rgba(96, 165, 250, 0.15) !important;
+  }
+  
+  /* Additional styling for users table consistency */
+  .users-table {
+    font-size: 14px !important;
+  }
+  
+  .users-table th {
+    padding: 12px 8px !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+  }
+  
+  .users-table td {
+    padding: 10px 8px !important;
+    vertical-align: middle !important;
+  }
+  
+  .users-table button {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 4px !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s ease !important;
+  }
+  
+  .users-table button:hover {
+    background-color: #b91c1c !important;
   }
   
   /* Dark theme for admin stats page */

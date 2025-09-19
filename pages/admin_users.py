@@ -102,10 +102,10 @@ def check_admin_and_load_users(auth_data):
                         style={
                             'width': '250px',
                             'padding': '8px 12px',
-                            'border': '1px solid #ddd',
                             'borderRadius': '4px',
                             'marginRight': '10px'
-                        }
+                        },
+                        className='user-search-input'
                     )
                 ], style={'display': 'inline-flex', 'alignItems': 'center', 'marginRight': '15px'}),
 
@@ -336,7 +336,8 @@ def load_all_users(refresh_clicks, auth_data):
                 ])
             ], style={
                 'width': '100%',
-                'borderCollapse': 'collapse'
+                'borderCollapse': 'collapse',
+                'fontSize': '14px'
             }, className='users-table')
         ])
 
