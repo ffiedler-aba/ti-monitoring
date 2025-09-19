@@ -1,0 +1,1102 @@
+{
+  "services": {
+    "discord": {
+      "name": "Discord",
+      "category": "Messaging",
+      "example": "discord://WEBHOOK_ID/WEBHOOK_TOKEN",
+      "description": "Discord Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_discord"
+    },
+    "email": {
+      "name": "Email",
+      "category": "Email",
+      "example": "mailto://USERNAME:PASSWORD@SMTP_SERVER:PORT",
+      "description": "Email Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_email"
+    },
+    "email-Fastmail": {
+      "name": "Email Fastmail",
+      "category": "Email",
+      "example": "mailto://USERNAME:PASSWORD@SMTP_SERVER:PORT",
+      "description": "Email Fastmail Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_email_fastmail"
+    },
+    "gmail": {
+      "name": "Gmail",
+      "category": "Email",
+      "example": "gmail://USERNAME:APP_PASSWORD@gmail.com",
+      "description": "Gmail Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_gmail"
+    },
+    "teams": {
+      "name": "Microsoft Teams",
+      "category": "Messaging",
+      "example": "msteams://TOKEN@TEAM_ID/CHANNEL_ID",
+      "description": "Microsoft Teams Kanal Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_msteams"
+    },
+    "msteams": {
+      "name": "Microsoft Teams",
+      "category": "Messaging",
+      "example": "msteams://TOKEN@TEAM_ID/CHANNEL_ID",
+      "description": "Microsoft Teams Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_msteams"
+    },
+    "outlook": {
+      "name": "Outlook",
+      "category": "Email",
+      "example": "outlook://USERNAME:PASSWORD@outlook.com",
+      "description": "Outlook E-Mail Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_outlook"
+    },
+    "pushover": {
+      "name": "Pushover",
+      "category": "Push",
+      "example": "pover://USER_KEY@APP_TOKEN",
+      "description": "Pushover Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushover"
+    },
+    "slack": {
+      "name": "Slack",
+      "category": "Messaging",
+      "example": "slack://BOT_TOKEN@WORKSPACE/CHANNEL",
+      "description": "Slack Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_slack"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "category": "Messaging",
+      "example": "tgram://BOT_TOKEN/CHAT_ID",
+      "description": "Telegram Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_telegram"
+    },
+    "wxteams": {
+      "name": "Wxteams",
+      "category": "Messaging",
+      "example": "msteams://TOKEN@TEAM_ID/CHANNEL_ID",
+      "description": "Wxteams Benachrichtigungen",
+      "priority": 1,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_wxteams"
+    },
+    "aws_ses": {
+      "name": "AWS SES",
+      "category": "Email",
+      "example": "ses://ACCESS_KEY:SECRET_KEY@REGION",
+      "description": "Amazon SES E-Mail Service",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_aws_ses"
+    },
+    "gotify": {
+      "name": "Gotify",
+      "category": "Push",
+      "example": "gotify://TOKEN@GOTIFY_SERVER",
+      "description": "Gotify Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_gotify"
+    },
+    "mailgun": {
+      "name": "Mailgun",
+      "category": "Email",
+      "example": "mailgun://USER@DOMAIN/API_KEY/",
+      "description": "Mailgun Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_mailgun"
+    },
+    "matrix": {
+      "name": "Matrix",
+      "category": "Messaging",
+      "example": "matrix://USERNAME:PASSWORD@MATRIX_SERVER/ROOM_ID",
+      "description": "Matrix Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_matrix"
+    },
+    "mattermost": {
+      "name": "Mattermost",
+      "category": "Messaging",
+      "example": "mmost://USERNAME:PASSWORD@MATTERMOST_SERVER/CHANNEL",
+      "description": "Mattermost Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_mattermost"
+    },
+    "ntfy": {
+      "name": "Ntfy",
+      "category": "Push",
+      "example": "ntfy://TOPIC@NTFY_SERVER",
+      "description": "Ntfy Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_ntfy"
+    },
+    "onesignal": {
+      "name": "Onesignal",
+      "category": "Messaging",
+      "example": "signal://USERNAME:PASSWORD@SIGNAL_SERVER",
+      "description": "Onesignal Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_onesignal"
+    },
+    "opsgenie": {
+      "name": "Opsgenie",
+      "category": "Monitoring",
+      "example": "opsgenie://API_KEY@OPSGENIE",
+      "description": "Opsgenie Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_opsgenie"
+    },
+    "pagerduty": {
+      "name": "Pagerduty",
+      "category": "Monitoring",
+      "example": "pagerduty://INTEGRATION_KEY",
+      "description": "Pagerduty Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pagerduty"
+    },
+    "pushbullet": {
+      "name": "Pushbullet",
+      "category": "Push",
+      "example": "pbul://ACCESS_TOKEN",
+      "description": "Pushbullet Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushbullet"
+    },
+    "resend": {
+      "name": "Resend",
+      "category": "Email",
+      "example": "resend://API_KEY@resend.com",
+      "description": "Resend Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_resend"
+    },
+    "rocketchat": {
+      "name": "Rocketchat",
+      "category": "Messaging",
+      "example": "rocket://USERNAME:PASSWORD@ROCKET_SERVER/CHANNEL",
+      "description": "Rocketchat Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_rocketchat"
+    },
+    "sendgrid": {
+      "name": "Sendgrid",
+      "category": "Email",
+      "example": "sendgrid://API_KEY@SENDGRID",
+      "description": "Sendgrid Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sendgrid"
+    },
+    "signal": {
+      "name": "Signal",
+      "category": "Messaging",
+      "example": "signal://USERNAME:PASSWORD@SIGNAL_SERVER",
+      "description": "Signal Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_signal"
+    },
+    "twilio": {
+      "name": "Twilio",
+      "category": "SMS",
+      "example": "twilio://ACCOUNT_SID:AUTH_TOKEN@FROM_NUMBER",
+      "description": "Twilio Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_twilio"
+    },
+    "whatsapp": {
+      "name": "Whatsapp",
+      "category": "Messaging",
+      "example": "whatsapp://TOKEN@FROM_NUMBER",
+      "description": "Whatsapp Benachrichtigungen",
+      "priority": 2,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_whatsapp"
+    },
+    "ses": {
+      "name": "AWS SES",
+      "category": "Email",
+      "example": "ses://ACCESS_KEY:SECRET_KEY@REGION",
+      "description": "AWS SES Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_aws_ses"
+    },
+    "africas_talking": {
+      "name": "Africas Talking",
+      "category": "Other",
+      "example": "africas_talking://USERNAME:PASSWORD@SERVER",
+      "description": "Africas Talking Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_africas_talking"
+    },
+    "apprise_api": {
+      "name": "Apprise Api",
+      "category": "Other",
+      "example": "apprise_api://USERNAME:PASSWORD@SERVER",
+      "description": "Apprise Api Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_apprise_api"
+    },
+    "aprs": {
+      "name": "Aprs",
+      "category": "Other",
+      "example": "aprs://USERNAME:PASSWORD@SERVER",
+      "description": "Aprs Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_aprs"
+    },
+    "bark": {
+      "name": "Bark",
+      "category": "Other",
+      "example": "bark://USERNAME:PASSWORD@SERVER",
+      "description": "Bark Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_bark"
+    },
+    "bluesky": {
+      "name": "Bluesky",
+      "category": "Other",
+      "example": "bluesky://USERNAME:PASSWORD@SERVER",
+      "description": "Bluesky Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_bluesky"
+    },
+    "boxcar": {
+      "name": "Boxcar",
+      "category": "Other",
+      "example": "boxcar://USERNAME:PASSWORD@SERVER",
+      "description": "Boxcar Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_boxcar"
+    },
+    "bulksms": {
+      "name": "Bulksms",
+      "category": "SMS",
+      "example": "bulksms://USERNAME:PASSWORD@SERVER",
+      "description": "Bulksms Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_bulksms"
+    },
+    "bulkvs": {
+      "name": "Bulkvs",
+      "category": "Other",
+      "example": "bulkvs://USERNAME:PASSWORD@SERVER",
+      "description": "Bulkvs Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_bulkvs"
+    },
+    "burst_sms": {
+      "name": "Burst Sms",
+      "category": "SMS",
+      "example": "burst_sms://USERNAME:PASSWORD@SERVER",
+      "description": "Burst Sms Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_burst_sms"
+    },
+    "chanify": {
+      "name": "Chanify",
+      "category": "Other",
+      "example": "chanify://USERNAME:PASSWORD@SERVER",
+      "description": "Chanify Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_chanify"
+    },
+    "clickatell": {
+      "name": "Clickatell",
+      "category": "SMS",
+      "example": "clickatell://USERNAME:PASSWORD@SERVER",
+      "description": "Clickatell Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_clickatell"
+    },
+    "clicksend": {
+      "name": "Clicksend",
+      "category": "Other",
+      "example": "clicksend://USERNAME:PASSWORD@SERVER",
+      "description": "Clicksend Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_clicksend"
+    },
+    "Custom_Form": {
+      "name": "Custom Form",
+      "category": "Custom",
+      "example": "form://WEBHOOK_URL",
+      "description": "Custom Form Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_custom_form"
+    },
+    "Custom_JSON": {
+      "name": "Custom Json",
+      "category": "Custom",
+      "example": "json://WEBHOOK_URL",
+      "description": "Custom Json Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_custom_json"
+    },
+    "Custom_XML": {
+      "name": "Custom Xml",
+      "category": "Custom",
+      "example": "xml://WEBHOOK_URL",
+      "description": "Custom Xml Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_custom_xml"
+    },
+    "d7networks": {
+      "name": "D7Networks",
+      "category": "Other",
+      "example": "d7networks://USERNAME:PASSWORD@SERVER",
+      "description": "D7Networks Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_d7networks"
+    },
+    "dapnet": {
+      "name": "Dapnet",
+      "category": "Other",
+      "example": "dapnet://USERNAME:PASSWORD@SERVER",
+      "description": "Dapnet Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_dapnet"
+    },
+    "dbus": {
+      "name": "Dbus",
+      "category": "Other",
+      "example": "dbus://USERNAME:PASSWORD@SERVER",
+      "description": "Dbus Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_dbus"
+    },
+    "dingtalk": {
+      "name": "Dingtalk",
+      "category": "Other",
+      "example": "dingtalk://USERNAME:PASSWORD@SERVER",
+      "description": "Dingtalk Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_dingtalk"
+    },
+    "emby": {
+      "name": "Emby",
+      "category": "Other",
+      "example": "emby://USERNAME:PASSWORD@SERVER",
+      "description": "Emby Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_emby"
+    },
+    "enigma2": {
+      "name": "Enigma2",
+      "category": "Other",
+      "example": "enigma2://USERNAME:PASSWORD@SERVER",
+      "description": "Enigma2 Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_enigma2"
+    },
+    "faast": {
+      "name": "Faast",
+      "category": "Other",
+      "example": "faast://USERNAME:PASSWORD@SERVER",
+      "description": "Faast Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_faast"
+    },
+    "fcm": {
+      "name": "Fcm",
+      "category": "Other",
+      "example": "fcm://USERNAME:PASSWORD@SERVER",
+      "description": "Fcm Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_fcm"
+    },
+    "feishu": {
+      "name": "Feishu",
+      "category": "Other",
+      "example": "feishu://USERNAME:PASSWORD@SERVER",
+      "description": "Feishu Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_feishu"
+    },
+    "flock": {
+      "name": "Flock",
+      "category": "Messaging",
+      "example": "flock://USERNAME:PASSWORD@SERVER",
+      "description": "Flock Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_flock"
+    },
+    "form": {
+      "name": "Form POST",
+      "category": "Custom",
+      "example": "form://WEBHOOK_URL",
+      "description": "Custom Form POST",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_form"
+    },
+    "freemobile": {
+      "name": "Freemobile",
+      "category": "Other",
+      "example": "freemobile://USERNAME:PASSWORD@SERVER",
+      "description": "Freemobile Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_freemobile"
+    },
+    "gitter": {
+      "name": "Gitter",
+      "category": "Other",
+      "example": "gitter://USERNAME:PASSWORD@SERVER",
+      "description": "Gitter Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_gitter"
+    },
+    "gnome": {
+      "name": "Gnome",
+      "category": "Other",
+      "example": "gnome://USERNAME:PASSWORD@SERVER",
+      "description": "Gnome Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_gnome"
+    },
+    "googlechat": {
+      "name": "Googlechat",
+      "category": "Other",
+      "example": "googlechat://USERNAME:PASSWORD@SERVER",
+      "description": "Googlechat Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_googlechat"
+    },
+    "growl": {
+      "name": "Growl",
+      "category": "Other",
+      "example": "growl://USERNAME:PASSWORD@SERVER",
+      "description": "Growl Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_growl"
+    },
+    "guilded": {
+      "name": "Guilded",
+      "category": "Messaging",
+      "example": "guilded://USERNAME:PASSWORD@SERVER",
+      "description": "Guilded Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_guilded"
+    },
+    "homeassistant": {
+      "name": "Homeassistant",
+      "category": "IoT",
+      "example": "hassio://ACCESS_TOKEN@HOMEASSISTANT_SERVER",
+      "description": "Homeassistant Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_homeassistant"
+    },
+    "httpsms": {
+      "name": "Httpsms",
+      "category": "SMS",
+      "example": "httpsms://USERNAME:PASSWORD@SERVER",
+      "description": "Httpsms Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_httpsms"
+    },
+    "ifttt": {
+      "name": "Ifttt",
+      "category": "Monitoring",
+      "example": "ifttt://WEBHOOK_KEY/EVENT_NAME",
+      "description": "Ifttt Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_ifttt"
+    },
+    "jira": {
+      "name": "Jira",
+      "category": "Monitoring",
+      "example": "jira://USERNAME:PASSWORD@JIRA_SERVER/PROJECT",
+      "description": "Jira Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_jira"
+    },
+    "join": {
+      "name": "Join",
+      "category": "Other",
+      "example": "join://USERNAME:PASSWORD@SERVER",
+      "description": "Join Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_join"
+    },
+    "kavenegar": {
+      "name": "Kavenegar",
+      "category": "Other",
+      "example": "kavenegar://USERNAME:PASSWORD@SERVER",
+      "description": "Kavenegar Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_kavenegar"
+    },
+    "kodi": {
+      "name": "Kodi",
+      "category": "IoT",
+      "example": "kodi://USERNAME:PASSWORD@SERVER",
+      "description": "Kodi Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_kodi"
+    },
+    "kumulos": {
+      "name": "Kumulos",
+      "category": "Other",
+      "example": "kumulos://USERNAME:PASSWORD@SERVER",
+      "description": "Kumulos Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_kumulos"
+    },
+    "lametric": {
+      "name": "Lametric",
+      "category": "Other",
+      "example": "lametric://USERNAME:PASSWORD@SERVER",
+      "description": "Lametric Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_lametric"
+    },
+    "lark": {
+      "name": "Lark",
+      "category": "Other",
+      "example": "lark://USERNAME:PASSWORD@SERVER",
+      "description": "Lark Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_lark"
+    },
+    "line": {
+      "name": "Line",
+      "category": "Other",
+      "example": "line://USERNAME:PASSWORD@SERVER",
+      "description": "Line Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_line"
+    },
+    "lunasea": {
+      "name": "Lunasea",
+      "category": "Other",
+      "example": "lunasea://USERNAME:PASSWORD@SERVER",
+      "description": "Lunasea Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_lunasea"
+    },
+    "macosx": {
+      "name": "Macosx",
+      "category": "Other",
+      "example": "macosx://USERNAME:PASSWORD@SERVER",
+      "description": "Macosx Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_macosx"
+    },
+    "mastodon": {
+      "name": "Mastodon",
+      "category": "Other",
+      "example": "mastodon://USERNAME:PASSWORD@SERVER",
+      "description": "Mastodon Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_mastodon"
+    },
+    "messagebird": {
+      "name": "Messagebird",
+      "category": "SMS",
+      "example": "messagebird://USERNAME:PASSWORD@SERVER",
+      "description": "Messagebird Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_messagebird"
+    },
+    "misskey": {
+      "name": "Misskey",
+      "category": "Other",
+      "example": "misskey://USERNAME:PASSWORD@SERVER",
+      "description": "Misskey Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_misskey"
+    },
+    "mqtt": {
+      "name": "Mqtt",
+      "category": "IoT",
+      "example": "mqtt://USERNAME:PASSWORD@MQTT_SERVER:PORT/TOPIC",
+      "description": "Mqtt Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_mqtt"
+    },
+    "msg91": {
+      "name": "Msg91",
+      "category": "Other",
+      "example": "msg91://USERNAME:PASSWORD@SERVER",
+      "description": "Msg91 Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_msg91"
+    },
+    "nexmo": {
+      "name": "Nexmo",
+      "category": "Other",
+      "example": "nexmo://USERNAME:PASSWORD@SERVER",
+      "description": "Nexmo Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_nexmo"
+    },
+    "nextcloud": {
+      "name": "Nextcloud",
+      "category": "Other",
+      "example": "nextcloud://USERNAME:PASSWORD@SERVER",
+      "description": "Nextcloud Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_nextcloud"
+    },
+    "nextcloudtalk": {
+      "name": "Nextcloudtalk",
+      "category": "Other",
+      "example": "nextcloudtalk://USERNAME:PASSWORD@SERVER",
+      "description": "Nextcloudtalk Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_nextcloudtalk"
+    },
+    "notica": {
+      "name": "Notica",
+      "category": "Other",
+      "example": "notica://USERNAME:PASSWORD@SERVER",
+      "description": "Notica Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_notica"
+    },
+    "notifiarr": {
+      "name": "Notifiarr",
+      "category": "Other",
+      "example": "notifiarr://USERNAME:PASSWORD@SERVER",
+      "description": "Notifiarr Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_notifiarr"
+    },
+    "notifico": {
+      "name": "Notifico",
+      "category": "Other",
+      "example": "notifico://USERNAME:PASSWORD@SERVER",
+      "description": "Notifico Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_notifico"
+    },
+    "office365": {
+      "name": "Office365",
+      "category": "Other",
+      "example": "office365://USERNAME:PASSWORD@SERVER",
+      "description": "Office365 Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_office365"
+    },
+    "pagertree": {
+      "name": "Pagertree",
+      "category": "Other",
+      "example": "pagertree://USERNAME:PASSWORD@SERVER",
+      "description": "Pagertree Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pagertree"
+    },
+    "parseplatform": {
+      "name": "Parseplatform",
+      "category": "Custom",
+      "example": "form://WEBHOOK_URL",
+      "description": "Parseplatform Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_parseplatform"
+    },
+    "plivo": {
+      "name": "Plivo",
+      "category": "Other",
+      "example": "plivo://USERNAME:PASSWORD@SERVER",
+      "description": "Plivo Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_plivo"
+    },
+    "popcornnotify": {
+      "name": "Popcornnotify",
+      "category": "Other",
+      "example": "popcornnotify://USERNAME:PASSWORD@SERVER",
+      "description": "Popcornnotify Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_popcornnotify"
+    },
+    "prowl": {
+      "name": "Prowl",
+      "category": "Push",
+      "example": "prowl://USERNAME:PASSWORD@SERVER",
+      "description": "Prowl Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_prowl"
+    },
+    "pushalot": {
+      "name": "Pushalot",
+      "category": "Push",
+      "example": "pushalot://USERNAME:PASSWORD@SERVER",
+      "description": "Pushalot Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushalot"
+    },
+    "pushdeer": {
+      "name": "Pushdeer",
+      "category": "Push",
+      "example": "pushdeer://USERNAME:PASSWORD@SERVER",
+      "description": "Pushdeer Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushdeer"
+    },
+    "pushed": {
+      "name": "Pushed",
+      "category": "Push",
+      "example": "pushed://USERNAME:PASSWORD@SERVER",
+      "description": "Pushed Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushed"
+    },
+    "pushjet": {
+      "name": "Pushjet",
+      "category": "Push",
+      "example": "pushjet://USERNAME:PASSWORD@SERVER",
+      "description": "Pushjet Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushjet"
+    },
+    "pushme": {
+      "name": "Pushme",
+      "category": "Push",
+      "example": "pushme://USERNAME:PASSWORD@SERVER",
+      "description": "Pushme Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushme"
+    },
+    "pushplus": {
+      "name": "Pushplus",
+      "category": "Push",
+      "example": "pushplus://USERNAME:PASSWORD@SERVER",
+      "description": "Pushplus Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushplus"
+    },
+    "pushsafer": {
+      "name": "Pushsafer",
+      "category": "Push",
+      "example": "pushsafer://USERNAME:PASSWORD@SERVER",
+      "description": "Pushsafer Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushsafer"
+    },
+    "pushy": {
+      "name": "Pushy",
+      "category": "Push",
+      "example": "pushy://USERNAME:PASSWORD@SERVER",
+      "description": "Pushy Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_pushy"
+    },
+    "qq": {
+      "name": "Qq",
+      "category": "Other",
+      "example": "qq://USERNAME:PASSWORD@SERVER",
+      "description": "Qq Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_qq"
+    },
+    "reddit": {
+      "name": "Reddit",
+      "category": "Other",
+      "example": "reddit://USERNAME:PASSWORD@SERVER",
+      "description": "Reddit Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_reddit"
+    },
+    "Revolt": {
+      "name": "Revolt",
+      "category": "Other",
+      "example": "Revolt://USERNAME:PASSWORD@SERVER",
+      "description": "Revolt Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_revolt"
+    },
+    "rsyslog": {
+      "name": "Rsyslog",
+      "category": "Logging",
+      "example": "syslog://SYSLOG_SERVER:PORT",
+      "description": "Rsyslog Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_rsyslog"
+    },
+    "ryver": {
+      "name": "Ryver",
+      "category": "Other",
+      "example": "ryver://USERNAME:PASSWORD@SERVER",
+      "description": "Ryver Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_ryver"
+    },
+    "sendpulse": {
+      "name": "Sendpulse",
+      "category": "Other",
+      "example": "sendpulse://USERNAME:PASSWORD@SERVER",
+      "description": "Sendpulse Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sendpulse"
+    },
+    "serverchan": {
+      "name": "Serverchan",
+      "category": "Other",
+      "example": "serverchan://USERNAME:PASSWORD@SERVER",
+      "description": "Serverchan Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_serverchan"
+    },
+    "seven": {
+      "name": "Seven",
+      "category": "Other",
+      "example": "seven://USERNAME:PASSWORD@SERVER",
+      "description": "Seven Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_seven"
+    },
+    "sfr": {
+      "name": "Sfr",
+      "category": "Other",
+      "example": "sfr://USERNAME:PASSWORD@SERVER",
+      "description": "Sfr Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sfr"
+    },
+    "signl4": {
+      "name": "Signl4",
+      "category": "Other",
+      "example": "signl4://USERNAME:PASSWORD@SERVER",
+      "description": "Signl4 Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_signl4"
+    },
+    "simplepush": {
+      "name": "Simplepush",
+      "category": "Push",
+      "example": "simplepush://USERNAME:PASSWORD@SERVER",
+      "description": "Simplepush Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_simplepush"
+    },
+    "sinch": {
+      "name": "Sinch",
+      "category": "Other",
+      "example": "sinch://USERNAME:PASSWORD@SERVER",
+      "description": "Sinch Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sinch"
+    },
+    "sms_manager": {
+      "name": "Sms Manager",
+      "category": "SMS",
+      "example": "sms_manager://USERNAME:PASSWORD@SERVER",
+      "description": "Sms Manager Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sms_manager"
+    },
+    "smseagle": {
+      "name": "Smseagle",
+      "category": "SMS",
+      "example": "smseagle://USERNAME:PASSWORD@SERVER",
+      "description": "Smseagle Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_smseagle"
+    },
+    "smtp2go": {
+      "name": "Smtp2Go",
+      "category": "Email",
+      "example": "smtp2go://USERNAME:PASSWORD@SERVER",
+      "description": "Smtp2Go Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_smtp2go"
+    },
+    "sns": {
+      "name": "Sns",
+      "category": "Other",
+      "example": "sns://USERNAME:PASSWORD@SERVER",
+      "description": "Sns Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sns"
+    },
+    "sparkpost": {
+      "name": "Sparkpost",
+      "category": "Other",
+      "example": "sparkpost://USERNAME:PASSWORD@SERVER",
+      "description": "Sparkpost Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_sparkpost"
+    },
+    "splunk": {
+      "name": "Splunk",
+      "category": "Logging",
+      "example": "splunk://TOKEN@SPLUNK_SERVER:PORT/INDEX",
+      "description": "Splunk Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_splunk"
+    },
+    "spontit": {
+      "name": "Spontit",
+      "category": "Other",
+      "example": "spontit://USERNAME:PASSWORD@SERVER",
+      "description": "Spontit Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_spontit"
+    },
+    "spugpush": {
+      "name": "Spugpush",
+      "category": "Push",
+      "example": "spugpush://USERNAME:PASSWORD@SERVER",
+      "description": "Spugpush Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_spugpush"
+    },
+    "streamlabs": {
+      "name": "Streamlabs",
+      "category": "Other",
+      "example": "streamlabs://USERNAME:PASSWORD@SERVER",
+      "description": "Streamlabs Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_streamlabs"
+    },
+    "stride": {
+      "name": "Stride",
+      "category": "Other",
+      "example": "stride://USERNAME:PASSWORD@SERVER",
+      "description": "Stride Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_stride"
+    },
+    "synology_chat": {
+      "name": "Synology Chat",
+      "category": "Other",
+      "example": "synology_chat://USERNAME:PASSWORD@SERVER",
+      "description": "Synology Chat Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_synology_chat"
+    },
+    "syslog": {
+      "name": "Syslog",
+      "category": "Logging",
+      "example": "syslog://SYSLOG_SERVER:PORT",
+      "description": "Syslog Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_syslog"
+    },
+    "techulus": {
+      "name": "Techulus",
+      "category": "Other",
+      "example": "techulus://USERNAME:PASSWORD@SERVER",
+      "description": "Techulus Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_techulus"
+    },
+    "threema": {
+      "name": "Threema",
+      "category": "Other",
+      "example": "threema://USERNAME:PASSWORD@SERVER",
+      "description": "Threema Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_threema"
+    },
+    "toasty": {
+      "name": "Toasty",
+      "category": "Other",
+      "example": "toasty://USERNAME:PASSWORD@SERVER",
+      "description": "Toasty Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_toasty"
+    },
+    "twist": {
+      "name": "Twist",
+      "category": "Other",
+      "example": "twist://USERNAME:PASSWORD@SERVER",
+      "description": "Twist Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_twist"
+    },
+    "twitter": {
+      "name": "Twitter",
+      "category": "Other",
+      "example": "twitter://USERNAME:PASSWORD@SERVER",
+      "description": "Twitter Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_twitter"
+    },
+    "voipms": {
+      "name": "Voipms",
+      "category": "Other",
+      "example": "voipms://USERNAME:PASSWORD@SERVER",
+      "description": "Voipms Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_voipms"
+    },
+    "webhook": {
+      "name": "Webhook",
+      "category": "Custom",
+      "example": "json://WEBHOOK_URL",
+      "description": "Custom Webhook (JSON)",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_json"
+    },
+    "wecombot": {
+      "name": "Wecombot",
+      "category": "Other",
+      "example": "wecombot://USERNAME:PASSWORD@SERVER",
+      "description": "Wecombot Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_wecombot"
+    },
+    "windows": {
+      "name": "Windows",
+      "category": "Other",
+      "example": "windows://USERNAME:PASSWORD@SERVER",
+      "description": "Windows Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_windows"
+    },
+    "workflows": {
+      "name": "Workflows",
+      "category": "Other",
+      "example": "workflows://USERNAME:PASSWORD@SERVER",
+      "description": "Workflows Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_workflows"
+    },
+    "wxpusher": {
+      "name": "Wxpusher",
+      "category": "Push",
+      "example": "wxpusher://USERNAME:PASSWORD@SERVER",
+      "description": "Wxpusher Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_wxpusher"
+    },
+    "xml": {
+      "name": "XML POST",
+      "category": "Custom",
+      "example": "xml://WEBHOOK_URL",
+      "description": "Custom XML POST",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_xml"
+    },
+    "xbmc": {
+      "name": "Xbmc",
+      "category": "IoT",
+      "example": "xbmc://USERNAME:PASSWORD@SERVER",
+      "description": "Xbmc Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_xbmc"
+    },
+    "xmpp": {
+      "name": "Xmpp",
+      "category": "Other",
+      "example": "xmpp://USERNAME:PASSWORD@SERVER",
+      "description": "Xmpp Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_xmpp"
+    },
+    "zulip": {
+      "name": "Zulip",
+      "category": "Other",
+      "example": "zulip://USERNAME:PASSWORD@SERVER",
+      "description": "Zulip Benachrichtigungen",
+      "priority": 3,
+      "wiki_url": "https://github.com/caronc/apprise/wiki/Notify_zulip"
+    }
+  },
+  "last_updated": "1758298139.3283577",
+  "total_services": 137
+}

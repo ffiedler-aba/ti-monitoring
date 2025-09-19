@@ -1238,6 +1238,23 @@ details {
     opacity: 1 !important;
   }
   
+  /* Apprise URL input - same styling as textarea */
+  #apprise-url-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  #apprise-url-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  #apprise-url-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
   #test-apprise-url {
     background-color: #1e293b !important;
     color: #f1f5f9 !important;
@@ -1311,6 +1328,7 @@ details {
   #profile-name-input[style],
   #ci-filter-input[style],
   #apprise-urls-textarea[style],
+  #apprise-url-input[style],
   #test-apprise-url[style],
   #email-input[style],
   #otp-code-input[style] {
@@ -1439,6 +1457,23 @@ details {
   }
   
   .dash-input input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Specific override for apprise URL input */
+  .dash-input input#apprise-url-input {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #475569 !important;
+  }
+  
+  .dash-input input#apprise-url-input:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+  }
+  
+  .dash-input input#apprise-url-input::placeholder {
     color: #94a3b8 !important;
     opacity: 1 !important;
   }
@@ -2070,6 +2105,13 @@ details {
     color: #f1f5f9 !important;
   }
   
+  /* Specific override for apprise service dropdown */
+  .dash-dropdown#apprise-service-dropdown .Select-control {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  
   .dash-dropdown .Select-control:hover {
     border-color: #60a5fa !important;
   }
@@ -2142,6 +2184,77 @@ details {
     color: #f87171 !important;
   }
   
+  /* Fallback: react-select without dash-dropdown class */
+  .Select-control {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  .Select-placeholder {
+    color: #94a3b8 !important;
+  }
+  .Select-value, .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  .Select-menu-outer {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+  .Select-option {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+  }
+  .Select-option:hover {
+    background-color: #334155 !important;
+  }
+  .Select-option.is-selected {
+    background-color: #60a5fa !important;
+    color: #ffffff !important;
+  }
+  .Select-option.is-focused {
+    background-color: #334155 !important;
+  }
+  /* Ensure all option text is visible (also nested spans) */
+  .Select-option *,
+  .Select-option.is-selected *,
+  .Select-option.is-focused * {
+    color: inherit !important;
+  }
+  /* Disabled options */
+  .Select-option.is-disabled,
+  .Select-option.is-disabled * {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  /* Menu text contrast (global fallback) */
+  .Select-menu,
+  .Select-menu * {
+    color: #f1f5f9 !important;
+  }
+  /* Subtle separators between options */
+  .Select-option {
+    border-bottom: 1px solid #334155 !important;
+  }
+  /* Increase option contrast globally */
+  .Select-option {
+    font-weight: 600 !important;
+    opacity: 1 !important;
+  }
+  .Select-option:hover,
+  .Select-option.is-focused {
+    color: #ffffff !important;
+  }
+  .Select-arrow {
+    border-top-color: #f1f5f9 !important;
+  }
+  .Select-clear {
+    color: #f1f5f9 !important;
+  }
+  .Select-clear:hover {
+    color: #f87171 !important;
+  }
+
   /* Dark theme for time selector dropdowns */
   .time-selector .dash-dropdown .Select-control {
     background-color: #1e293b !important;
@@ -2418,6 +2531,121 @@ details {
   
   .user-search-input::placeholder {
     color: #94a3b8 !important;
+  }
+  
+  /* Dark theme for apprise service selection */
+  .apprise-service-selection {
+    background-color: #1e293b !important;
+    border: 1px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  
+  .apprise-service-selection label {
+    color: #f1f5f9 !important;
+  }
+  
+  /* Apprise service dropdown uses general dropdown styles */
+  
+  /* Apprise service dropdown (ID-based selectors to avoid class dependency) */
+  #apprise-service-dropdown .Select-control {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    color: #f1f5f9 !important;
+  }
+  #apprise-service-dropdown .Select-control:hover {
+    border-color: #60a5fa !important;
+  }
+  #apprise-service-dropdown .Select-value,
+  #apprise-service-dropdown .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  #apprise-service-dropdown .Select-placeholder {
+    color: #94a3b8 !important;
+  }
+  #apprise-service-dropdown .Select-input,
+  #apprise-service-dropdown .Select-input input {
+    color: #f1f5f9 !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  /* Selected value label (single select) */
+  #apprise-service-dropdown .Select--single > .Select-control .Select-value .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  /* Multi-value chips */
+  #apprise-service-dropdown .Select--multi .Select-value {
+    background-color: #334155 !important;
+    border: 1px solid #475569 !important;
+  }
+  #apprise-service-dropdown .Select--multi .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  #apprise-service-dropdown .Select--multi .Select-value-icon {
+    color: #cbd5e1 !important;
+  }
+  #apprise-service-dropdown .Select-menu-outer {
+    background-color: #1e293b !important;
+    border: 2px solid #475569 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  }
+  #apprise-service-dropdown .Select-option {
+    background-color: #1e293b !important;
+    color: #f1f5f9 !important;
+  }
+  #apprise-service-dropdown .Select-option:hover {
+    background-color: #334155 !important;
+  }
+  #apprise-service-dropdown .Select-option.is-selected {
+    background-color: #60a5fa !important;
+    color: #ffffff !important;
+  }
+  #apprise-service-dropdown .Select-option.is-focused {
+    background-color: #334155 !important;
+  }
+  /* Ensure option text is visible (also nested elements) */
+  #apprise-service-dropdown .Select-option *,
+  #apprise-service-dropdown .Select-option.is-selected *,
+  #apprise-service-dropdown .Select-option.is-focused * {
+    color: inherit !important;
+  }
+  /* Disabled category headers */
+  #apprise-service-dropdown .Select-option.is-disabled,
+  #apprise-service-dropdown .Select-option.is-disabled * {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+  /* Ensure menu text inside apprise dropdown has high contrast */
+  #apprise-service-dropdown .Select-menu,
+  #apprise-service-dropdown .Select-menu * {
+    color: #f1f5f9 !important;
+  }
+  #apprise-service-dropdown .Select-option {
+    border-bottom: 1px solid #334155 !important;
+  }
+  /* Increase option contrast for apprise dropdown */
+  #apprise-service-dropdown .Select-option {
+    font-weight: 600 !important;
+    opacity: 1 !important;
+  }
+  #apprise-service-dropdown .Select-option:hover,
+  #apprise-service-dropdown .Select-option.is-focused {
+    color: #ffffff !important;
+  }
+
+  
+  /* Dark theme for apprise wiki link */
+  .apprise-wiki-link a {
+    color: #60a5fa !important;
+    text-decoration: none !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+  }
+  
+  .apprise-wiki-link a:hover {
+    color: #93c5fd !important;
+    text-decoration: underline !important;
   }
   
   /* Dark theme for users table with class */
@@ -2770,6 +2998,21 @@ details {
     height: auto !important;
     line-height: normal !important;
     color: #f1f5f9 !important;
+  }
+  /* Global fallback for selected value label */
+  .Select--single > .Select-control .Select-value .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  /* Global fallback for multi-value chips */
+  .Select--multi .Select-value {
+    background-color: #334155 !important;
+    border: 1px solid #475569 !important;
+  }
+  .Select--multi .Select-value-label {
+    color: #f1f5f9 !important;
+  }
+  .Select--multi .Select-value-icon {
+    color: #cbd5e1 !important;
   }
   
   #hamburger-menu-content a:hover {

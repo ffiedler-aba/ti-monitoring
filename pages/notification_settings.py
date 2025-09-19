@@ -108,6 +108,17 @@ def load_core_config():
     config = load_config()
     return config.get('core', {})
 
+def load_apprise_services():
+    """Load Apprise services from JSON file"""
+    services_file = os.path.join(os.path.dirname(__file__), '..', 'apprise_services.json')
+    try:
+        with open(services_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data.get('services', {})
+    except (FileNotFoundError, Exception) as e:
+        print(f"Error loading apprise services: {e}")
+        return {}
+
 def serve_layout():
     """Clean, refactored layout with separate stores"""
     return html.Div([
@@ -166,6 +177,7 @@ def serve_layout():
         dcc.Store(id='ci-filter-text', data=''),
         dcc.Store(id='delete-profile-status', data=''),
         dcc.Store(id='redirect-trigger', data=None),
+        dcc.Store(id='apprise-services-data', data=None),
         # Trigger zum einmaligen Laden der CI-Liste nach Seitenaufruf
         dcc.Interval(id='ci-load-once', interval=200, n_intervals=0, max_intervals=1),
 
@@ -232,6 +244,27 @@ def serve_layout():
                     }, className='ci-checkboxes-container')
                 ], style={'marginBottom': '15px'}),
 
+                # Apprise Service Selection
+                html.Div([
+                    html.Label('Apprise Service auswählen:', style={'marginBottom': '8px', 'fontWeight': '500'}),
+                    dcc.Dropdown(
+                        id='apprise-service-dropdown',
+                        placeholder='Service auswählen...',
+                        style={'marginBottom': '10px'}
+                    ),
+                    html.Div(id='apprise-wiki-link', style={'marginBottom': '10px'}),
+                    html.Div([
+                        dcc.Input(
+                            id='apprise-url-input',
+                            type='text',
+                            placeholder='Apprise URL hier eingeben oder bearbeiten...',
+                            style={'flex': '1', 'padding': '8px 12px', 'borderRadius': '6px', 'marginRight': '10px', 'fontFamily': 'monospace', 'boxSizing': 'border-box'},
+                            className='apprise-url-input'
+                        ),
+                        html.Button('Zur Liste hinzufügen', id='add-url-button', n_clicks=0, style=get_button_style('success'))
+                    ], style={'display': 'flex', 'alignItems': 'center', 'marginBottom': '15px'})
+                ], style={'marginBottom': '15px', 'padding': '15px', 'borderRadius': '8px'}, className='apprise-service-selection'),
+
                 dcc.Textarea(id='apprise-urls-textarea', placeholder='Apprise URLs (eine pro Zeile)',
                            style={'width': '100%', 'height': '100px', 'marginBottom': '15px', 'padding': '12px', 'borderRadius': '8px', 'fontFamily': 'monospace', 'boxSizing': 'border-box'}),
                 html.Div(id='form-error', style={'color': '#e74c3c', 'marginBottom': '15px'}),
@@ -253,6 +286,183 @@ def serve_layout():
     ], style={'maxWidth': '900px', 'margin': '0 auto', 'padding': '20px'})
 
 # === SEPARATED CALLBACKS (One responsibility each) ===
+
+# 0. Load Apprise Services
+@callback(
+    Output('apprise-services-data', 'data'),
+    [Input('ci-load-once', 'n_intervals')],
+    prevent_initial_call=False
+)
+def load_apprise_services_callback(_n):
+    """Load Apprise services data"""
+    return load_apprise_services()
+
+# 0b. Populate Apprise Service Dropdown
+@callback(
+    Output('apprise-service-dropdown', 'options'),
+    [Input('apprise-services-data', 'data')],
+    prevent_initial_call=False
+)
+def populate_apprise_dropdown(services_data):
+    """Populate the Apprise service dropdown"""
+    if not services_data:
+        return []
+
+    # Group services by category
+    categories = {}
+    for service_id, service_info in services_data.items():
+        category = service_info.get('category', 'Other')
+        if category not in categories:
+            categories[category] = []
+
+        categories[category].append({
+            'label': f"{service_info.get('name', service_id)} - {service_info.get('description', '')}",
+            'value': service_id
+        })
+
+    # Create options with categories
+    options = []
+    for category in sorted(categories.keys()):
+        # Add category header
+        options.append({
+            'label': f"📁 {category}",
+            'value': f"category_{category}",
+            'disabled': True
+        })
+
+        # Add services in this category
+        for service in sorted(categories[category], key=lambda x: x['label']):
+            options.append(service)
+
+    return options
+
+# 0c. Handle Apprise Service Selection
+@callback(
+    [Output('apprise-url-input', 'value'),
+     Output('apprise-wiki-link', 'children')],
+    [Input('apprise-service-dropdown', 'value')],
+    [State('apprise-services-data', 'data')],
+    prevent_initial_call=True
+)
+def handle_service_selection(selected_service, services_data):
+    """Handle service selection and populate URL input and wiki link"""
+    if not selected_service or not services_data:
+        return '', ''
+
+    # Skip category headers
+    if selected_service.startswith('category_'):
+        return '', ''
+
+    service_info = services_data.get(selected_service)
+    if service_info:
+        example_url = service_info.get('example', '')
+        wiki_url = service_info.get('wiki_url', '')
+
+        # Create wiki link if available
+        wiki_link = ''
+        if wiki_url:
+            wiki_link = html.A(
+                '📖 Apprise Wiki - Detaillierte Anleitung',
+                href=wiki_url,
+                target='_blank',
+                style={
+                    'color': '#60a5fa',
+                    'textDecoration': 'none',
+                    'fontSize': '12px',
+                    'fontWeight': '500'
+                }
+            )
+
+        return example_url, wiki_link
+
+    return '', ''
+
+# 0d. Add URL to Textarea (integrated with existing callback)
+@callback(
+    Output('apprise-urls-textarea', 'value'),
+    [Input('add-url-button', 'n_clicks'),
+     Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
+     Input('add-profile-button', 'n_clicks')],
+    [State('apprise-url-input', 'value'),
+     State('apprise-urls-textarea', 'value'),
+     State('auth-status', 'data')],
+    prevent_initial_call=True
+)
+def handle_url_management(n_clicks, edit_clicks_list, add_clicks, url_input, current_textarea, auth_data):
+    """Handle URL management (add new URLs and edit profile URLs)"""
+    ctx = callback_context
+    if not ctx.triggered:
+        return no_update
+
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # Handle add URL button
+    if trigger_id == 'add-url-button' and n_clicks:
+        if not url_input or not url_input.strip():
+            return no_update
+
+        # Get current URLs
+        current_urls = []
+        if current_textarea:
+            current_urls = [url.strip() for url in current_textarea.split('\n') if url.strip()]
+
+        # Add new URL if not already present
+        new_url = url_input.strip()
+        if new_url not in current_urls:
+            current_urls.append(new_url)
+
+        # Return updated textarea content
+        return '\n'.join(current_urls)
+
+    # Handle profile edit/add
+    if trigger_id.startswith('{') or trigger_id == 'add-profile-button':
+        if trigger_id == 'add-profile-button':
+            return ''  # Empty URLs for new profile
+
+        # Handle edit profile - load URLs from database
+        try:
+            triggered_id = json.loads(trigger_id)
+            if triggered_id.get('type') == 'edit-profile':
+                profile_id = triggered_id.get('profile_id')
+                if profile_id and auth_data and auth_data.get('authenticated'):
+                    with get_db_conn() as conn, conn.cursor() as cur:
+                        cur.execute(
+                            """
+                            SELECT apprise_urls, apprise_urls_salt, email_notifications
+                            FROM notification_profiles
+                            WHERE id = %s
+                            """,
+                            (int(profile_id),)
+                        )
+                        row = cur.fetchone()
+                        if row:
+                            apprise_urls, apprise_urls_salt, email_notifications = row
+                            if not email_notifications and apprise_urls:
+                                try:
+                                    encryption_key = os.getenv('ENCRYPTION_KEY')
+                                    if encryption_key:
+                                        encryption_key = encryption_key.encode()
+                                    else:
+                                        encryption_key = generate_encryption_key()
+                                    decrypted_urls = []
+                                    salts = list(apprise_urls_salt or [])
+                                    for idx, enc in enumerate(list(apprise_urls)):
+                                        try:
+                                            salt = salts[idx] if salts and len(salts) > idx else None
+                                            dec = decrypt_data(enc, salt, encryption_key) if salt else None
+                                            if dec:
+                                                decrypted_urls.append(dec)
+                                        except Exception:
+                                            continue
+                                    return '\n'.join(decrypted_urls)
+                                except Exception:
+                                    pass
+        except Exception:
+            pass
+
+        return no_update
+
+    return no_update
 
 # 1. UI State Management (based on auth store)
 @callback(
@@ -875,7 +1085,6 @@ def display_profiles(auth_state, save_clicks, delete_status):
     [Output('profile-name-input', 'value'),
      Output('notification-type-radio', 'value'),
      Output('notification-method-radio', 'value'),
-     Output('apprise-urls-textarea', 'value'),
      Output('profile-selected-cis', 'data'),
      Output('current-profile-id', 'data')],
     [Input({'type': 'edit-profile', 'profile_id': ALL}, 'n_clicks'),
@@ -886,25 +1095,25 @@ def display_profiles(auth_state, save_clicks, delete_status):
 def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
     ctx = callback_context
     if not ctx.triggered:
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     trigger = ctx.triggered[0]['prop_id']
     # Add new profile clicked → just show empty form values
     if trigger.startswith('add-profile-button'):
-        return '', 'whitelist', 'apprise', '', [], None
+        return '', 'whitelist', 'apprise', [], None
 
     # Find which edit button was clicked
     try:
         triggered_id = json.loads(trigger.split('.')[0])
     except Exception:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     if not auth_data or not auth_data.get('authenticated'):
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     profile_id = triggered_id.get('profile_id')
     if not profile_id:
-        return no_update, no_update, no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update, no_update
 
     # Load profile from DB
     try:
@@ -919,7 +1128,7 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
             )
             row = cur.fetchone()
             if not row:
-                return '', 'whitelist', 'apprise', '', [], None
+                return '', 'whitelist', 'apprise', [], None
             name, profile_type, ci_list, apprise_urls, apprise_urls_salt, email_notifications = row
             method = 'email' if email_notifications else 'apprise'
             # Decrypt apprise URLs for editing
@@ -944,9 +1153,9 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
                     urls_text = '\n'.join(decrypted_urls)
                 except Exception:
                     urls_text = ''
-            return name or '', (profile_type or 'whitelist'), method, urls_text, (ci_list or []), str(profile_id)
+            return name or '', (profile_type or 'whitelist'), method, (ci_list or []), str(profile_id)
     except Exception:
-        return '', 'whitelist', 'apprise', '', [], None
+        return '', 'whitelist', 'apprise', [], None
 
 # 17. Handle per-profile deletion (confirm + delete)
 @callback(
