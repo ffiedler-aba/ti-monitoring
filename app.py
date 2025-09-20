@@ -6,7 +6,7 @@ import os
 import subprocess
 import functools
 import time
-from flask import jsonify, request
+from flask import jsonify, request, redirect, url_for, Response
 import hashlib
 import secrets
 import psutil
@@ -19,7 +19,21 @@ except Exception as _e:
     # Avoid blocking startup; errors will be visible in logs
     print(f"DB migration warning: {_e}")
 
-app = Dash(__name__, use_pages=True, title='TI-Stats', suppress_callback_exceptions=True)
+app = Dash(
+    __name__,
+    use_pages=True,
+    title='TI-Stats',
+    suppress_callback_exceptions=True,
+    meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"},
+        {"name": "theme-color", "content": "#0f172a"},
+        {"name": "description", "content": "Verfügbarkeit, Statistiken und Benachrichtigungen für TI-Komponenten."},
+        {"property": "og:type", "content": "website"},
+        {"property": "og:title", "content": "TI-Stats"},
+        {"property": "og:description", "content": "Verfügbarkeit, Statistiken und Benachrichtigungen für TI-Komponenten."},
+        {"name": "twitter:card", "content": "summary_large_image"}
+    ]
+)
 server = app.server
 
 # Add local CSS for Material Icons
@@ -284,6 +298,60 @@ def serve_layout():
 
 # This is the correct way to set the layout - it should be the function itself, not the result of calling it
 app.layout = serve_layout
+
+# ----------------------------------------------------------------------------
+# SEO: Robots.txt & Sitemap.xml
+# ----------------------------------------------------------------------------
+@server.route('/robots.txt')
+def robots_txt():
+    base = request.url_root.rstrip('/')
+    content = f"""
+User-agent: *
+Allow: /
+Sitemap: {base}/sitemap.xml
+""".strip() + "\n"
+    return Response(content, mimetype='text/plain')
+
+
+@server.route('/sitemap.xml')
+def sitemap_xml():
+    from datetime import datetime
+    base = request.url_root.rstrip('/')
+    pages = [
+        ("/", "weekly"),
+        ("/stats", "daily"),
+        ("/notifications", "weekly"),
+        ("/plot", "daily"),
+    ]
+    # Try to include CI detail pages under pretty URL /ci/<ci>
+    try:
+        df = get_timescaledb_ci_data()
+        if df is not None and hasattr(df, 'empty') and not df.empty and 'ci' in df.columns:
+            # Limit to avoid huge sitemaps
+            ci_values = df['ci'].dropna().astype(str).unique().tolist()[:1000]
+            for ci in ci_values:
+                pages.append((f"/ci/{ci}", "hourly"))
+    except Exception:
+        # Fail silently; base pages are still provided
+        pass
+    lastmod = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+    urls = "".join([
+        f"<url><loc>{base}{path}</loc><changefreq>{freq}</changefreq><lastmod>{lastmod}</lastmod></url>"
+        for path, freq in pages
+    ])
+    xml = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" \
+          f"<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">{urls}</urlset>\n"
+    return Response(xml, mimetype='application/xml')
+
+
+# ----------------------------------------------------------------------------
+# SEO: Pretty URL Redirect /ci/<ci> -> /plot?ci=<ci>
+# ----------------------------------------------------------------------------
+@server.route('/ci/<ci>')
+def ci_redirect(ci: str):
+    target = url_for('pages.plot.serve_layout')  # base path for plot page
+    # Dash page is registered at /plot
+    return redirect(f"/plot?ci={ci}", code=301)
 
 # Health check endpoint
 @server.route('/health')

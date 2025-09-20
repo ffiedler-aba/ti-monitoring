@@ -338,6 +338,17 @@ def serve_layout(**kwargs):
     # Get CI from URL parameters (kann initial leer sein)
     from flask import request
     ci = request.args.get('ci', '') or ''
+    # Canonical & JSON-LD
+    base = request.url_root.rstrip('/')
+    canonical = f"{base}/ci/{ci}" if ci else f"{base}/plot"
+    jsonld = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "url": canonical,
+        "name": f"TI-Stats – Verfügbarkeit {ci}" if ci else "TI-Stats – Verfügbarkeit",
+        "inLanguage": "de",
+        "isPartOf": {"@type": "WebSite", "url": base, "name": "TI-Stats"}
+    }
 
     # Get CI information (optional; Seite rendert auch ohne CI)
     # For TimescaleDB mode, we need to pass None as file_name
@@ -359,6 +370,8 @@ def serve_layout(**kwargs):
 
     # Create layout
     layout = html.Div([
+        html.Link(rel='canonical', href=canonical),
+        html.Script(type='application/ld+json', children=[json.dumps(jsonld)]),
         # Main content container
         html.Div(className='main-content', children=[
             # Page title and CI information

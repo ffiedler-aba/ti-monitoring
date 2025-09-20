@@ -267,7 +267,23 @@ def serve_layout():
     # Create incidents table (show first 5 by default)
     incidents_table = create_incidents_table(incidents_data, show_all=False)
 
+    # Canonical URL & JSON-LD (Organization/WebSite/HomePage)
+    from flask import request as _flask_request
+    _base = _flask_request.url_root.rstrip('/')
+    _canonical = f"{_base}/"
+    _jsonld = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "url": _canonical,
+        "name": "TI-Stats – Verfügbarkeit und Statistiken",
+        "inLanguage": "de",
+        "isPartOf": {"@type": "WebSite", "url": _base, "name": "TI-Stats"}
+    }
+
     layout = html.Div([
+        # SEO head helpers
+        html.Link(rel='canonical', href=_canonical),
+        html.Script(type='application/ld+json', children=[json.dumps(_jsonld)]),
         html.P([
             'ti-stats.net basiert auf Lukas Schmidt-Russnaks ',
             html.A('TI-Monitoring', href='https://ti-monitoring.de'),
