@@ -411,11 +411,11 @@ def og_image():
             or ImageFont.load_default()
         )
         font_reg = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 60)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 42)
             or ImageFont.load_default()
         )
         font_badge = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 48)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 42)
             or ImageFont.load_default()
         )
 
