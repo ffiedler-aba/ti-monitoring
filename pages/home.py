@@ -271,7 +271,7 @@ def serve_layout():
     from flask import request as _flask_request
     _base = _flask_request.url_root.rstrip('/')
     _canonical = f"{_base}/"
-    _og_image = f"{_base}/assets/favicon.png"
+    _og_image = f"{_base}/og-image.png?title=TI-Stats&subtitle=Verf%C3%BCgbarkeit%20und%20Statistiken"
     _jsonld = {
         "@context": "https://schema.org",
         "@type": "WebPage",

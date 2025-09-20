@@ -7,6 +7,13 @@ import subprocess
 import functools
 import time
 from flask import jsonify, request, redirect, url_for, Response
+from io import BytesIO
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except Exception:
+    Image = None
+    ImageDraw = None
+    ImageFont = None
 import hashlib
 import secrets
 import psutil
@@ -352,6 +359,112 @@ def ci_redirect(ci: str):
     target = url_for('pages.plot.serve_layout')  # base path for plot page
     # Dash page is registered at /plot
     return redirect(f"/plot?ci={ci}", code=301)
+
+
+# ----------------------------------------------------------------------------
+# SEO: Dynamic Open Graph Image (1200x630) – /og-image.png
+# ----------------------------------------------------------------------------
+@server.route('/og-image.png')
+def og_image():
+    """Generate a branded OG image.
+
+    Query params:
+    - title: main title text
+    - subtitle: secondary line
+    - ci: configuration item id (shown as badge)
+    """
+    try:
+        width, height = 1200, 630
+        title = request.args.get('title', 'TI-Stats')
+        subtitle = request.args.get('subtitle', 'Verfügbarkeit und Statistiken der TI-Komponenten')
+        ci = request.args.get('ci')
+
+        if Image is None:
+            # Fallback static response when Pillow is unavailable
+            return Response(b'', mimetype='image/png', status=204)
+
+        # Background
+        img = Image.new('RGB', (width, height), '#0f172a')  # slate-900
+        draw = ImageDraw.Draw(img)
+
+        # Simple radial-like vignette
+        try:
+            # Overlay gradient rectangles for subtle depth
+            for i in range(0, height, 10):
+                opacity = int(120 * (1 - i / height))
+                color = (30, 41, 59, max(0, opacity))  # slate-800 alpha
+                overlay = Image.new('RGBA', (width, 10), color)
+                img.paste(overlay, (0, i), overlay)
+        except Exception:
+            pass
+
+        # Load fonts (fallback to default)
+        def load_font(preferred: str, size: int):
+            try:
+                return ImageFont.truetype(preferred, size)
+            except Exception:
+                return None
+
+        font_bold = (
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 64)
+            or ImageFont.load_default()
+        )
+        font_reg = (
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 36)
+            or ImageFont.load_default()
+        )
+        font_badge = (
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
+            or ImageFont.load_default()
+        )
+
+        # Optional logo (favicon.png)
+        try:
+            assets_path = os.path.join(os.path.dirname(__file__), 'assets', 'favicon.png')
+            if os.path.exists(assets_path):
+                logo = Image.open(assets_path).convert('RGBA')
+                logo = logo.resize((128, 128))
+                img.paste(logo, (64, 64), logo)
+        except Exception:
+            pass
+
+        # Title/subtitle positions
+        text_x = 220
+        text_y = 90
+        draw.text((text_x, text_y), title, font=font_bold, fill='#e2e8f0')  # slate-200
+        draw.text((text_x, text_y + 80), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
+
+        # CI badge
+        if ci:
+            badge_text = f"CI: {ci}"
+            # Measure text size
+            try:
+                tw, th = draw.textbbox((0, 0), badge_text, font=font_badge)[2:]
+            except Exception:
+                tw, th = draw.textsize(badge_text, font=font_badge)
+            pad_x, pad_y = 16, 10
+            bx, by = text_x, text_y + 140
+            bw, bh = tw + pad_x * 2, th + pad_y * 2
+            # Rounded rectangle background
+            try:
+                from PIL import ImageDraw as _ID
+                draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=14, fill='#1e293b')  # slate-800
+            except Exception:
+                draw.rectangle([bx, by, bx + bw, by + bh], fill='#1e293b')
+            draw.text((bx + pad_x, by + pad_y), badge_text, font=font_badge, fill='#93c5fd')  # blue-300
+
+        # Footer brand
+        draw.text((64, height - 64), 'ti-stats.net', font=font_reg, fill='#64748b')  # slate-500
+
+        # Output
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        resp = Response(buf.getvalue(), mimetype='image/png')
+        resp.headers['Cache-Control'] = 'public, max-age=600'
+        return resp
+    except Exception as e:
+        return Response(f"Error generating image: {e}", mimetype='text/plain', status=500)
 
 # Health check endpoint
 @server.route('/health')

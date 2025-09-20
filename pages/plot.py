@@ -341,7 +341,13 @@ def serve_layout(**kwargs):
     # Canonical & JSON-LD
     base = request.url_root.rstrip('/')
     canonical = f"{base}/ci/{ci}" if ci else f"{base}/plot"
-    og_image = f"{base}/assets/favicon.png"
+    # dynamic OG image with optional CI badge
+    from urllib.parse import quote
+    q_title = quote('TI-Stats')
+    q_subtitle = quote('Verfügbarkeit und Statistiken')
+    og_image = f"{base}/og-image.png?title={q_title}&subtitle={q_subtitle}"
+    if ci:
+        og_image += f"&ci={quote(ci)}"
     jsonld = {
         "@context": "https://schema.org",
         "@type": "WebPage",

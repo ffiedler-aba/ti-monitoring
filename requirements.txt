@@ -26,3 +26,4 @@ cryptography>=42.0.0
 
 # Plotting (used in some scripts)
 matplotlib>=3.5.0
+Pillow>=10.0.0
