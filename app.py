@@ -407,15 +407,15 @@ def og_image():
                 return None
 
         font_bold = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 88)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 160)
             or ImageFont.load_default()
         )
         font_reg = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 50)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 96)
             or ImageFont.load_default()
         )
         font_badge = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 36)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 64)
             or ImageFont.load_default()
         )
 
@@ -439,23 +439,42 @@ def og_image():
 
         # Title/subtitle positions
         text_x = 220
-        text_y = 64
+        text_y = 48
         draw.text((text_x, text_y), title, font=font_bold, fill='#e2e8f0')  # slate-200
-        draw.text((text_x, text_y + 96), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
+        # Wrap subtitle to avoid single long line
+        max_sub_w = int(width * 0.65)
+        words = subtitle.split()
+        lines = []
+        cur = ''
+        for w in words:
+            test = (cur + ' ' + w).strip()
+            tw, _ = measure(draw, test, font_reg)
+            if tw <= max_sub_w:
+                cur = test
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w
+        if cur:
+            lines.append(cur)
+        line_y = text_y + 180
+        for ln in lines[:3]:
+            draw.text((text_x, line_y), ln, font=font_reg, fill='#94a3b8')  # slate-400
+            line_y += 110
 
         # CI badge + metrics
-        metrics_y = text_y + 170
+        metrics_y = line_y + 30
         if ci:
             badge_text = f"CI: {ci}"
             # Measure text size
             tw, th = measure(draw, badge_text, font_badge)
-            pad_x, pad_y = 22, 14
+            pad_x, pad_y = 28, 20
             bx, by = text_x, metrics_y
             bw, bh = tw + pad_x * 2, th + pad_y * 2
             # Rounded rectangle background
             try:
                 from PIL import ImageDraw as _ID
-                draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=14, fill='#1e293b')  # slate-800
+                draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=18, fill='#1e293b')  # slate-800
             except Exception:
                 draw.rectangle([bx, by, bx + bw, by + bh], fill='#1e293b')
             draw.text((bx + pad_x, by + pad_y), badge_text, font=font_badge, fill='#93c5fd')  # blue-300
@@ -505,8 +524,8 @@ def og_image():
                     f"MTTR: {mttr_min:.1f} Min",
                     f"MTBF: {mtbf_hr:.1f} Std",
                 ]
-                line_y = by + bh + 28
-                line_gap = 56
+                line_y = by + bh + 36
+                line_gap = 88
                 for line in metrics_lines:
                     draw.text((text_x, line_y), line, font=font_reg, fill='#cbd5e1')
                     line_y += line_gap
