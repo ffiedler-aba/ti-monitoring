@@ -1,31 +1,30 @@
 # TI-Monitoring
 
 Dieses Tool dient der Überwachung verschiedener Komponenten der Telematikinfrastruktur (TI).
-Es ist modular aufgebaut, sodass sich je nach Bedarf und Systemleistung auch nur einzelne Funktionen nutzen lassen.
 
 ## Vorwort
 
 Dieses Repository entstand aus einem Fork des Originals von Lukas Schmidt-Russnak (https://github.com/lsr-dev/ti-monitoring).
 
-Die ursprüngliche Lösung wurde erheblich erweitert und ist jetzt in einem Zustand, der einen Merge in das Original Repository problematisch erscheinen lässt.
+Die ursprüngliche Lösung wurde erheblich erweitert und ist jetzt in einem Zustand, in dem ein Merge in das Original Repository unmöglich ist.
 
 In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhängig weiter. Einzelne Verbesserungen aus dieser erweiterten Version kann ich jedoch bei Bedarf gern in das Originalprojekt einbringen.
 
 ### Was unterscheidet dieses Projekt vom Original
 
 - Die App wurde komplett dockerisiert; das ist die einfachste und sicherste Methode, eine komplexe Python-Anwendung mitsamt ihrer Abhängigkeiten zu deployen.
-- Umbau er Datenbank auf Postgresql/timescaledb: ermöglicht Retention, komplexe Abfragen und Statistiken, effiziente Speicherung sowie Benutzerprofile
+- Umbau der Datenbank auf Postgresql/timescaledb: ermöglicht Retention, komplexe Abfragen und Statistiken, effiziente Speicherung sowie Benutzerprofile.
 - Die E-Mail Benachrichtigung der ursprünglichen App wurde ersetzt durch die Integration von [Apprise](https://github.com/caronc/apprise). Vorteile:
-  - Einfache Einbindung nahezu beliebiger Banchrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail u.v.a.m.
+  - Einfache Einbindung nahezu beliebiger Benachrichtigungsplattformen, neben SMTP-E-Mail nun auch Slack, Telegram, Teams, Mattermost, verschiedene REST-API Anbieter für E-Mail u.v.a.m.
   - Vollständige [Liste](https://github.com/caronc/apprise?tab=readme-ov-file#supported-notifications) der Benachrichtigungs-Plattformen
-  - Dadurch auch Massenversand an viele Abonnenten auf unterschiedlichen Wegen möglich
-- Einfache Benutzeranmeldung mit One-Time-Passwort zur Verwaltung eigener Benachrichtigungsprofile
-- Benachrichtigungs-Konfiguration per UI über eine eigene Webpage
-- Auswahl der zu abonnierenden Topics aus der Liste der *Configuration Items* der gematik API, täglich von `cron.py` aktualisiert
-- Aussehen der Seite konfigurierbar (Logo, alle Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
+  - Dadurch auch Massenversand an viele Abonnenten auf unterschiedlichen Wegen möglich.
+- Einfache Benutzeranmeldung mit One-Time-Passwort zur Verwaltung eigener Benachrichtigungsprofile.
+- Benachrichtigungs-Konfiguration per UI über eine eigene Webpage.
+- Auswahl der zu abonnierenden Topics aus der Liste der *Configuration Items* der gematik API, täglich von `cron.py` aktualisiert.
+- Aussehen der Seite konfigurierbar (Logo, viele Texte inkl. der zugehörigen Links im Footer wie Impressum, Datenschutz u.s.w.)
 - Design stellenweise überarbeitet und meinen persönlichen Vorstellungen angepasst.
-- Der Darstellungs-Zeitraum der Plots ist zwischen 1 Stunde und 1 Woche frei wählbar
-- Ausführliche Statistiken in den Plots der einzelnen Configuration Items und als Gesamtstatistik unter /stats
+- Der Darstellungs-Zeitraum der Plots ist frei wählbar.
+- Ausführliche Statistiken in den Plots der einzelnen Configuration Items und als Gesamtstatistik unter /stats.
 
 ### Entwicklungsstand
 
@@ -33,7 +32,7 @@ Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversio
 
 ### Öffentliche Demo-Instanz
 
-Eine öffentliche Demo-Instanz dieser App ist unter https://ti-mon.elpatron.me/ nutzbar. Sie unterliegt allerdings häufigen Änderungen. Keine Gewährleistung für Funktionalität, Verfügbarkeit und Speicher-Persistenz! Wenn Sie diese App in Ihrem unternehmen nutzen möchten, sollten Sie sich eine eigene Instanz einrichten.
+Eine öffentliche Demo-Instanz dieser App ist unter https://ti-stats.net/ nutzbar. Sie unterliegt allerdings häufigen Änderungen. Keine Gewährleistung für Funktionalität, Verfügbarkeit und Speicher-Persistenz! Wenn Sie diese App in Ihrem Unternehmen nutzen möchten, sollten Sie sich eine eigene Instanz einrichten.
 
 ### Disclaimer
 
@@ -60,7 +59,7 @@ Der aktuelle Status sämtlicher TI-Komponenten lässt sich nach Produkten gruppi
 
 Für detaillierte Installationsanweisungen siehe [INSTALL.md](docs/INSTALL.md).
 
-TI-Monitoring kann sowohl mit Docker als auch mit Python venv installiert werden. Docker wird für die meisten Anwendungsfälle empfohlen.
+TI-Monitoring kann sowohl mit Docker als auch mit Python *venv* installiert werden. Docker wird für die meisten Anwendungsfälle empfohlen.
 
 ### Schnellstart mit Docker
 
@@ -74,8 +73,9 @@ mkdir data
 cp .env.example .env
 cp config.yaml.example config.yaml
 
-# Datenbank-Schema für OTP-System initialisieren
-python scripts/init_otp_database.py
+# Konfigurationsdateien anpassen
+nano .env
+nano config.yaml
 
 # Container starten
 docker compose -f docker-compose-dev.yml up -d
