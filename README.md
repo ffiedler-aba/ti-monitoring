@@ -85,7 +85,7 @@ docker compose -f docker-compose-dev.yml up -d
 
 Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigkeiten. Die requirements.txt Datei enthält alle notwendigen Abhängigkeiten, darunter:
 
-- numpy, pandas, psycopg2 für Datenverarbeitung
+- numpy, pandas, psycopg2-binary für Datenverarbeitung
 - requests für HTTP-Anfragen
 - pytz, tzlocal für Zeitzone-Handling
 - dash, plotly für die Webanwendung
@@ -93,6 +93,7 @@ Das Projekt verwendet eine requirements.txt Datei zur Verwaltung der Abhängigke
 - python-dotenv für Umgebungsvariablen-Management
 - matplotlib für Beispiele und Entwicklung
 - cryptography für Datenverschlüsselung
+- psutil, gunicorn, PyYAML
 
 ## Konfiguration
 
@@ -102,8 +103,6 @@ Die Anwendung kann über folgende Konfigurationsdateien konfiguriert werden:
 
 1. **config.yaml** - Hauptkonfigurationsdatei (API-URL, Datenbank, Intervals, etc.)
 2. **.env** - Umgebungsvariablen für sensible Daten (Passwörter, SSL-Konfiguration)
-
-Hinweis: Das frühere Datei-basierte System `notifications.json` ist vollständig abgelöst. Benachrichtigungsprofile werden jetzt über die Web-Oberfläche im Multi-User-OTP-System verwaltet und in der Datenbank gespeichert.
 
 Alle Konfigurationsdateien basieren auf den entsprechenden `.example` Dateien, die Sie kopieren und anpassen müssen.
 
@@ -301,7 +300,7 @@ python scripts/migrate_hdf5_to_timescaledb.py
 docker compose restart
 ```
 
-Siehe [MIGRATION_HDF5_TO_TIMESCALEDB.md](docs/MIGRATION_HDF5_TO_TIMESCALEDB.md) für detaillierte Anweisungen.
+Hinweis: Die frühere HDF5-Migration ist obsolet; TimescaleDB ist der einzige unterstützte Pfad.
 
 ## Web-App
 
