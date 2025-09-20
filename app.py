@@ -407,15 +407,15 @@ def og_image():
                 return None
 
         font_bold = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 64)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 76)
             or ImageFont.load_default()
         )
         font_reg = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 36)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 42)
             or ImageFont.load_default()
         )
         font_badge = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 28)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 34)
             or ImageFont.load_default()
         )
 
@@ -431,7 +431,7 @@ def og_image():
 
         # Title/subtitle positions
         text_x = 220
-        text_y = 90
+        text_y = 80
         draw.text((text_x, text_y), title, font=font_bold, fill='#e2e8f0')  # slate-200
         draw.text((text_x, text_y + 80), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
 
@@ -444,7 +444,7 @@ def og_image():
                 tw, th = draw.textbbox((0, 0), badge_text, font=font_badge)[2:]
             except Exception:
                 tw, th = draw.textsize(badge_text, font=font_badge)
-            pad_x, pad_y = 16, 10
+            pad_x, pad_y = 18, 12
             bx, by = text_x, metrics_y
             bw, bh = tw + pad_x * 2, th + pad_y * 2
             # Rounded rectangle background
@@ -503,7 +503,7 @@ def og_image():
                 line_y = by + bh + 20
                 for line in metrics_lines:
                     draw.text((text_x, line_y), line, font=font_reg, fill='#cbd5e1')
-                    line_y += 38
+                line_y += 44
             except Exception:
                 # Non-fatal
                 pass

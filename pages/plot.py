@@ -346,7 +346,7 @@ def serve_layout(**kwargs):
     from urllib.parse import quote
     q_title = quote('TI-Stats')
     q_subtitle = quote('Verfügbarkeit und Statistiken')
-    og_image = f"{base}/og-image.png?title={q_title}&subtitle={q_subtitle}"
+    og_image = f"{base}/og-image.png?title={q_title}&subtitle={q_subtitle}&hours=24"
     if ci:
         og_image += f"&ci={quote(ci)}"
     jsonld = {
