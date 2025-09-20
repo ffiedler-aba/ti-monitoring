@@ -271,6 +271,7 @@ def serve_layout():
     from flask import request as _flask_request
     _base = _flask_request.url_root.rstrip('/')
     _canonical = f"{_base}/"
+    _og_image = f"{_base}/assets/favicon.png"
     _jsonld = {
         "@context": "https://schema.org",
         "@type": "WebPage",
@@ -283,6 +284,9 @@ def serve_layout():
     layout = html.Div([
         # SEO head helpers
         html.Link(rel='canonical', href=_canonical),
+        html.Meta(property='og:url', content=_canonical),
+        html.Meta(property='og:image', content=_og_image),
+        html.Meta(name='twitter:image', content=_og_image),
         html.Script(type='application/ld+json', children=[json.dumps(_jsonld)]),
         html.P([
             'ti-stats.net basiert auf Lukas Schmidt-Russnaks ',

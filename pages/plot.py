@@ -341,6 +341,7 @@ def serve_layout(**kwargs):
     # Canonical & JSON-LD
     base = request.url_root.rstrip('/')
     canonical = f"{base}/ci/{ci}" if ci else f"{base}/plot"
+    og_image = f"{base}/assets/favicon.png"
     jsonld = {
         "@context": "https://schema.org",
         "@type": "WebPage",
@@ -371,6 +372,9 @@ def serve_layout(**kwargs):
     # Create layout
     layout = html.Div([
         html.Link(rel='canonical', href=canonical),
+        html.Meta(property='og:url', content=canonical),
+        html.Meta(property='og:image', content=og_image),
+        html.Meta(name='twitter:image', content=og_image),
         html.Script(type='application/ld+json', children=[json.dumps(jsonld)]),
         # Main content container
         html.Div(className='main-content', children=[
