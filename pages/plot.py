@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import pytz
 from datetime import datetime, timedelta
+import json
 
 dash.register_page(__name__, path='/plot')
 
