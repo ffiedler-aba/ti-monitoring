@@ -407,17 +407,25 @@ def og_image():
                 return None
 
         font_bold = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 76)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 88)
             or ImageFont.load_default()
         )
         font_reg = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 42)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 50)
             or ImageFont.load_default()
         )
         font_badge = (
-            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 34)
+            load_font('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 36)
             or ImageFont.load_default()
         )
+
+        # Measurement helper for accurate width/height
+        def measure(draw_obj, text, font):
+            try:
+                x0, y0, x1, y1 = draw_obj.textbbox((0, 0), text, font=font)
+                return (x1 - x0, y1 - y0)
+            except Exception:
+                return draw_obj.textsize(text, font=font)
 
         # Optional logo (favicon.png)
         try:
@@ -431,20 +439,17 @@ def og_image():
 
         # Title/subtitle positions
         text_x = 220
-        text_y = 80
+        text_y = 64
         draw.text((text_x, text_y), title, font=font_bold, fill='#e2e8f0')  # slate-200
-        draw.text((text_x, text_y + 80), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
+        draw.text((text_x, text_y + 96), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
 
         # CI badge + metrics
-        metrics_y = text_y + 140
+        metrics_y = text_y + 170
         if ci:
             badge_text = f"CI: {ci}"
             # Measure text size
-            try:
-                tw, th = draw.textbbox((0, 0), badge_text, font=font_badge)[2:]
-            except Exception:
-                tw, th = draw.textsize(badge_text, font=font_badge)
-            pad_x, pad_y = 18, 12
+            tw, th = measure(draw, badge_text, font_badge)
+            pad_x, pad_y = 22, 14
             bx, by = text_x, metrics_y
             bw, bh = tw + pad_x * 2, th + pad_y * 2
             # Rounded rectangle background
@@ -500,10 +505,11 @@ def og_image():
                     f"MTTR: {mttr_min:.1f} Min",
                     f"MTBF: {mtbf_hr:.1f} Std",
                 ]
-                line_y = by + bh + 20
+                line_y = by + bh + 28
+                line_gap = 56
                 for line in metrics_lines:
                     draw.text((text_x, line_y), line, font=font_reg, fill='#cbd5e1')
-                line_y += 44
+                    line_y += line_gap
             except Exception:
                 # Non-fatal
                 pass
