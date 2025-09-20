@@ -378,6 +378,7 @@ def og_image():
         title = request.args.get('title', 'TI-Stats')
         subtitle = request.args.get('subtitle', 'Verfügbarkeit und Statistiken der TI-Komponenten')
         ci = request.args.get('ci')
+        hours = int(request.args.get('hours', '24'))
 
         if Image is None:
             # Fallback static response when Pillow is unavailable
@@ -434,7 +435,8 @@ def og_image():
         draw.text((text_x, text_y), title, font=font_bold, fill='#e2e8f0')  # slate-200
         draw.text((text_x, text_y + 80), subtitle, font=font_reg, fill='#94a3b8')  # slate-400
 
-        # CI badge
+        # CI badge + metrics
+        metrics_y = text_y + 140
         if ci:
             badge_text = f"CI: {ci}"
             # Measure text size
@@ -443,7 +445,7 @@ def og_image():
             except Exception:
                 tw, th = draw.textsize(badge_text, font=font_badge)
             pad_x, pad_y = 16, 10
-            bx, by = text_x, text_y + 140
+            bx, by = text_x, metrics_y
             bw, bh = tw + pad_x * 2, th + pad_y * 2
             # Rounded rectangle background
             try:
@@ -452,6 +454,59 @@ def og_image():
             except Exception:
                 draw.rectangle([bx, by, bx + bw, by + bh], fill='#1e293b')
             draw.text((bx + pad_x, by + pad_y), badge_text, font=font_badge, fill='#93c5fd')  # blue-300
+
+            # Fetch metrics from DB (best-effort)
+            try:
+                import pandas as _pd
+                from datetime import timedelta as _td
+                with get_db_conn() as conn:
+                    with conn.cursor() as cur:
+                        # Pull last N hours measurements for specific CI
+                        cur.execute("""
+                            SELECT ts, status
+                            FROM measurements
+                            WHERE ci = %s AND ts >= NOW() - INTERVAL %s
+                            ORDER BY ts ASC
+                        """, (ci, f"{int(max(1, hours))} hours",))
+                        rows = cur.fetchall()
+                df = _pd.DataFrame(rows, columns=['ts', 'status']) if rows else _pd.DataFrame(columns=['ts','status'])
+                availability = 0.0
+                incidents = 0
+                mttr_min = 0.0
+                mtbf_hr = 0.0
+                if not df.empty:
+                    df['ts'] = _pd.to_datetime(df['ts'])
+                    df['status'] = df['status'].astype(int)
+                    # Availability percent
+                    availability = float(df['status'].mean() * 100.0)
+                    # Incidents: 1->0 transitions
+                    df['prev'] = df['status'].shift(1)
+                    incidents = int(((df['prev'] == 1) & (df['status'] == 0)).sum())
+                    # MTTR/MTBF (rough estimation): compute durations of 0 and 1 segments
+                    df['grp'] = (df['status'] != df['status'].shift(1)).cumsum()
+                    seg = df.groupby('grp').agg(start=('ts','min'), end=('ts','max'), val=('status','first'))
+                    seg['dur_min'] = (seg['end'] - seg['start']).dt.total_seconds() / 60.0
+                    total_downtime = seg.loc[seg['val'] == 0, 'dur_min'].sum() if not seg.empty else 0.0
+                    total_uptime = seg.loc[seg['val'] == 1, 'dur_min'].sum() if not seg.empty else 0.0
+                    num_outages = max(1, len(seg.loc[seg['val'] == 0])) if not seg.empty else 1
+                    num_uptimes = max(1, len(seg.loc[seg['val'] == 1])) if not seg.empty else 1
+                    mttr_min = float(total_downtime / num_outages)
+                    mtbf_hr = float((total_uptime / num_uptimes) / 60.0)
+
+                # Render metrics block
+                metrics_lines = [
+                    f"Verfügbarkeit {hours}h: {availability:.2f}%",
+                    f"Incidents: {incidents}",
+                    f"MTTR: {mttr_min:.1f} Min",
+                    f"MTBF: {mtbf_hr:.1f} Std",
+                ]
+                line_y = by + bh + 20
+                for line in metrics_lines:
+                    draw.text((text_x, line_y), line, font=font_reg, fill='#cbd5e1')
+                    line_y += 38
+            except Exception:
+                # Non-fatal
+                pass
 
         # Footer brand
         draw.text((64, height - 64), 'ti-stats.net', font=font_reg, fill='#64748b')  # slate-500
