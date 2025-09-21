@@ -341,7 +341,7 @@ def serve_layout(**kwargs):
     ci = request.args.get('ci', '') or ''
     # Canonical & JSON-LD
     base = request.url_root.rstrip('/')
-    canonical = f"{base}/ci/{ci}" if ci else f"{base}/plot"
+    canonical = f"{base}/plot?ci={ci}" if ci else f"{base}/plot"
     # dynamic OG image with optional CI badge
     from urllib.parse import quote
     q_title = quote('TI-Stats')

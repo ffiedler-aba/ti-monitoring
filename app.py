@@ -330,14 +330,14 @@ def sitemap_xml():
         ("/notifications", "weekly"),
         ("/plot", "daily"),
     ]
-    # Try to include CI detail pages under pretty URL /ci/<ci>
+    # Include CI detail pages directly as final target URL /plot?ci=<ci>
     try:
         df = get_timescaledb_ci_data()
         if df is not None and hasattr(df, 'empty') and not df.empty and 'ci' in df.columns:
             # Limit to avoid huge sitemaps
             ci_values = df['ci'].dropna().astype(str).unique().tolist()[:1000]
             for ci in ci_values:
-                pages.append((f"/ci/{ci}", "hourly"))
+                pages.append((f"/plot?ci={ci}", "hourly"))
     except Exception:
         # Fail silently; base pages are still provided
         pass
