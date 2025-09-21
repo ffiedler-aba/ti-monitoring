@@ -936,38 +936,88 @@ def update_file(file_name, url):
         print(f"Error updating data: {e}")
         raise
 
-def get_availability_data_of_ci(file_name, ci):
+def get_availability_data_of_ci(file_name, ci, start_ts=None, end_ts=None, hours=None, bucket_minutes=None):
     """
     Gets availability data for a specific configuration item from TimescaleDB
 
     Args:
         file_name (str): Path to hdf5 file (kept for compatibility, not used)
-        ci (str): ID of the desired confirguration item
+        ci (str): ID of the desired configuration item
+        start_ts (datetime|None): Optional inclusive UTC start timestamp filter
+        end_ts (datetime|None): Optional inclusive UTC end timestamp filter
+        hours (int|None): Optional trailing hours window if explicit range not provided
 
     Returns:
         DataFrame: Time series of the availability of the desired configuration item
     """
     try:
-        # Get data from TimescaleDB
         with get_db_conn() as conn:
-            query = """
-            SELECT 
-                ts as times,
-                status as values
-            FROM measurements 
-            WHERE ci = %s 
-            ORDER BY ts
-            """
+            params = [ci]
+            use_bucket = isinstance(bucket_minutes, int) and bucket_minutes and bucket_minutes > 0
+            if start_ts is not None and end_ts is not None:
+                if use_bucket:
+                    query = """
+                    SELECT time_bucket(%s::interval, ts) AS times, MIN(status) AS values
+                    FROM measurements
+                    WHERE ci = %s AND ts BETWEEN %s AND %s
+                    GROUP BY times
+                    ORDER BY times
+                    """
+                    params = [f"{int(bucket_minutes)} minutes", ci, start_ts, end_ts]
+                else:
+                    query = """
+                    SELECT ts as times, status as values
+                    FROM measurements
+                    WHERE ci = %s AND ts BETWEEN %s AND %s
+                    ORDER BY ts
+                    """
+                    params.extend([start_ts, end_ts])
+            elif hours is not None:
+                # Use trailing time window
+                if use_bucket:
+                    query = """
+                    SELECT time_bucket(%s::interval, ts) AS times, MIN(status) AS values
+                    FROM measurements
+                    WHERE ci = %s AND ts >= NOW() - INTERVAL %s
+                    GROUP BY times
+                    ORDER BY times
+                    """
+                    params = [f"{int(bucket_minutes)} minutes", ci, f"{int(max(1, hours))} hours"]
+                else:
+                    query = """
+                    SELECT ts as times, status as values
+                    FROM measurements
+                    WHERE ci = %s AND ts >= NOW() - INTERVAL %s
+                    ORDER BY ts
+                    """
+                    params.append(f"{int(max(1, hours))} hours")
+            else:
+                # Fallback: full history (can be large)
+                if use_bucket:
+                    query = """
+                    SELECT time_bucket(%s::interval, ts) AS times, MIN(status) AS values
+                    FROM measurements
+                    WHERE ci = %s
+                    GROUP BY times
+                    ORDER BY times
+                    """
+                    params = [f"{int(bucket_minutes)} minutes", ci]
+                else:
+                    query = """
+                    SELECT ts as times, status as values
+                    FROM measurements
+                    WHERE ci = %s
+                    ORDER BY ts
+                    """
             with conn.cursor() as cur:
-                cur.execute(query, [ci])
+                cur.execute(query, params)
                 results = cur.fetchall()
                 df = pd.DataFrame(results, columns=['times', 'values'])
             if not df.empty:
                 # Convert times to Europe/Berlin timezone
                 df['times'] = pd.to_datetime(df['times']).dt.tz_convert('Europe/Berlin')
                 return df
-            else:
-                return pd.DataFrame()
+            return pd.DataFrame()
     except Exception as e:
         print(f"Error reading availability data for CI {ci} from TimescaleDB: {e}")
         return pd.DataFrame()

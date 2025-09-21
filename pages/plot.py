@@ -577,7 +577,30 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         if demo_mode:
             ci_data = generate_synthetic_availability(hours=selected_hours)
         else:
-            ci_data = get_availability_data_of_ci(None, ci)
+            # Choose bucket size for large windows to reduce rows serverseitig
+            bucket_minutes = None
+            try:
+                if selected_range is not None:
+                    window_hours = max(1, int((selected_range[1] - selected_range[0]).total_seconds() // 3600))
+                else:
+                    window_hours = int(selected_hours)
+            except Exception:
+                window_hours = 48
+
+            # Heuristic: > 168h (7d) -> 15min, > 720h (30d) -> 60min
+            if window_hours > 720:
+                bucket_minutes = 60
+            elif window_hours > 168:
+                bucket_minutes = 15
+
+            # Query only the needed window from DB to avoid full scans
+            if selected_range is not None:
+                # Convert window to UTC for DB filter
+                start_ts_utc = selected_range[0].tz_convert('UTC').to_pydatetime()
+                end_ts_utc = selected_range[1].tz_convert('UTC').to_pydatetime()
+                ci_data = get_availability_data_of_ci(None, ci, start_ts=start_ts_utc, end_ts=end_ts_utc, bucket_minutes=bucket_minutes)
+            else:
+                ci_data = get_availability_data_of_ci(None, ci, hours=selected_hours, bucket_minutes=bucket_minutes)
 
         if ci_data.empty:
             # Fallback auf synthetische Testdaten, wenn gewünscht (per URL-Flag demo=1)
@@ -678,6 +701,15 @@ def handle_plot_updates(pathname, n_clicks, hours, trend_options, relayout_data,
         fig = go.Figure()
 
         selected_data_sorted = selected_data.sort_values('times').copy()
+
+        # Lightweight downsampling to cap point count for rendering performance
+        try:
+            max_points = 4000
+            if len(selected_data_sorted) > max_points:
+                step = max(1, len(selected_data_sorted) // max_points)
+                selected_data_sorted = selected_data_sorted.iloc[::step].copy()
+        except Exception:
+            pass
 
         # Build masked series so that lines break across gaps (None/NaN)
         # Use a small epsilon for unavailable to avoid clipping at y=0 baseline

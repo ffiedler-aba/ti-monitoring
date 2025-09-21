@@ -15,6 +15,14 @@ _home_config_cache_timestamp = 0
 _home_config_cache_ttl = 300  # 5 seconds cache TTL
 _home_config_cache_max_size = 10  # Limit cache size
 
+# Lightweight layout cache to avoid recomputing heavy DOM trees frequently
+_home_layout_cache = None
+_home_layout_cache_ts = 0
+_home_layout_cache_ttl = 60  # seconds
+
+# Limit how many items we render per product group to keep DOM small
+_max_items_per_group = 50
+
 def load_config():
     """Load configuration from YAML file with caching"""
     global _home_config_cache, _home_config_cache_timestamp
@@ -54,8 +62,8 @@ def create_incidents_table(incidents_data, show_all=False):
     if not incidents_data:
         return html.P("Keine Incidents verfügbar.")
 
-    # Show all incidents in a scrollable table
-    display_incidents = incidents_data
+    # Show limited incidents by default for performance
+    display_incidents = incidents_data if show_all else incidents_data[:10]
 
     # Create table rows
     table_rows = []
@@ -144,6 +152,12 @@ def create_accordion_element(group_name, group_data):
     else:
         availability_class = 'impaired'
 
+    # Apply per-group item limit
+    limited_group_data = group_data.head(_max_items_per_group)
+
+    # Compute remaining count for hint
+    remaining = max(0, len(group_data) - len(limited_group_data))
+
     return html.Div(className='accordion-element', children = [
         html.Div(
             className='accordion-element-title',
@@ -171,14 +185,22 @@ def create_accordion_element(group_name, group_data):
                         html.A(str(row['ci']), href='/plot?ci=' + str(row['ci'])),
                         ': ' + row['name'] + ', ' + row['organization'] + ', ' + pretty_timestamp(row['time'])
                     ])
-                ]) for _, row in group_data.iterrows()
-            ])
+                ]) for _, row in limited_group_data.iterrows()
+            ]),
+            (html.Div(
+                ['… und ', html.Strong(str(remaining)), ' weitere Einträge, siehe ', html.A('Statistiken', href='/stats')]
+            ) if remaining > 0 else None)
         ])
     ])
 
 
 
 def serve_layout():
+    # Return cached layout if fresh
+    global _home_layout_cache, _home_layout_cache_ts
+    now_ts = time.time()
+    if _home_layout_cache is not None and (now_ts - _home_layout_cache_ts) < _home_layout_cache_ttl:
+        return _home_layout_cache
     # Load core configurations (now cached)
     core_config = load_core_config()
 
@@ -319,6 +341,9 @@ def serve_layout():
         ], className='groups-section')
     ])
 
+    # Cache and return
+    _home_layout_cache = layout
+    _home_layout_cache_ts = time.time()
     return layout
 
 layout = serve_layout
