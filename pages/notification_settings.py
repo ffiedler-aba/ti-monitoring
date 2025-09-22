@@ -147,6 +147,13 @@ def serve_layout():
                     'Anschließend kannst du Benachrichtigungen für die Telematik-Komponenten ("Configuration-Items"), die dich interessieren, konfigurieren.'
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
+                    html.Strong([
+                        'Im ti-stats.net ',
+                        html.A('ti-stats.net Wiki', href='https://github.com/elpatron68/ti-monitoring/wiki/Benachrichtigungsoptionen', target='_blank'),
+                        ' findest du eine einfache Schritt-für -Schritt Anleitung zur Einrichtung einer Benachrichtigung.'
+                    ])
+                ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
+                html.P([
                     'Jede verschickte Benachrichtigung enthält zwei Links, mit denen sowohl der jeweilige Benachrichtigungstyp (z.B. "Slack") als auch alle Benachrichtigungen deines Accounts wieder abgeschaltet werden können (unsubscribe).'
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
