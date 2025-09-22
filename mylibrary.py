@@ -1470,7 +1470,7 @@ def create_notification_profile(user_id, name, profile_type, ci_list, apprise_ur
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """, (user_id, name, profile_type, ci_list, encrypted_urls, url_hashes, url_salts, 
-              email_notifications, email_address, unsubscribe_token))
+              email_notifications, None, unsubscribe_token))
         return cur.fetchone()[0]
 
 def update_notification_profile(profile_id, user_id, name, profile_type, ci_list, apprise_urls, email_notifications, email_address):
@@ -1504,7 +1504,7 @@ def update_notification_profile(profile_id, user_id, name, profile_type, ci_list
                 email_notifications = %s, email_address = %s, updated_at = NOW()
             WHERE id = %s AND user_id = %s
         """, (name, profile_type, ci_list, encrypted_urls, url_hashes, url_salts, 
-              email_notifications, email_address, profile_id, user_id))
+              email_notifications, None, profile_id, user_id))
         return cur.rowcount > 0
 
 def delete_notification_profile(profile_id, user_id):

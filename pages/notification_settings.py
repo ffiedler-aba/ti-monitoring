@@ -808,7 +808,8 @@ def save_profile(n_clicks, name, notification_type, notification_method, apprise
     try:
         user_id = auth_status.get('user_id')
         email_notifications = notification_method == 'email'
-        email_address = auth_status.get('email') if email_notifications else None
+        # Sicherheit: Keine Speicherung von Klartext-E-Mails in Profilen
+        email_address = None
 
         # Process Apprise URLs
         url_items = []
