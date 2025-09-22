@@ -1245,9 +1245,9 @@ def create_html_list_item_for_change(change, home_url):
 
     html_str = '<li>' + ' <strong><a href="' + href + '">' + str(change['ci']) + '</a></strong>: ' + str(change['product']) + ', ' + str(change['name']) + ', ' + str(change['organization']) + ' '
     if change['availability_difference'] == 1:
-        html_str += '<span style=color:green>&nbsp;*ist wieder verfügbar*</span>'
+        html_str += '<span style=color:green>&nbsp;ist wieder verfügbar&nbsp;</span>'
     elif change['availability_difference'] == -1:
-        html_str += '<span style=color:red>&nbsp;*ist nicht mehr verfügbar*</span>'
+        html_str += '<span style=color:red>&nbsp;ist nicht mehr verfügbar&nbsp;</span>'
     else:
         html_str += ' keine Veränderung'
     html_str += emoji + ' '
