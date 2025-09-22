@@ -203,6 +203,10 @@ def serve_layout():
         
         # Create layout
         _layout_cache = html.Div([
+            # Canonical link + location for dynamic updates
+            dcc.Location(id='loc'),
+            html.Link(id='canonical-link', rel='canonical', href='/'),
+            html.Link(rel='me', href='https://mastodon.ti-stats.net/@tistatus'),
             html.Header(children = [
                 html.Div(children=[
                     html.Div(id='logo-wrapper', children = [
@@ -305,6 +309,27 @@ def serve_layout():
 
 # This is the correct way to set the layout - it should be the function itself, not the result of calling it
 app.layout = serve_layout
+
+"""
+Clientseitiger Callback, um den Canonical-Link dynamisch anhand der aktuellen URL zu setzen.
+"""
+dash.clientside_callback(
+    """
+    function(pathname) {
+      try {
+        var origin = window.location.origin || '';
+        var search = window.location.search || '';
+        var href = origin + (pathname || '/') + search;
+        var el = document.querySelector("link[rel='canonical']") || document.getElementById('canonical-link');
+        if (el) { el.setAttribute('href', href); }
+      } catch(e) {}
+      return '';
+    }
+    """,
+    Output('footer', 'title'),  # Dummy-Output
+    Input('loc', 'pathname'),
+    prevent_initial_call=False
+)
 
 # ----------------------------------------------------------------------------
 # SEO: Robots.txt & Sitemap.xml
