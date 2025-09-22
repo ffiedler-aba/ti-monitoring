@@ -150,7 +150,7 @@ def serve_layout():
                     html.Strong([
                         'Im ti-stats.net ',
                         html.A('ti-stats.net Wiki', href='https://github.com/elpatron68/ti-monitoring/wiki/Benachrichtigungsoptionen', target='_blank'),
-                        ' findest du eine einfache Schritt-für -Schritt Anleitung zur Einrichtung einer Benachrichtigung.'
+                        ' findest du eine einfache Schritt-für-Schritt Anleitung zur Einrichtung einer Benachrichtigung.'
                     ])
                 ], style={'marginBottom': '15px', 'lineHeight': '1.6'}),
                 html.P([
