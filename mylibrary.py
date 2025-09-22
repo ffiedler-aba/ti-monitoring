@@ -1267,7 +1267,7 @@ def create_notification_message(changes, recipient_name, home_url):
         str: HTML formatted message
     """
     message = f'<html lang="de"><body><p>Hallo {recipient_name},</p>'
-    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von dir abonierten Komponenten geändert:</p>'
+    message += '<p>bei der letzten Überprüfung hat sich die Verfügbarkeit der folgenden von dir abonnierten Komponenten geändert:</p>'
 
     # Kurze Emoji-Zusammenfassung (Anzahl Incidents / Entwarnungen)
     try:
