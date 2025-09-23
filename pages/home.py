@@ -331,14 +331,7 @@ def serve_layout():
             ], className='incidents-container')
         ], className='incidents-section'),
 
-        html.P('Hier findest du eine nach Produkten gruppierte Übersicht sämtlicher TI-Komponenten. Neue Daten werden alle 5 Minuten bereitgestellt. Lade die Seite neu, um die Ansicht zu aktualisieren.'),
-
-
-        # CI Groups section
-        html.Div([
-            html.H3("TI-Komponenten nach Produkten", className='groups-title'),
-            html.Div(className='accordion', children=accordion_elements)
-        ], className='groups-section')
+        # Hinweis: Gruppen-Abschnitt entfernt
     ])
 
     # Cache and return
