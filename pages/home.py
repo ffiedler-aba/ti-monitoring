@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State, clientside_callback
+from dash import html, dcc, callback, Input, Output, State, clientside_callback, callback_context
 from mylibrary import *
 import yaml
 import os
@@ -384,9 +384,17 @@ def _format_minutes_to_human(minutes: float) -> str:
 
 @callback(
     Output('ci-all-table-container', 'children'),
-    [Input('incidents-data-store', 'data'), Input('ci-all-filter', 'value')]
+    [
+        Input('incidents-data-store', 'data'),
+        Input('ci-all-filter', 'value'),
+        Input('ci-col', 'n_clicks'),
+        Input('org-col', 'n_clicks'),
+        Input('d7-col', 'n_clicks'),
+        Input('d30-col', 'n_clicks'),
+        Input('status-col', 'n_clicks'),
+    ]
 )
-def render_ci_all_table(_, filter_text):
+def render_ci_all_table(_, filter_text, ci_clicks, org_clicks, d7_clicks, d30_clicks, status_clicks):
     try:
         # Daten inkl. Downtimes aus DB laden
         df = get_all_cis_with_downtimes()
@@ -398,6 +406,33 @@ def render_ci_all_table(_, filter_text):
             df = df.copy()
             df['ci'] = df['ci'].astype(str)
             df = df.sort_values('ci')
+        except Exception:
+            pass
+
+        # Sortierlogik: Toggle pro Spalte (auf/absteigend) – Standard: CI asc
+        try:
+            trig = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else ''
+            # Ermittel Sortierreihenfolge: gerade Klickzahl -> asc, ungerade -> desc
+            def order(n):
+                try:
+                    return 'desc' if (int(n or 0) % 2 == 1) else 'asc'
+                except Exception:
+                    return 'asc'
+
+            if trig == 'ci-col':
+                df = df.sort_values('ci', ascending=(order(ci_clicks) == 'asc'))
+            elif trig == 'org-col':
+                # Sortiere primär nach Organisation, sekundär Produkt
+                df = df.sort_values(['organization', 'product', 'ci'], ascending=[order(org_clicks) == 'asc']*3)
+            elif trig == 'd7-col':
+                df = df.sort_values(['downtime_7d_min', 'ci'], ascending=[order(d7_clicks) == 'asc', True])
+            elif trig == 'd30-col':
+                df = df.sort_values(['downtime_30d_min', 'ci'], ascending=[order(d30_clicks) == 'asc', True])
+            elif trig == 'status-col':
+                df = df.sort_values(['current_availability', 'ci'], ascending=[order(status_clicks) == 'asc', True])
+            else:
+                # Standard: CI asc (bereits gesetzt)
+                pass
         except Exception:
             pass
 
@@ -445,16 +480,18 @@ def render_ci_all_table(_, filter_text):
                 html.Td(html.Span(status_text, className=f'status-badge {status_class}'))
             ]))
 
+        # Sortierbare Header (einfaches clientseitiges State-Pattern via hidden dcc.Store)
+        header = html.Thead([
+            html.Tr([
+                html.Th(html.Button('CI', id='ci-col', n_clicks=0, className='table-sort-btn')),
+                html.Th(html.Button('Organisation · Produkt', id='org-col', n_clicks=0, className='table-sort-btn')),
+                html.Th(html.Button('Downtime 7 Tage', id='d7-col', n_clicks=0, className='table-sort-btn')),
+                html.Th(html.Button('Downtime 30 Tage', id='d30-col', n_clicks=0, className='table-sort-btn')),
+                html.Th(html.Button('Status', id='status-col', n_clicks=0, className='table-sort-btn'))
+            ])
+        ])
         table = html.Table([
-            html.Thead([
-                html.Tr([
-                    html.Th('CI'),
-                    html.Th('Organisation · Produkt'),
-                    html.Th('Downtime 7 Tage'),
-                    html.Th('Downtime 30 Tage'),
-                    html.Th('Status')
-                ])
-            ]),
+            header,
             html.Tbody(rows)
         ], className='incidents-table')
 
