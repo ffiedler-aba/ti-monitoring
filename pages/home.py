@@ -373,9 +373,11 @@ def serve_layout():
             ], className='incidents-container'),
         ], className='incidents-section')
         ,
-        html.P([
-            html.A('Zu den ausführliche Statistiken', href='/stats')
-        ], style={'color': 'white', 'marginTop': '10px'})
+        html.Div([
+            html.Span('Hinweis: ', style={'fontWeight': '600', 'marginRight': '6px'}),
+            html.Span('Zu den ausführliche Statistiken: '),
+            html.A('Statistiken', href='/stats')
+        ], className='warning-message')
     ])
 
     # Cache and return
