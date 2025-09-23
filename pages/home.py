@@ -352,6 +352,7 @@ def serve_layout():
                     },
                     className='incidents-filter-input'
                 ),
+                dcc.Store(id='ci-sort-store', data={'by': 'ci', 'asc': True}),
                 html.Div(id='ci-all-table-container', style={
                     'maxHeight': '260px',  # ~5 Zeilen sichtbar
                     'overflowY': 'auto'
@@ -392,7 +393,8 @@ def _format_minutes_to_human(minutes: float) -> str:
         Input('d7-col', 'n_clicks'),
         Input('d30-col', 'n_clicks'),
         Input('status-col', 'n_clicks'),
-    ]
+    ],
+    prevent_initial_call=False
 )
 def render_ci_all_table(_, filter_text, ci_clicks, org_clicks, d7_clicks, d30_clicks, status_clicks):
     try:
@@ -411,7 +413,7 @@ def render_ci_all_table(_, filter_text, ci_clicks, org_clicks, d7_clicks, d30_cl
 
         # Sortierlogik: Toggle pro Spalte (auf/absteigend) – Standard: CI asc
         try:
-            trig = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else ''
+            trig = callback_context.triggered[0]['prop_id'].split('.')[0] if callback_context.triggered else 'ci-all-filter'
             # Ermittel Sortierreihenfolge: gerade Klickzahl -> asc, ungerade -> desc
             def order(n):
                 try:
@@ -483,11 +485,11 @@ def render_ci_all_table(_, filter_text, ci_clicks, org_clicks, d7_clicks, d30_cl
         # Sortierbare Header (einfaches clientseitiges State-Pattern via hidden dcc.Store)
         header = html.Thead([
             html.Tr([
-                html.Th(html.Button('CI', id='ci-col', n_clicks=0, className='table-sort-btn')),
-                html.Th(html.Button('Organisation · Produkt', id='org-col', n_clicks=0, className='table-sort-btn')),
-                html.Th(html.Button('Downtime 7 Tage', id='d7-col', n_clicks=0, className='table-sort-btn')),
-                html.Th(html.Button('Downtime 30 Tage', id='d30-col', n_clicks=0, className='table-sort-btn')),
-                html.Th(html.Button('Status', id='status-col', n_clicks=0, className='table-sort-btn'))
+                html.Th(html.Button('CI', id='ci-col', n_clicks=0, className='table-sort-btn'), id='ci-col-th'),
+                html.Th(html.Button('Organisation · Produkt', id='org-col', n_clicks=0, className='table-sort-btn'), id='org-col-th'),
+                html.Th(html.Button('Downtime 7 Tage', id='d7-col', n_clicks=0, className='table-sort-btn'), id='d7-col-th'),
+                html.Th(html.Button('Downtime 30 Tage', id='d30-col', n_clicks=0, className='table-sort-btn'), id='d30-col-th'),
+                html.Th(html.Button('Status', id='status-col', n_clicks=0, className='table-sort-btn'), id='status-col-th')
             ])
         ])
         table = html.Table([
