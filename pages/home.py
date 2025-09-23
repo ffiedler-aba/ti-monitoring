@@ -368,10 +368,11 @@ def serve_layout():
             html.H3("Zeitliche Verteilung der Incidents (30 Tage)", className='stats-title'),
             dcc.Store(id='incident-heatmap-cache', data=None),
             dcc.Interval(id='incident-heatmap-refresh', interval=900000, n_intervals=0),
-            dcc.Graph(id='incident-heatmap', config={'displayModeBar': False}),
+            html.Div([
+                dcc.Graph(id='incident-heatmap', config={'displayModeBar': False})
+            ], className='incidents-container'),
             html.P([
-                'Zu den ausführliche Statistiken: ',
-                html.A('Statistiken', href='/stats')
+                html.A('Zu den ausführliche Statistiken', href='/stats')
             ], style={'color': 'white', 'marginTop': '10px'})
         ], className='incidents-section')
     ])
