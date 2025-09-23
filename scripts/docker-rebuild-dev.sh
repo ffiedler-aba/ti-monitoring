@@ -45,17 +45,18 @@ fast_sync() {
   docker compose -f docker-compose-dev.yml up -d
 
   # Liste der zu kopierenden Dateien (tracked + untracked, aber .gitignored ausschließen)
+  # WICHTIG: Null-terminiert, um Pfade mit Leerzeichen korrekt zu handhaben
   TMP_LIST=$(mktemp)
-  (cd "$REPO_ROOT" && git ls-files -co --exclude-standard) > "$TMP_LIST"
+  (cd "$REPO_ROOT" && git ls-files -co -z --exclude-standard) > "$TMP_LIST"
 
-  # Tar-Stream erstellen und im Container auf /app entpacken
+  # Tar-Stream erstellen und im Container auf /app entpacken (Null-terminierte Liste)
   # Web
   if docker compose -f docker-compose-dev.yml ps ti-monitoring-web >/dev/null 2>&1; then
-    tar -C "$REPO_ROOT" -cf - -T "$TMP_LIST" | docker compose -f docker-compose-dev.yml exec -T ti-monitoring-web sh -lc "tar -C /app -xf -"
+    tar -C "$REPO_ROOT" -cf - --null -T "$TMP_LIST" | docker compose -f docker-compose-dev.yml exec -T ti-monitoring-web sh -lc "tar -C /app -xf -"
   fi
   # Cron
   if docker compose -f docker-compose-dev.yml ps ti-monitoring-cron >/dev/null 2>&1; then
-    tar -C "$REPO_ROOT" -cf - -T "$TMP_LIST" | docker compose -f docker-compose-dev.yml exec -T ti-monitoring-cron sh -lc "tar -C /app -xf -"
+    tar -C "$REPO_ROOT" -cf - --null -T "$TMP_LIST" | docker compose -f docker-compose-dev.yml exec -T ti-monitoring-cron sh -lc "tar -C /app -xf -"
   fi
   rm -f "$TMP_LIST"
 
