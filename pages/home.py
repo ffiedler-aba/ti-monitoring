@@ -365,7 +365,7 @@ def serve_layout():
 
         # Heatmap: zeitliche Verteilung der Incidents (letzte 30 Tage)
         html.Div([
-            html.H3("Zeitliche Verteilung der Incidents (30 Tage)", className='ci-all-title'),
+            html.H3("Zeitliche Verteilung der Incidents (30 Tage)", className='stats-title'),
             dcc.Store(id='incident-heatmap-cache', data=None),
             dcc.Interval(id='incident-heatmap-refresh', interval=900000, n_intervals=0),
             dcc.Graph(id='incident-heatmap', config={'displayModeBar': False})

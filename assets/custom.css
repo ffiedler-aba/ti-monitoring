@@ -68,6 +68,18 @@ input:focus, textarea:focus {
     gap: 10px;
 }
 
+/* Gleiche Titel-Optik für weitere Sektionen */
+.stats-title {
+    color: white !important;
+    margin-bottom: 20px !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .incidents-title::before {
     content: "🚨";
     font-size: 1.2em;
@@ -76,6 +88,12 @@ input:focus, textarea:focus {
 /* Titel-Icon nur für die zweite Tabelle (Alle TI-Komponenten) überschreiben */
 .ci-all-title::before {
     content: "🗒️";
+    font-size: 1.2em;
+}
+
+/* Statistik-Icon für Heatmap-Titel */
+.stats-title::before {
+    content: "📊";
     font-size: 1.2em;
 }
 
