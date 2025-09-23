@@ -334,6 +334,12 @@ def serve_layout():
         # Alle CIs mit Downtimes (5 sichtbar, scrollbar) – Style analog zu Incidents
         html.Div([
             html.H3("Alle TI-Komponenten", className='incidents-title'),
+            dcc.Input(
+                id='ci-all-filter',
+                type='text',
+                placeholder='CIs filtern (CI, Organisation oder Produkt)',
+                style={'width': '100%', 'marginBottom': '10px', 'padding': '8px 12px', 'borderRadius': '6px'}
+            ),
             html.Div([
                 html.Div(id='ci-all-table-container')
             ], className='incidents-container', style={
@@ -367,9 +373,9 @@ def _format_minutes_to_human(minutes: float) -> str:
 
 @callback(
     Output('ci-all-table-container', 'children'),
-    [Input('incidents-data-store', 'data')]
+    [Input('incidents-data-store', 'data'), Input('ci-all-filter', 'value')]
 )
-def render_ci_all_table(_):
+def render_ci_all_table(_, filter_text):
     try:
         # Daten inkl. Downtimes aus DB laden
         df = get_all_cis_with_downtimes()
@@ -383,6 +389,24 @@ def render_ci_all_table(_):
             df = df.sort_values('ci')
         except Exception:
             pass
+
+        # Filter anwenden über CI und Organisation/Produkt/Name
+        if filter_text:
+            f = str(filter_text).strip().lower()
+            def match_row(r):
+                try:
+                    return (
+                        f in str(r.get('ci','')).lower() or
+                        f in str(r.get('organization','')).lower() or
+                        f in str(r.get('product','')).lower() or
+                        f in str(r.get('name','')).lower()
+                    )
+                except Exception:
+                    return False
+            try:
+                df = df[[match_row(row) for _, row in df.iterrows()]]
+            except Exception:
+                pass
 
         # Nur ersten 5 Zeilen anzeigen (Container ist scrollbar)
         try:
