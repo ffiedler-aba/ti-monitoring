@@ -331,7 +331,19 @@ def serve_layout():
             ], className='incidents-container')
         ], className='incidents-section'),
 
-        # Hinweis: Gruppen-Abschnitt entfernt
+        # Alle CIs mit Downtimes (5 sichtbar, scrollbar)
+        html.Div([
+            html.H3("Alle TI-Komponenten", className='ci-all-title'),
+            html.Div(id='ci-all-table-container')
+        ], className='ci-all-section', style={
+            'maxHeight': '260px',  # ~5 Zeilen sichtbar
+            'overflowY': 'auto',
+            'border': '1px solid #e9ecef',
+            'borderRadius': '8px',
+            'padding': '8px',
+            'backgroundColor': 'white',
+            'marginTop': '16px'
+        })
     ])
 
     # Cache and return
@@ -340,3 +352,83 @@ def serve_layout():
     return layout
 
 layout = serve_layout
+
+
+def _format_minutes_to_human(minutes: float) -> str:
+    try:
+        m = float(minutes or 0.0)
+        if m < 60:
+            return f"{m:.0f} Min"
+        h = m / 60.0
+        if h < 24:
+            return f"{h:.1f} Std"
+        d = h / 24.0
+        return f"{d:.1f} Tg"
+    except Exception:
+        return "0 Min"
+
+
+@callback(
+    Output('ci-all-table-container', 'children'),
+    [Input('incidents-data-store', 'data')]
+)
+def render_ci_all_table(_):
+    try:
+        # Daten inkl. Downtimes aus DB laden
+        df = get_all_cis_with_downtimes()
+        if df is None or df.empty:
+            return html.Div('Keine CIs verfügbar.')
+
+        # Sortierung nach CI sicherstellen (Server-seitig schon sortiert)
+        try:
+            df = df.copy()
+            df['ci'] = df['ci'].astype(str)
+            df = df.sort_values('ci')
+        except Exception:
+            pass
+
+        # Nur ersten 5 Zeilen anzeigen (Container ist scrollbar)
+        try:
+            df_display = df.head(5)
+        except Exception:
+            df_display = df
+
+        # Tabellenzeilen bauen
+        rows = []
+        for _, row in df_display.iterrows():
+            status = int(row.get('current_availability') or 0)
+            status_class = 'available' if status == 1 else 'unavailable'
+            status_text = 'Verfügbar' if status == 1 else 'Gestört'
+
+            rows.append(html.Tr([
+                html.Td([
+                    html.A(str(row.get('ci', '')), href=f"/plot?ci={str(row.get('ci',''))}", className='ci-link'),
+                    html.Br(),
+                    html.Span(str(row.get('name', '')), className='ci-name')
+                ]),
+                html.Td([
+                    html.Span(str(row.get('organization', '')), className='org-name'),
+                    html.Br(),
+                    html.Span(str(row.get('product', '')), className='product-name')
+                ]),
+                html.Td(_format_minutes_to_human(row.get('downtime_7d_min'))),
+                html.Td(_format_minutes_to_human(row.get('downtime_30d_min'))),
+                html.Td(html.Span(status_text, className=f'status-badge {status_class}'))
+            ]))
+
+        table = html.Table([
+            html.Thead([
+                html.Tr([
+                    html.Th('CI'),
+                    html.Th('Organisation · Produkt'),
+                    html.Th('Downtime 7 Tage'),
+                    html.Th('Downtime 30 Tage'),
+                    html.Th('Status')
+                ])
+            ]),
+            html.Tbody(rows)
+        ], className='ci-all-table')
+
+        return table
+    except Exception as e:
+        return html.Div(f'Fehler beim Laden der CI-Tabelle: {str(e)}', style={'color': 'red'})

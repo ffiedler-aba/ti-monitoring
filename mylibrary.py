@@ -1103,6 +1103,52 @@ def get_data_of_all_cis_from_timescaledb():
         print(f"Error getting data from TimescaleDB: {e}")
         return pd.DataFrame()
 
+def get_all_cis_with_downtimes() -> pd.DataFrame:
+    """
+    Returns a DataFrame with all CIs including metadata, current status and
+    downtimes from ci_downtimes (7/30 Tage). Sorted by CI.
+    Columns: ci, name, organization, product, current_availability,
+             downtime_7d_min, downtime_30d_min
+    """
+    try:
+        with get_db_conn() as conn:
+            query = """
+            WITH latest_status AS (
+                SELECT DISTINCT ON (ci)
+                    ci,
+                    status,
+                    ts
+                FROM measurements
+                ORDER BY ci, ts DESC
+            )
+            SELECT 
+                cm.ci,
+                COALESCE(cm.name, '') as name,
+                COALESCE(cm.organization, '') as organization,
+                COALESCE(cm.product, '') as product,
+                COALESCE(ls.status, 0) as current_availability,
+                COALESCE(cd.downtime_7d_min, 0) as downtime_7d_min,
+                COALESCE(cd.downtime_30d_min, 0) as downtime_30d_min
+            FROM ci_metadata cm
+            LEFT JOIN latest_status ls ON cm.ci = ls.ci
+            LEFT JOIN ci_downtimes cd ON cm.ci = cd.ci
+            ORDER BY cm.ci
+            """
+            with conn.cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+                df = pd.DataFrame(rows, columns=[
+                    'ci', 'name', 'organization', 'product', 'current_availability',
+                    'downtime_7d_min', 'downtime_30d_min'
+                ])
+                return df
+    except Exception as e:
+        print(f"Error reading CIS with downtimes: {e}")
+        return pd.DataFrame(columns=[
+            'ci', 'name', 'organization', 'product', 'current_availability',
+            'downtime_7d_min', 'downtime_30d_min'
+        ])
+
 def get_data_of_ci(file_name, ci):
     """
     Gets general data for a specific configuration item from TimescaleDB.
