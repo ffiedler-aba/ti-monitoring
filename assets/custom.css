@@ -105,6 +105,22 @@ input:focus, textarea:focus {
     overflow: hidden;
 }
 
+/* Dark mode: alle Bildschirmgrößen – bessere Kontraste auch für Heatmap-Container */
+@media (prefers-color-scheme: dark) {
+    .incidents-container {
+        background: #0b1220; /* sehr dunkles Slate */
+        border: 1px solid #374151;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Hinweisbox hell lassen, aber Textfarbe leicht abdunkeln für Kontrast */
+    .warning-message {
+        background-color: #fef3c7; /* amber-100 */
+        border: 1px solid #f59e0b; /* amber-500 */
+        color: #92400e; /* amber-800 */
+    }
+}
+
 .incidents-table-container {
     max-height: 200px; /* Show exactly 5 rows */
     overflow-y: auto;
