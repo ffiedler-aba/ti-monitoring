@@ -10,6 +10,7 @@ statistics.json
 .env
 *.log
 *.zip
+.cache/
 
 # Configuration files (use .example files instead)
 config.yaml

@@ -476,6 +476,105 @@ def update_statistics_file():
         return False
 
 
+# New: Compute per-CI downtimes for last 7 and 30 days and store as JSON
+def compute_ci_downtimes_minutes() -> pd.DataFrame:
+    """
+    Returns a DataFrame with columns: ci, downtime_7d_min, downtime_30d_min
+    Computed from TimescaleDB by summing segment durations with status=0
+    within the last 7 and 30 days respectively.
+    """
+    try:
+        with get_db_conn() as conn:
+            query = """
+            WITH m AS (
+                SELECT ci,
+                       ts,
+                       status::int AS status,
+                       LEAD(ts) OVER (PARTITION BY ci ORDER BY ts) AS next_ts
+                FROM measurements
+            ),
+            seg AS (
+                SELECT ci,
+                       ts,
+                       COALESCE(next_ts, NOW()) AS next_ts,
+                       status
+                FROM m
+            ),
+            win AS (
+                SELECT ci,
+                       -- 7d window clamped segment
+                       GREATEST(ts, NOW() - INTERVAL '7 days') AS s7,
+                       LEAST(COALESCE(next_ts, NOW()), NOW()) AS e7,
+                       -- 30d window clamped segment
+                       GREATEST(ts, NOW() - INTERVAL '30 days') AS s30,
+                       LEAST(COALESCE(next_ts, NOW()), NOW()) AS e30,
+                       status
+                FROM seg
+            )
+            SELECT ci,
+                   SUM(
+                       CASE WHEN status = 0 AND e7 > s7
+                            THEN EXTRACT(EPOCH FROM (e7 - s7)) / 60.0 ELSE 0 END
+                   ) AS downtime_7d_min,
+                   SUM(
+                       CASE WHEN status = 0 AND e30 > s30
+                            THEN EXTRACT(EPOCH FROM (e30 - s30)) / 60.0 ELSE 0 END
+                   ) AS downtime_30d_min
+            FROM win
+            GROUP BY ci
+            ORDER BY ci
+            """
+            df = pd.read_sql_query(query, conn)
+            if 'ci' in df.columns:
+                df['ci'] = df['ci'].astype(str)
+            return df
+    except Exception as e:
+        log(f"Error computing CI downtimes: {e}")
+        return pd.DataFrame(columns=['ci', 'downtime_7d_min', 'downtime_30d_min'])
+
+
+def update_downtimes_file() -> bool:
+    """Compute CI downtimes (7/30 Tage) and upsert into DB table ci_downtimes."""
+    try:
+        log("Updating downtimes in DB...")
+        df = compute_ci_downtimes_minutes()
+        if df.empty:
+            log("No downtime data computed; skipping upsert")
+            return False
+        with get_db_conn() as conn, conn.cursor() as cur:
+            rows = []
+            for _, row in df.iterrows():
+                ci = str(row.get('ci', ''))
+                if not ci:
+                    continue
+                rows.append((
+                    ci,
+                    float(row.get('downtime_7d_min', 0.0) or 0.0),
+                    float(row.get('downtime_30d_min', 0.0) or 0.0)
+                ))
+            if rows:
+                from psycopg2.extras import execute_values
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO ci_downtimes (ci, downtime_7d_min, downtime_30d_min)
+                    VALUES %s
+                    ON CONFLICT (ci)
+                    DO UPDATE SET
+                      downtime_7d_min = EXCLUDED.downtime_7d_min,
+                      downtime_30d_min = EXCLUDED.downtime_30d_min,
+                      computed_at = NOW()
+                    """,
+                    rows
+                )
+                conn.commit()
+                log(f"Downtimes upserted for {len(rows)} CIs")
+                return True
+        return False
+    except Exception as e:
+        log(f"ERROR updating downtimes in DB: {e}")
+        return False
+
 
 def main():
     """Main cron job function - TimescaleDB only version"""
@@ -555,6 +654,14 @@ def main():
                         log("Statistics update completed")
                     except Exception as e:
                         log(f"ERROR in statistics update: {e}")
+
+                # Update CI downtimes hourly
+                try:
+                    log("Updating downtimes file (hourly)...")
+                    update_downtimes_file()
+                    log("Downtimes update completed")
+                except Exception as e:
+                    log(f"ERROR in downtimes update: {e}")
                 
                 # Send notifications every 5 minutes
                 if now_epoch - last_notification_time > 300:  # Every 5 minutes

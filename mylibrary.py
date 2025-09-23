@@ -320,6 +320,19 @@ def run_db_migrations():
                 ts TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+
+        # 7) Ensure ci_downtimes table (per-CI downtimes 7d/30d)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ci_downtimes (
+                ci TEXT PRIMARY KEY,
+                downtime_7d_min DOUBLE PRECISION DEFAULT 0,
+                downtime_30d_min DOUBLE PRECISION DEFAULT 0,
+                computed_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_ci_downtimes_computed_at ON ci_downtimes(computed_at)
+        """)
         
         # Indexes for page_views performance
         cur.execute("""
@@ -1089,6 +1102,99 @@ def get_data_of_all_cis_from_timescaledb():
     except Exception as e:
         print(f"Error getting data from TimescaleDB: {e}")
         return pd.DataFrame()
+
+def get_all_cis_with_downtimes() -> pd.DataFrame:
+    """
+    Returns a DataFrame with all CIs including metadata, current status and
+    downtimes from ci_downtimes (7/30 Tage). Sorted by CI.
+    Columns: ci, name, organization, product, current_availability,
+             downtime_7d_min, downtime_30d_min
+    """
+    try:
+        with get_db_conn() as conn:
+            query = """
+            WITH latest_status AS (
+                SELECT DISTINCT ON (ci)
+                    ci,
+                    status,
+                    ts
+                FROM measurements
+                ORDER BY ci, ts DESC
+            )
+            SELECT 
+                cm.ci,
+                COALESCE(cm.name, '') as name,
+                COALESCE(cm.organization, '') as organization,
+                COALESCE(cm.product, '') as product,
+                COALESCE(ls.status, 0) as current_availability,
+                COALESCE(cd.downtime_7d_min, 0) as downtime_7d_min,
+                COALESCE(cd.downtime_30d_min, 0) as downtime_30d_min
+            FROM ci_metadata cm
+            LEFT JOIN latest_status ls ON cm.ci = ls.ci
+            LEFT JOIN ci_downtimes cd ON cm.ci = cd.ci
+            ORDER BY cm.ci
+            """
+            with conn.cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+                df = pd.DataFrame(rows, columns=[
+                    'ci', 'name', 'organization', 'product', 'current_availability',
+                    'downtime_7d_min', 'downtime_30d_min'
+                ])
+                return df
+    except Exception as e:
+        print(f"Error reading CIS with downtimes: {e}")
+        return pd.DataFrame(columns=[
+            'ci', 'name', 'organization', 'product', 'current_availability',
+            'downtime_7d_min', 'downtime_30d_min'
+        ])
+
+def get_incident_heatmap_data(last_days: int = 30) -> pd.DataFrame:
+    """
+    Returns incident counts grouped by local weekday (Mon=1..Sun=7) and hour (0-23)
+    over the last N days, including affected CI lists per bucket.
+
+    Columns: weekday (int 1..7), hour (int 0..23), count (int), ci_list (list[str])
+    """
+    try:
+        days = max(1, int(last_days))
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH trans AS (
+                    SELECT ci,
+                           ts,
+                           ts AT TIME ZONE 'Europe/Berlin' AS lts,
+                           status,
+                           LAG(status) OVER (PARTITION BY ci ORDER BY ts) AS prev_status
+                    FROM measurements
+                ), inc AS (
+                    SELECT ci,
+                           lts,
+                           EXTRACT(DOW FROM lts)::int AS dow0,  -- 0=Sun..6=Sat
+                           EXTRACT(HOUR FROM lts)::int AS hour
+                    FROM trans
+                    WHERE ts >= NOW() - INTERVAL %s AND prev_status = 1 AND status = 0
+                )
+                SELECT 
+                    -- Map to ISO weekday 1=Mon..7=Sun
+                    CASE WHEN dow0 = 0 THEN 7 ELSE dow0 END AS weekday,
+                    hour,
+                    COUNT(*)::int AS count,
+                    (ARRAY_AGG(DISTINCT ci))[1:15] AS ci_list
+                FROM inc
+                GROUP BY 1, 2
+                ORDER BY 1, 2
+                """,
+                (f"{days} days",)
+            )
+            rows = cur.fetchall()
+            if not rows:
+                return pd.DataFrame(columns=['weekday','hour','count','ci_list'])
+            return pd.DataFrame(rows, columns=['weekday','hour','count','ci_list'])
+    except Exception as e:
+        print(f"Error computing incident heatmap data: {e}")
+        return pd.DataFrame(columns=['weekday','hour','count','ci_list'])
 
 def get_data_of_ci(file_name, ci):
     """

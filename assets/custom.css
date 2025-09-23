@@ -68,8 +68,32 @@ input:focus, textarea:focus {
     gap: 10px;
 }
 
+/* Gleiche Titel-Optik für weitere Sektionen */
+.stats-title {
+    color: white !important;
+    margin-bottom: 20px !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .incidents-title::before {
     content: "🚨";
+    font-size: 1.2em;
+}
+
+/* Titel-Icon nur für die zweite Tabelle (Alle TI-Komponenten) überschreiben */
+.ci-all-title::before {
+    content: "🗒️";
+    font-size: 1.2em;
+}
+
+/* Statistik-Icon für Heatmap-Titel */
+.stats-title::before {
+    content: "📊";
     font-size: 1.2em;
 }
 
@@ -79,6 +103,22 @@ input:focus, textarea:focus {
     padding: 0;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+}
+
+/* Dark mode: alle Bildschirmgrößen – bessere Kontraste auch für Heatmap-Container */
+@media (prefers-color-scheme: dark) {
+    .incidents-container {
+        background: #0b1220; /* sehr dunkles Slate */
+        border: 1px solid #374151;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Hinweisbox hell lassen, aber Textfarbe leicht abdunkeln für Kontrast */
+    .warning-message {
+        background-color: #fef3c7; /* amber-100 */
+        border: 1px solid #f59e0b; /* amber-500 */
+        color: #92400e; /* amber-800 */
+    }
 }
 
 .incidents-table-container {
