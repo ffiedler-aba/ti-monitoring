@@ -331,19 +331,16 @@ def serve_layout():
             ], className='incidents-container')
         ], className='incidents-section'),
 
-        # Alle CIs mit Downtimes (5 sichtbar, scrollbar)
+        # Alle CIs mit Downtimes (5 sichtbar, scrollbar) – Style analog zu Incidents
         html.Div([
             html.H3("Alle TI-Komponenten", className='incidents-title'),
-            html.Div(id='ci-all-table-container')
-        ], className='ci-all-section', style={
-            'maxHeight': '260px',  # ~5 Zeilen sichtbar
-            'overflowY': 'auto',
-            'border': '1px solid #e9ecef',
-            'borderRadius': '8px',
-            'padding': '8px',
-            'backgroundColor': 'white',
-            'marginTop': '16px'
-        })
+            html.Div([
+                html.Div(id='ci-all-table-container')
+            ], className='incidents-container', style={
+                'maxHeight': '260px',  # ~5 Zeilen sichtbar
+                'overflowY': 'auto'
+            })
+        ], className='incidents-section')
     ])
 
     # Cache and return
