@@ -476,6 +476,90 @@ def update_statistics_file():
         return False
 
 
+# New: Compute per-CI downtimes for last 7 and 30 days and store as JSON
+def compute_ci_downtimes_minutes() -> pd.DataFrame:
+    """
+    Returns a DataFrame with columns: ci, downtime_7d_min, downtime_30d_min
+    Computed from TimescaleDB by summing segment durations with status=0
+    within the last 7 and 30 days respectively.
+    """
+    try:
+        with get_db_conn() as conn:
+            query = """
+            WITH m AS (
+                SELECT ci,
+                       ts,
+                       status::int AS status,
+                       LEAD(ts) OVER (PARTITION BY ci ORDER BY ts) AS next_ts
+                FROM measurements
+            ),
+            seg AS (
+                SELECT ci,
+                       ts,
+                       COALESCE(next_ts, NOW()) AS next_ts,
+                       status
+                FROM m
+            ),
+            win AS (
+                SELECT ci,
+                       -- 7d window clamped segment
+                       GREATEST(ts, NOW() - INTERVAL '7 days') AS s7,
+                       LEAST(COALESCE(next_ts, NOW()), NOW()) AS e7,
+                       -- 30d window clamped segment
+                       GREATEST(ts, NOW() - INTERVAL '30 days') AS s30,
+                       LEAST(COALESCE(next_ts, NOW()), NOW()) AS e30,
+                       status
+                FROM seg
+            )
+            SELECT ci,
+                   SUM(
+                       CASE WHEN status = 0 AND e7 > s7
+                            THEN EXTRACT(EPOCH FROM (e7 - s7)) / 60.0 ELSE 0 END
+                   ) AS downtime_7d_min,
+                   SUM(
+                       CASE WHEN status = 0 AND e30 > s30
+                            THEN EXTRACT(EPOCH FROM (e30 - s30)) / 60.0 ELSE 0 END
+                   ) AS downtime_30d_min
+            FROM win
+            GROUP BY ci
+            ORDER BY ci
+            """
+            df = pd.read_sql_query(query, conn)
+            if 'ci' in df.columns:
+                df['ci'] = df['ci'].astype(str)
+            return df
+    except Exception as e:
+        log(f"Error computing CI downtimes: {e}")
+        return pd.DataFrame(columns=['ci', 'downtime_7d_min', 'downtime_30d_min'])
+
+
+def update_downtimes_file() -> bool:
+    """Compute and write CI downtimes (7/30 Tage) to data/downtimes.json"""
+    try:
+        log("Updating downtimes file...")
+        df = compute_ci_downtimes_minutes()
+        records = {}
+        if not df.empty:
+            for _, row in df.iterrows():
+                ci = str(row.get('ci', ''))
+                if not ci:
+                    continue
+                records[ci] = {
+                    'downtime_7d_min': float(row.get('downtime_7d_min', 0.0) or 0.0),
+                    'downtime_30d_min': float(row.get('downtime_30d_min', 0.0) or 0.0)
+                }
+
+        data_dir = os.path.join(os.path.dirname(__file__), 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        out_path = os.path.join(data_dir, 'downtimes.json')
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(records, f, indent=2, ensure_ascii=False)
+        log(f"Downtimes saved to {out_path} (CIs: {len(records)})")
+        return True
+    except Exception as e:
+        log(f"ERROR saving downtimes file: {e}")
+        return False
+
 
 def main():
     """Main cron job function - TimescaleDB only version"""
@@ -555,6 +639,14 @@ def main():
                         log("Statistics update completed")
                     except Exception as e:
                         log(f"ERROR in statistics update: {e}")
+
+                # Update CI downtimes hourly
+                try:
+                    log("Updating downtimes file (hourly)...")
+                    update_downtimes_file()
+                    log("Downtimes update completed")
+                except Exception as e:
+                    log(f"ERROR in downtimes update: {e}")
                 
                 # Send notifications every 5 minutes
                 if now_epoch - last_notification_time > 300:  # Every 5 minutes
