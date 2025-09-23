@@ -371,10 +371,11 @@ def serve_layout():
             html.Div([
                 dcc.Graph(id='incident-heatmap', config={'displayModeBar': False})
             ], className='incidents-container'),
-            html.P([
-                html.A('Zu den ausführliche Statistiken', href='/stats')
-            ], style={'color': 'white', 'marginTop': '10px'})
         ], className='incidents-section')
+        ,
+        html.P([
+            html.A('Zu den ausführliche Statistiken', href='/stats')
+        ], style={'color': 'white', 'marginTop': '10px'})
     ])
 
     # Cache and return
