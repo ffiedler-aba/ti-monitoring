@@ -419,11 +419,8 @@ def render_ci_all_table(_, filter_text):
             except Exception:
                 pass
 
-        # Nur ersten 5 Zeilen anzeigen (Container ist scrollbar)
-        try:
-            df_display = df.head(5)
-        except Exception:
-            df_display = df
+        # Alle CIs anzeigen (Sicht wird durch Scroll-Container begrenzt)
+        df_display = df
 
         # Tabellenzeilen bauen
         rows = []
