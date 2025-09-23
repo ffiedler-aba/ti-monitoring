@@ -342,7 +342,7 @@ def serve_layout():
                     style={
                         'width': '100%',
                         'boxSizing': 'border-box',
-                        'marginBottom': '10px',
+                        'marginBottom': '16px',
                         'padding': '8px 12px',
                         'borderRadius': '6px',
                         # Kontrast im Dark Mode: Farben von der Umgebung erben
