@@ -534,30 +534,45 @@ def compute_ci_downtimes_minutes() -> pd.DataFrame:
 
 
 def update_downtimes_file() -> bool:
-    """Compute and write CI downtimes (7/30 Tage) to data/downtimes.json"""
+    """Compute CI downtimes (7/30 Tage) and upsert into DB table ci_downtimes."""
     try:
-        log("Updating downtimes file...")
+        log("Updating downtimes in DB...")
         df = compute_ci_downtimes_minutes()
-        records = {}
-        if not df.empty:
+        if df.empty:
+            log("No downtime data computed; skipping upsert")
+            return False
+        with get_db_conn() as conn, conn.cursor() as cur:
+            rows = []
             for _, row in df.iterrows():
                 ci = str(row.get('ci', ''))
                 if not ci:
                     continue
-                records[ci] = {
-                    'downtime_7d_min': float(row.get('downtime_7d_min', 0.0) or 0.0),
-                    'downtime_30d_min': float(row.get('downtime_30d_min', 0.0) or 0.0)
-                }
-
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        os.makedirs(data_dir, exist_ok=True)
-        out_path = os.path.join(data_dir, 'downtimes.json')
-        with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(records, f, indent=2, ensure_ascii=False)
-        log(f"Downtimes saved to {out_path} (CIs: {len(records)})")
-        return True
+                rows.append((
+                    ci,
+                    float(row.get('downtime_7d_min', 0.0) or 0.0),
+                    float(row.get('downtime_30d_min', 0.0) or 0.0)
+                ))
+            if rows:
+                from psycopg2.extras import execute_values
+                execute_values(
+                    cur,
+                    """
+                    INSERT INTO ci_downtimes (ci, downtime_7d_min, downtime_30d_min, computed_at)
+                    VALUES %s
+                    ON CONFLICT (ci)
+                    DO UPDATE SET
+                      downtime_7d_min = EXCLUDED.downtime_7d_min,
+                      downtime_30d_min = EXCLUDED.downtime_30d_min,
+                      computed_at = NOW()
+                    """,
+                    rows
+                )
+                conn.commit()
+                log(f"Downtimes upserted for {len(rows)} CIs")
+                return True
+        return False
     except Exception as e:
-        log(f"ERROR saving downtimes file: {e}")
+        log(f"ERROR updating downtimes in DB: {e}")
         return False
 
 

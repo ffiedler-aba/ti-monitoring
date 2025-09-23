@@ -26,15 +26,10 @@ except Exception as _e:
     # Avoid blocking startup; errors will be visible in logs
     print(f"DB migration warning: {_e}")
 
-# Ensure initial downtimes JSON exists on startup
+# Ensure initial downtimes exist on startup (DB upsert)
 try:
-    data_dir = os.path.join(os.path.dirname(__file__), 'data')
-    os.makedirs(data_dir, exist_ok=True)
-    downtimes_path = os.path.join(data_dir, 'downtimes.json')
-    if not os.path.exists(downtimes_path):
-        # Compute initial downtimes now
-        from cron import update_downtimes_file  # local import to avoid cycles
-        update_downtimes_file()
+    from cron import update_downtimes_file  # local import to avoid cycles
+    update_downtimes_file()
 except Exception as _e:
     print(f"Downtimes init warning: {_e}")
 

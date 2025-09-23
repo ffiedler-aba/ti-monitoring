@@ -320,6 +320,19 @@ def run_db_migrations():
                 ts TIMESTAMPTZ DEFAULT NOW()
             )
         """)
+
+        # 7) Ensure ci_downtimes table (per-CI downtimes 7d/30d)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ci_downtimes (
+                ci TEXT PRIMARY KEY,
+                downtime_7d_min DOUBLE PRECISION DEFAULT 0,
+                downtime_30d_min DOUBLE PRECISION DEFAULT 0,
+                computed_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_ci_downtimes_computed_at ON ci_downtimes(computed_at)
+        """)
         
         # Indexes for page_views performance
         cur.execute("""
