@@ -334,18 +334,29 @@ def serve_layout():
         # Alle CIs mit Downtimes (5 sichtbar, scrollbar) – Style analog zu Incidents
         html.Div([
             html.H3("Alle TI-Komponenten", className='incidents-title'),
-            dcc.Input(
-                id='ci-all-filter',
-                type='text',
-                placeholder='CIs filtern (CI, Organisation oder Produkt)',
-                style={'width': '100%', 'marginBottom': '10px', 'padding': '8px 12px', 'borderRadius': '6px'}
-            ),
             html.Div([
-                html.Div(id='ci-all-table-container')
-            ], className='incidents-container', style={
-                'maxHeight': '260px',  # ~5 Zeilen sichtbar
-                'overflowY': 'auto'
-            })
+                dcc.Input(
+                    id='ci-all-filter',
+                    type='text',
+                    placeholder='CIs filtern (CI, Organisation oder Produkt)',
+                    style={
+                        'width': '100%',
+                        'boxSizing': 'border-box',
+                        'marginBottom': '10px',
+                        'padding': '8px 12px',
+                        'borderRadius': '6px',
+                        # Kontrast im Dark Mode: Farben von der Umgebung erben
+                        'backgroundColor': 'transparent',
+                        'color': 'inherit',
+                        'border': '1px solid rgba(128,128,128,0.35)'
+                    },
+                    className='incidents-filter-input'
+                ),
+                html.Div(id='ci-all-table-container', style={
+                    'maxHeight': '260px',  # ~5 Zeilen sichtbar
+                    'overflowY': 'auto'
+                })
+            ], className='incidents-container')
         ], className='incidents-section')
     ])
 
