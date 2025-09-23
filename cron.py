@@ -557,7 +557,7 @@ def update_downtimes_file() -> bool:
                 execute_values(
                     cur,
                     """
-                    INSERT INTO ci_downtimes (ci, downtime_7d_min, downtime_30d_min, computed_at)
+                    INSERT INTO ci_downtimes (ci, downtime_7d_min, downtime_30d_min)
                     VALUES %s
                     ON CONFLICT (ci)
                     DO UPDATE SET
