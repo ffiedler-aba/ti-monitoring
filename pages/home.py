@@ -1,5 +1,7 @@
 import dash
-from dash import html, dcc, callback, Input, Output, State, clientside_callback
+from dash import html, dcc, callback, Input, Output, State, clientside_callback, ALL
+import plotly.express as px
+import plotly.graph_objects as go
 from mylibrary import *
 import yaml
 import os
@@ -333,7 +335,7 @@ def serve_layout():
 
         # Alle CIs mit Downtimes (5 sichtbar, scrollbar) – Style analog zu Incidents
         html.Div([
-            html.H3("Alle TI-Komponenten", className='incidents-title'),
+            html.H3("Alle TI-Komponenten", className='ci-all-title'),
             html.Div([
                 dcc.Input(
                     id='ci-all-filter',
@@ -352,11 +354,21 @@ def serve_layout():
                     },
                     className='incidents-filter-input'
                 ),
+                # Sortierzustand (Spalte & Richtung) persistieren
+                dcc.Store(id='ci-sort-state', data={'by': 'ci', 'asc': True}),
                 html.Div(id='ci-all-table-container', style={
                     'maxHeight': '260px',  # ~5 Zeilen sichtbar
                     'overflowY': 'auto'
                 })
             ], className='incidents-container')
+        ], className='incidents-section'),
+
+        # Heatmap: zeitliche Verteilung der Incidents (letzte 30 Tage)
+        html.Div([
+            html.H3("Zeitliche Verteilung der Incidents (30 Tage)", className='ci-all-title'),
+            dcc.Store(id='incident-heatmap-cache', data=None),
+            dcc.Interval(id='incident-heatmap-refresh', interval=900000, n_intervals=0),
+            dcc.Graph(id='incident-heatmap', config={'displayModeBar': False})
         ], className='incidents-section')
     ])
 
@@ -384,21 +396,32 @@ def _format_minutes_to_human(minutes: float) -> str:
 
 @callback(
     Output('ci-all-table-container', 'children'),
-    [Input('incidents-data-store', 'data'), Input('ci-all-filter', 'value')],
+    [Input('incidents-data-store', 'data'), Input('ci-all-filter', 'value'), Input('ci-sort-state', 'data')],
     prevent_initial_call=False
 )
-def render_ci_all_table(_, filter_text):
+def render_ci_all_table(_, filter_text, sort_state):
     try:
         # Daten inkl. Downtimes aus DB laden
         df = get_all_cis_with_downtimes()
         if df is None or df.empty:
             return html.Div('Keine CIs verfügbar.')
 
-        # Sortierung nach CI sicherstellen (Server-seitig schon sortiert)
+        # Sortierung (Standard: CI ASC; per Store überschreibbar)
         try:
             df = df.copy()
             df['ci'] = df['ci'].astype(str)
-            df = df.sort_values('ci')
+            by = (sort_state or {}).get('by', 'ci')
+            asc = bool((sort_state or {}).get('asc', True))
+            if by in ['ci', 'organization', 'product', 'name']:
+                df = df.sort_values([by, 'ci'] if by != 'ci' else ['ci'], ascending=[asc, True] if by != 'ci' else asc)
+            elif by == 'downtime_7d_min':
+                df = df.sort_values(['downtime_7d_min', 'ci'], ascending=[asc, True])
+            elif by == 'downtime_30d_min':
+                df = df.sort_values(['downtime_30d_min', 'ci'], ascending=[asc, True])
+            elif by == 'current_availability':
+                df = df.sort_values(['current_availability', 'ci'], ascending=[asc, True])
+            else:
+                df = df.sort_values('ci')
         except Exception:
             pass
 
@@ -449,13 +472,29 @@ def render_ci_all_table(_, filter_text):
             ]))
 
         # Sortierbare Header (einfaches clientseitiges State-Pattern via hidden dcc.Store)
+        def sort_header(label, col_key, current, min_width=None):
+            is_active = (current.get('by') == col_key)
+            asc_active = is_active and current.get('asc', True)
+            desc_active = is_active and not current.get('asc', True)
+            arrow_style_base = {'border': 'none', 'background': 'transparent', 'cursor': 'pointer', 'padding': '0 4px', 'fontSize': '10px', 'lineHeight': '1'}
+            asc_style = arrow_style_base | ({'color': '#60a5fa'} if asc_active else {'color': 'inherit'})
+            desc_style = arrow_style_base | ({'color': '#60a5fa'} if desc_active else {'color': 'inherit'})
+            th_style = {'whiteSpace': 'nowrap', 'verticalAlign': 'middle', 'paddingRight': '8px', 'paddingLeft': '8px', 'minWidth': min_width or 'auto'}
+            return html.Th([
+                html.Span(label),
+                html.Span([
+                    html.Button('▲', id={'type': 'ci-sort', 'col': col_key, 'dir': 'asc'}, n_clicks=0, style=asc_style, className='table-sort-btn'),
+                    html.Button('▼', id={'type': 'ci-sort', 'col': col_key, 'dir': 'desc'}, n_clicks=0, style=desc_style, className='table-sort-btn')
+                ], style={'float': 'right', 'display': 'inline-flex', 'gap': '2px'})
+            ], style=th_style)
+
         header = html.Thead([
             html.Tr([
-                html.Th('CI'),
-                html.Th('Organisation · Produkt'),
-                html.Th('Downtime 7 Tage'),
-                html.Th('Downtime 30 Tage'),
-                html.Th('Status')
+                sort_header('CI', 'ci', sort_state or {}, min_width='120px'),
+                sort_header('Organisation · Produkt', 'organization', sort_state or {}, min_width='260px'),
+                sort_header('Down 7 Tage', 'downtime_7d_min', sort_state or {}, min_width='140px'),
+                sort_header('Down 30 Tage', 'downtime_30d_min', sort_state or {}, min_width='140px'),
+                sort_header('Status', 'current_availability', sort_state or {}, min_width='120px')
             ])
         ])
         table = html.Table([
@@ -466,3 +505,142 @@ def render_ci_all_table(_, filter_text):
         return table
     except Exception as e:
         return html.Div(f'Fehler beim Laden der CI-Tabelle: {str(e)}', style={'color': 'red'})
+
+
+# Sortier-Callback: toggelt Sortierzustand bei Header-Klicks
+@callback(
+    Output('ci-sort-state', 'data'),
+    Input({'type': 'ci-sort', 'col': ALL, 'dir': ALL}, 'n_clicks'),
+    State('ci-sort-state', 'data'),
+    prevent_initial_call=True
+)
+def toggle_ci_sort(_clicks, state):
+    ctx = dash.callback_context
+    state = state or {'by': 'ci', 'asc': True}
+    if not ctx.triggered:
+        return state
+    trig = ctx.triggered[0]['prop_id'].split('.')[0]
+    try:
+        obj = json.loads(trig)
+        col = obj.get('col')
+        direction = obj.get('dir')
+    except Exception:
+        return state
+    if not col or direction not in ('asc', 'desc'):
+        return state
+    return {'by': col, 'asc': direction == 'asc'}
+
+
+# Heatmap Callback (mit einfachem Cache im Store)
+@callback(
+    [Output('incident-heatmap-cache', 'data'), Output('incident-heatmap', 'figure')],
+    [Input('incident-heatmap-refresh', 'n_intervals')],
+    [State('incident-heatmap-cache', 'data')],
+    prevent_initial_call=False
+)
+def render_incident_heatmap(_tick, cache_data):
+    try:
+        import pandas as _pd
+        # Cache-Struktur: { 'ts': epoch, 'data': [{weekday,hour,count,ci_list}, ...] }
+        df = None
+        if cache_data and isinstance(cache_data, dict) and 'data' in cache_data:
+            try:
+                df = _pd.DataFrame(cache_data['data'])
+            except Exception:
+                df = None
+        refresh_df = False
+        if df is None or df.empty:
+            refresh_df = True
+        else:
+            # Optional: Cache Expiry (15 Min)
+            try:
+                import time as _time
+                ts = float(cache_data.get('ts', 0))
+                refresh_df = (_time.time() - ts) > 900
+            except Exception:
+                refresh_df = True
+        # Zusätzlich: falls beim App-Start eine vorab generierte Datei existiert, als initialen Cache laden
+        if (df is None or df.empty) and not refresh_df:
+            try:
+                import os as _os, json as _json
+                _hm_path = _os.path.join(_os.path.dirname(__file__), '..', 'data', 'incident_heatmap.json')
+                if _os.path.exists(_hm_path):
+                    with open(_hm_path, 'r', encoding='utf-8') as _f:
+                        file_cache = _json.load(_f)
+                    if file_cache and isinstance(file_cache, dict) and 'data' in file_cache:
+                        df = _pd.DataFrame(file_cache['data'])
+                        cache_data = file_cache
+            except Exception:
+                pass
+        if refresh_df:
+            df = get_incident_heatmap_data(30)
+        # Achsen-Labels fest definieren
+        hours = list(range(0,24))
+        x_labels = [f"{h:02d}:00" for h in hours]
+        wdays = ['Mo','Di','Mi','Do','Fr','Sa','So']
+
+        # Zellen initialisieren (immer), damit Achsen korrekt sind
+        z = [[0 for _ in hours] for _ in wdays]
+        text = [["" for _ in hours] for _ in wdays]
+        if df is None:
+            df = _pd.DataFrame(columns=['weekday','hour','count','ci_list'])
+
+        # Datentypen erzwingen und Labels bilden
+        weekday_labels = {1:'Mo',2:'Di',3:'Mi',4:'Do',5:'Fr',6:'Sa',7:'So'}
+        try:
+            df['weekday'] = _pd.to_numeric(df.get('weekday'), errors='coerce').fillna(0).astype(int)
+            df['hour'] = _pd.to_numeric(df.get('hour'), errors='coerce').fillna(-1).astype(int)
+            df['count'] = _pd.to_numeric(df.get('count'), errors='coerce').fillna(0).astype(int)
+        except Exception:
+            pass
+        df['wlabel'] = df['weekday'].map(weekday_labels)
+
+        # Tooltip-Text: Anzahl + Beispiel-CIs
+        def tip(row):
+            cis = row.get('ci_list') or []
+            preview = ', '.join([str(c) for c in cis[:8]])
+            extra = '' if len(cis) <= 8 else f" …(+{len(cis)-8})"
+            return f"{row['wlabel']} {int(row['hour']):02d}:00\nIncidents: {int(row['count'])}\nCIs: {preview}{extra}"
+
+        if not df.empty:
+            try:
+                df['tooltip'] = df.apply(tip, axis=1)
+                # Pivot über Pandas (robust)
+                pv = df.pivot_table(index='wlabel', columns='hour', values='count', aggfunc='sum', fill_value=0)
+                pv = pv.reindex(index=wdays, columns=hours, fill_value=0)
+                z = pv.values.tolist()
+                tool = df.pivot_table(index='wlabel', columns='hour', values='tooltip', aggfunc='first')
+                tool = tool.reindex(index=wdays, columns=hours)
+                text = tool.fillna("").values.tolist()
+            except Exception:
+                pass
+
+        # Farbenbereich an reale Daten anpassen
+        # Maxwert aus Matrix berechnen (robuster)
+        max_count = max([max(row) if row else 0 for row in z]) if z else 0
+        fig = go.Figure(data=go.Heatmap(
+            z=z,
+            x=x_labels,  # 0-23
+            y=wdays,     # Mo-So
+            colorscale='YlOrRd',
+            hoverinfo='text',
+            text=text,
+            colorbar=dict(title='Incidents'),
+            zmin=0,
+            zmax=max_count if max_count > 0 else 1
+        ))
+        fig.update_layout(
+            height=360,
+            margin=dict(l=40,r=20,t=30,b=40),
+            xaxis=dict(title='Stunde', type='category', categoryorder='array', categoryarray=x_labels),
+            yaxis=dict(title='Wochentag', type='category', categoryorder='array', categoryarray=wdays)
+        )
+        # Neues Cache-Paket bauen
+        try:
+            import time as _time
+            cache_out = {'ts': _time.time(), 'data': df[['weekday','hour','count','ci_list']].to_dict('records')}
+        except Exception:
+            cache_out = cache_data
+        return cache_out, fig
+    except Exception:
+        return cache_data, go.Figure(data=[], layout=go.Layout(height=260, margin=dict(l=20,r=20,t=30,b=20)))

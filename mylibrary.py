@@ -1149,6 +1149,53 @@ def get_all_cis_with_downtimes() -> pd.DataFrame:
             'downtime_7d_min', 'downtime_30d_min'
         ])
 
+def get_incident_heatmap_data(last_days: int = 30) -> pd.DataFrame:
+    """
+    Returns incident counts grouped by local weekday (Mon=1..Sun=7) and hour (0-23)
+    over the last N days, including affected CI lists per bucket.
+
+    Columns: weekday (int 1..7), hour (int 0..23), count (int), ci_list (list[str])
+    """
+    try:
+        days = max(1, int(last_days))
+        with get_db_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH trans AS (
+                    SELECT ci,
+                           ts,
+                           ts AT TIME ZONE 'Europe/Berlin' AS lts,
+                           status,
+                           LAG(status) OVER (PARTITION BY ci ORDER BY ts) AS prev_status
+                    FROM measurements
+                ), inc AS (
+                    SELECT ci,
+                           lts,
+                           EXTRACT(DOW FROM lts)::int AS dow0,  -- 0=Sun..6=Sat
+                           EXTRACT(HOUR FROM lts)::int AS hour
+                    FROM trans
+                    WHERE ts >= NOW() - INTERVAL %s AND prev_status = 1 AND status = 0
+                )
+                SELECT 
+                    -- Map to ISO weekday 1=Mon..7=Sun
+                    CASE WHEN dow0 = 0 THEN 7 ELSE dow0 END AS weekday,
+                    hour,
+                    COUNT(*)::int AS count,
+                    (ARRAY_AGG(DISTINCT ci))[1:15] AS ci_list
+                FROM inc
+                GROUP BY 1, 2
+                ORDER BY 1, 2
+                """,
+                (f"{days} days",)
+            )
+            rows = cur.fetchall()
+            if not rows:
+                return pd.DataFrame(columns=['weekday','hour','count','ci_list'])
+            return pd.DataFrame(rows, columns=['weekday','hour','count','ci_list'])
+    except Exception as e:
+        print(f"Error computing incident heatmap data: {e}")
+        return pd.DataFrame(columns=['weekday','hour','count','ci_list'])
+
 def get_data_of_ci(file_name, ci):
     """
     Gets general data for a specific configuration item from TimescaleDB.

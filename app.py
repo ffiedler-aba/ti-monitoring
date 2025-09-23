@@ -33,6 +33,27 @@ try:
 except Exception as _e:
     print(f"Downtimes init warning: {_e}")
 
+# Precompute incident heatmap data at startup to avoid empty initial graph
+try:
+    from mylibrary import get_incident_heatmap_data
+    import json as _json
+    import time as _time
+    _hm_df = get_incident_heatmap_data(30)
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    _hm_path = os.path.join(data_dir, 'incident_heatmap.json')
+    _payload = {
+        'ts': _time.time(),
+        'data': (
+            _hm_df[['weekday','hour','count','ci_list']]
+            .to_dict('records') if _hm_df is not None and hasattr(_hm_df, 'to_dict') else []
+        )
+    }
+    with open(_hm_path, 'w', encoding='utf-8') as _f:
+        _json.dump(_payload, _f, ensure_ascii=False)
+except Exception as _e:
+    print(f"Heatmap init warning: {_e}")
+
 app = Dash(
     __name__,
     use_pages=True,
