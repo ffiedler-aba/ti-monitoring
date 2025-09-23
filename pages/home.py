@@ -374,8 +374,9 @@ def serve_layout():
         ], className='incidents-section')
         ,
         html.Div([
-            html.Span('Hinweis: ', style={'fontWeight': '600', 'marginRight': '6px'}),
-            html.Span('Zu den ausführliche Statistiken: '),
+            html.Span('Hinweis', style={'fontWeight': '600', 'marginRight': '6px'}),
+            html.Br(),
+            html.Span('Zu den ausführlichen '),
             html.A('Statistiken', href='/stats')
         ], className='warning-message')
     ])
