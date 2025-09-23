@@ -333,7 +333,7 @@ def serve_layout():
 
         # Alle CIs mit Downtimes (5 sichtbar, scrollbar)
         html.Div([
-            html.H3("Alle TI-Komponenten", className='ci-all-title'),
+            html.H3("Alle TI-Komponenten", className='incidents-title'),
             html.Div(id='ci-all-table-container')
         ], className='ci-all-section', style={
             'maxHeight': '260px',  # ~5 Zeilen sichtbar
@@ -427,7 +427,7 @@ def render_ci_all_table(_):
                 ])
             ]),
             html.Tbody(rows)
-        ], className='ci-all-table')
+        ], className='incidents-table')
 
         return table
     except Exception as e:
