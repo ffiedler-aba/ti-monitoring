@@ -313,9 +313,9 @@ def serve_layout():
         html.Meta(name='twitter:image', content=_og_image),
         html.Script(type='application/ld+json', children=[json.dumps(_jsonld)]),
         html.P([
-            'ti-stats.net basiert auf Lukas Schmidt-Russnaks ',
+            'Diese Seite informiert dich über den aktuellen Status und langfristige Verfügbarkeits-Trends von IT-Diensten des deutschen öffentlichen Gesundheitssystems (Telematik Infrastruktur, TI). Das Projekt basiert auf Lukas Schmidt-Russnaks ',
             html.A('TI-Monitoring', href='https://ti-monitoring.de'),
-            '. Die Seite wurde mit Statistiken, Benachrichtigungen etc. von Grund auf erweitert und angepasst. Daten werden alle 5 Minuten aktualisiert und für 6 Monate gespeichert.'
+            ', welches mit Statistiken, Benachrichtigungen etc. umfangreich erweitert und angepasst wurde. Daten werden alle 5 Minuten aktualisiert und derzeit für 6 Monate gespeichert.'
         ]),
 
         html.P([
