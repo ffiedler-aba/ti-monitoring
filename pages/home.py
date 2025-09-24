@@ -324,6 +324,29 @@ def serve_layout():
             '. Diese werden dir über deinen persönlichen Apprise-Link gesendet, wenn sich der Status einer der abonierten Komponenten ändert.'
         ]),
 
+        html.Div([
+            html.Span('Folge TI-Stats: ', style={'marginRight': '6px'}),
+            html.Span([
+                html.A([
+                    html.Img(src='/assets/mastodon.svg', alt='Mastodon', style={'verticalAlign': 'middle'}),
+                    html.Span(' Mastodon', style={'verticalAlign': 'middle'})
+                ], href='https://mas.to/@ti_stats', target='_blank', rel='me noopener noreferrer'),
+                html.Span(' · '),
+                html.A([
+                    html.Img(src='/assets/bluesky.svg', alt='Bluesky', style={'verticalAlign': 'middle'}),
+                    html.Span(' Bluesky', style={'verticalAlign': 'middle'})
+                ], href='https://bsky.app/profile/ti-stats.net', target='_blank', rel='noopener noreferrer')
+            ], className='social-links')
+        ]) ,
+
+        html.P([
+            'Wenn dir das zu viel ist, kannst du auch einfach den Bots ',
+            html.A('@tistatus@mastodon.ti-stats.net', href='https://mastodon.ti-stats.net/@tistatus'),
+            ' auf Mastodon oder ',
+            html.A('@ti-stats.bsky.social', href='https://bsky.app/profile/ti-stats.bsky.social'),
+            ' auf Bluesky folgen. Sie informieren über jede Änderung im Status der TI-Komponenten.'
+        ]),
+
         # Incidents section
         html.Div([
             html.H3("Letzte Incidents", className='incidents-title'),

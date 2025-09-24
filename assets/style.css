@@ -3149,3 +3149,14 @@ details {
     color: #bfdbfe !important;
   }
 }
+
+/* Social icon links */
+.social-links { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; }
+.social-links a { display: inline-flex; align-items: center; gap: 6px; color: var(--primary-color); text-decoration: none; border-bottom: 1px solid transparent; transition: var(--transition-fast); }
+.social-links a:hover { color: var(--primary-dark); border-bottom-color: var(--primary-color); transform: translateY(-1px); }
+.social-links img { width: 18px; height: 18px; display: inline-block; }
+
+@media (prefers-color-scheme: dark) {
+  .social-links a { color: #93c5fd !important; }
+  .social-links a:hover { color: #bfdbfe !important; border-bottom-color: #93c5fd !important; }
+}
