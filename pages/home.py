@@ -338,15 +338,6 @@ def serve_layout():
                 ], href='https://bsky.app/profile/ti-stats.net', target='_blank', rel='noopener noreferrer')
             ], className='social-links')
         ]) ,
-
-        html.P([
-            'Wenn dir das zu viel ist, kannst du auch einfach den Bots ',
-            html.A('@tistatus@mastodon.ti-stats.net', href='https://mastodon.ti-stats.net/@tistatus'),
-            ' auf Mastodon oder ',
-            html.A('@ti-stats.bsky.social', href='https://bsky.app/profile/ti-stats.bsky.social'),
-            ' auf Bluesky folgen. Sie informieren über jede Änderung im Status der TI-Komponenten.'
-        ]),
-
         # Incidents section
         html.Div([
             html.H3("Letzte Incidents", className='incidents-title'),
