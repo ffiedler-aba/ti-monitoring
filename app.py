@@ -346,6 +346,27 @@ app.layout = serve_layout
 
 _MAX_UPDATE_PAYLOAD_BYTES = int(os.getenv('TI_MAX_UPDATE_PAYLOAD', '1048576'))  # 1 MiB default
 
+def _expected_origin_tuple(req: "request"):
+    """Return (scheme, hostname, port) representing the external origin.
+
+    Respects reverse proxy headers X-Forwarded-Proto/Host when present.
+    """
+    # Prefer proxy headers if provided by frontend proxy (e.g., nginx)
+    proto = (req.headers.get('X-Forwarded-Proto') or req.scheme or 'http').split(',')[0].strip()
+    xf_host = req.headers.get('X-Forwarded-Host')
+    host = (xf_host or req.headers.get('Host') or req.host or '').split(',')[0].strip()
+    # Extract hostname and optional port
+    if ':' in host:
+        hostname, port_str = host.rsplit(':', 1)
+        try:
+            port = int(port_str)
+        except Exception:
+            port = 443 if proto == 'https' else 80
+    else:
+        hostname = host
+        port = 443 if proto == 'https' else 80
+    return proto, hostname, port
+
 def _same_origin(req: "request") -> bool:
     try:
         origin = req.headers.get('Origin')
@@ -356,9 +377,9 @@ def _same_origin(req: "request") -> bool:
         if not origin:
             return True  # allow non-CORS requests (same-origin navigation)
         o = urlparse(origin)
-        h = urlparse(req.host_url)
-        return (o.scheme, o.hostname, o.port or (443 if o.scheme=='https' else 80)) == \
-               (h.scheme, h.hostname, h.port or (443 if h.scheme=='https' else 80))
+        exp_proto, exp_host, exp_port = _expected_origin_tuple(req)
+        o_port = o.port or (443 if o.scheme == 'https' else 80)
+        return (o.scheme, o.hostname, o_port) == (exp_proto, exp_host, exp_port)
     except Exception:
         return False
 
