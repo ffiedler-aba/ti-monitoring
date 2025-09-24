@@ -2,8 +2,10 @@
 
 ## Anbieter
 
-**TI-Monitoring System**  
-Telematik Infrastruktur Monitoring
+**ti-stats.net**  
+Telematik Infrastruktur Monitoring und -Statistik
+
+*ti-stats.net ist ein rein privates Projekt ohne kommerziellen Hintergrund.*
 
 ## Kontakt
 
@@ -14,6 +16,7 @@ Telematik Infrastruktur Monitoring
 ## Verantwortlich für den Inhalt
 
 **Verantwortlich**:  
+
 Markus F.J. Busche  
 Knorsstr. 16  
 24106 Kiel
@@ -69,31 +72,12 @@ Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
 
 ### Verfügbarkeit
 - **Zielverfügbarkeit**: 99.5%
-- **Wartungsfenster**: Sonntags 02:00 - 04:00 Uhr
 - **Monitoring**: 24/7 Überwachung
 
 ### Sicherheit
 - **Verschlüsselung**: TLS 1.3
 - **Authentifizierung**: Multi-Faktor-Authentifizierung
 - **Updates**: Regelmäßige Sicherheitsupdates
-- **Penetrationstests**: Jährlich durch externe Anbieter
-
-## Kontaktformular
-
-Bei Fragen oder Anregungen können Sie uns gerne kontaktieren:
-
-- **E-Mail**: kontakt@ti-monitoring.de
-- **Support**: support@ti-monitoring.de
-- **Technische Fragen**: tech@ti-monitoring.de
-
-## Geschäftsbedingungen
-
-Die Nutzung dieses Dienstes erfolgt nach folgenden Bedingungen:
-
-1. **Zweckgebundene Nutzung**: Der Dienst dient ausschließlich dem Monitoring von Telematik-Infrastruktur-Komponenten
-2. **Verfügbarkeit**: Wir bemühen uns um eine hohe Verfügbarkeit, können jedoch keine Garantie geben
-3. **Datenintegrität**: Wir übernehmen keine Haftung für die Korrektheit der angezeigten Daten
-4. **Änderungen**: Wir behalten uns vor, den Dienst jederzeit zu ändern oder einzustellen
 
 ## Version
 
