@@ -422,7 +422,8 @@ def _set_security_headers(resp: Response):
             "style-src 'self' 'unsafe-inline' https:; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
             "font-src 'self' https: data:; "
-            "connect-src 'self' https: data:"
+            "connect-src 'self' https: data:; "
+            "frame-ancestors 'none'"
         )
         resp.headers.setdefault('Content-Security-Policy', csp)
         # HSTS only when behind https
