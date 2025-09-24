@@ -2,11 +2,13 @@
 
 ## 1. Verantwortliche Stelle
 
-**TI-Monitoring und -Statistik**  
-Telematik Infrastruktur Monitoring
+**ti-stats.net** 
+Telematik Infrastruktur Monitoring und -Statistik
 
+Verantwortlich (Privatperson):
+Markus F.J. Busche
 E-Mail: elpatron@mailbox.org  
-Web: https://ti-mon.elpatron.me
+Web: https://ti-stats.net
 
 ## 2. Datenerhebung und -verwendung
 
@@ -14,7 +16,6 @@ Web: https://ti-mon.elpatron.me
 
 Bei jedem Besuch unserer Website werden automatisch folgende Daten erfasst:
 
-- **IP-Adresse** (anonymisiert nach 24 Stunden)
 - **Zugriffszeitpunkt**
 - **Besuchte Seiten**
 - **Verwendeter Browser**
@@ -27,7 +28,7 @@ Diese Daten dienen der technischen Bereitstellung der Website und der Sicherstel
 Für die Benachrichtigungsfunktionen erheben wir:
 
 - **E-Mail-Adressen** (verschlüsselt gespeichert)
-- **Benachrichtigungseinstellungen**
+- **Benachrichtigungseinstellungen** (verschlüsselt gespeichert)
 - **Konfigurierte CI-Komponenten**
 
 Diese Daten werden ausschließlich für die Versendung von Status-Benachrichtigungen verwendet.
@@ -62,7 +63,7 @@ Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
 
 ### Kontakt für Datenschutzanfragen
 
-E-Mail: datenschutz@ti-monitoring.de
+E-Mail: elpatron@mailbox.org
 
 ## 6. Cookies und Tracking
 
@@ -70,7 +71,6 @@ E-Mail: datenschutz@ti-monitoring.de
 Wir verwenden nur technisch notwendige Cookies für:
 - **Session-Management**
 - **Benutzerpräferenzen**
-- **Sicherheitsfunktionen**
 
 ### 6.2 Keine Tracking-Cookies
 Wir verwenden **keine** Analyse- oder Marketing-Cookies.
@@ -100,7 +100,7 @@ Die Datenübertragung erfolgt verschlüsselt und nur im Rahmen der gewählten Be
 
 Wir behalten uns vor, diese Datenschutzerklärung zu aktualisieren. Wesentliche Änderungen werden wir Ihnen mitteilen.
 
-**Letzte Aktualisierung**: 18. September 2024
+**Letzte Aktualisierung**: 24. September 2024
 
 ## 10. Beschwerderecht
 
