@@ -642,7 +642,10 @@ def render_incident_heatmap(_tick, cache_data):
             height=360,
             margin=dict(l=40,r=20,t=30,b=40),
             xaxis=dict(title='Stunde', type='category', categoryorder='array', categoryarray=x_labels),
-            yaxis=dict(title='Wochentag', type='category', categoryorder='array', categoryarray=wdays)
+            yaxis=dict(title='Wochentag', type='category', categoryorder='array', categoryarray=wdays),
+            # Make backgrounds transparent so CSS can provide proper light/dark contrast
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
         )
         # Neues Cache-Paket bauen
         try:

@@ -3094,3 +3094,58 @@ details {
     color: inherit !important;
   }
 }
+
+/* Extra contrast for specific components in Dark Mode */
+@media (prefers-color-scheme: dark) {
+  /* Incident heatmap container – increase contrast and readability */
+  #incident-heatmap {
+    background-color: #0b1220 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-md);
+    padding: 12px !important;
+  }
+
+  /* Plotly SVG text inside the graph */
+  #incident-heatmap .main-svg text,
+  #incident-heatmap .main-svg .xtick text,
+  #incident-heatmap .main-svg .ytick text,
+  #incident-heatmap .main-svg .cbtitle,
+  #incident-heatmap .main-svg .g-xtitle text,
+  #incident-heatmap .main-svg .g-ytitle text {
+    fill: #e5e7eb !important;
+  }
+
+  /* Colorbar tick labels */
+  #incident-heatmap .main-svg .colorbar text {
+    fill: #e5e7eb !important;
+  }
+
+  /* Hover label contrast */
+  #incident-heatmap .hoverlayer .hovertext {
+    fill: #0b1220 !important;
+  }
+  #incident-heatmap .hoverlayer .hovertext .bg {
+    fill: #f8fafc !important;
+    stroke: #93c5fd !important;
+  }
+
+  /* Warning message card – stronger contrast */
+  .warning-message {
+    background-color: #1e293b !important;
+    border: 1px solid #475569 !important;
+    color: #f1f5f9 !important;
+    border-radius: 10px !important;
+    box-shadow: var(--shadow-md);
+    padding: 12px 16px !important;
+  }
+
+  .warning-message a:any-link {
+    color: #93c5fd !important;
+    border-bottom-color: #93c5fd !important;
+  }
+
+  .warning-message a:any-link:hover {
+    color: #bfdbfe !important;
+  }
+}
