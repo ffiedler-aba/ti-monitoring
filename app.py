@@ -10,6 +10,7 @@ from flask import jsonify, request, redirect, url_for, Response, abort
 from markupsafe import escape
 from urllib.parse import urlparse
 from io import BytesIO
+import re
 try:
     from PIL import Image, ImageDraw, ImageFont
 except Exception:
@@ -439,9 +440,8 @@ dash.clientside_callback(
     """
     function(pathname) {
       try {
-        var origin = window.location.origin || '';
-        var search = window.location.search || '';
-        var href = origin + (pathname || '/') + search;
+        var u = new URL(window.location.href);
+        var href = u.origin + u.pathname + u.search; // garantiert korrekt encodiert
         var el = document.querySelector("link[rel='canonical']") || document.getElementById('canonical-link');
         if (el) { el.setAttribute('href', href); }
       } catch(e) {}
@@ -484,6 +484,7 @@ def sitemap_xml():
             # Limit to avoid huge sitemaps
             ci_values = df['ci'].dropna().astype(str).unique().tolist()[:1000]
             for ci in ci_values:
+                # Vorsicht: sitemap ist XML – CI-Wert wird nicht als HTML dargestellt
                 pages.append((f"/plot?ci={ci}", "hourly"))
     except Exception:
         # Fail silently; base pages are still provided
@@ -1001,10 +1002,24 @@ def track_page_view():
         if not data or 'page' not in data:
             return jsonify({'error': 'Missing page parameter'}), 400
         
-        page = data['page']
+        page = str(data['page'])
         session_id = data.get('session_id')
-        user_agent = data.get('user_agent', '')
+        user_agent = str(data.get('user_agent', ''))
         referrer = data.get('referrer')
+
+        # Sanitize inputs: allow only safe URL/path characters and limit length
+        def _sanitize(s: str, max_len: int = 512) -> str:
+            if not isinstance(s, str):
+                s = str(s)
+            s = s[:max_len]
+            # remove control characters
+            s = re.sub(r"[\x00-\x1f\x7f]", "", s)
+            # keep a conservative set of URL characters
+            return re.sub(r"[^A-Za-z0-9_\-\./:?&=%#]", "", s)
+
+        page = _sanitize(page, 256)
+        user_agent = _sanitize(user_agent, 256)
+        referrer = _sanitize(referrer or '', 512) or None
         
         # Generate session ID if not provided
         if not session_id:
