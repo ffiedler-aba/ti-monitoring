@@ -325,19 +325,21 @@ def serve_layout():
         ]),
 
         html.Div([
-            html.Span('Folge TI-Stats: ', style={'marginRight': '6px'}),
+            html.Span('Oder folge den TI-Stats Bots auf Mastodon oder Bluesky: ', style={'marginRight': '6px'}),
             html.Span([
                 html.A([
                     html.Img(src='/assets/mastodon.svg', alt='Mastodon', style={'verticalAlign': 'middle'}),
-                    html.Span(' Mastodon', style={'verticalAlign': 'middle'})
-                ], href='https://mas.to/@ti_stats', target='_blank', rel='me noopener noreferrer'),
+                    html.Span(' @ti-stats@mastodon.ti-stats.net', style={'verticalAlign': 'middle'})
+                ], href='https://mastodon.ti-stats.net/@tistatus', target='_blank', rel='me noopener noreferrer'),
                 html.Span(' · '),
                 html.A([
                     html.Img(src='/assets/bluesky.svg', alt='Bluesky', style={'verticalAlign': 'middle'}),
-                    html.Span(' Bluesky', style={'verticalAlign': 'middle'})
-                ], href='https://bsky.app/profile/ti-stats.net', target='_blank', rel='noopener noreferrer')
+                    html.Span(' @ti-stats@bsky.social', style={'verticalAlign': 'middle'})
+                ], href='https://bsky.app/profile/ti-stats.bsky.social', target='_blank', rel='noopener noreferrer')
             ], className='social-links')
         ]) ,
+        html.P([
+        ]),
         # Incidents section
         html.Div([
             html.H3("Letzte Incidents", className='incidents-title'),
