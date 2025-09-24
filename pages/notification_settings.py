@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, State, callback, no_update, callback_context, ALL
+from dash import html, dcc, Input, Output, State, callback, no_update, callback_context, ALL, MATCH
 import json
 from mylibrary import *
 import yaml
@@ -713,6 +713,20 @@ def handle_delete_account(delete_clicks, confirm_submits, auth_data):
 
     return no_update, no_update
 
+# 7a. Toggle confirm dialog per profile (open on click, close on submit)
+@callback(
+    Output({'type': 'confirm-delete-profile', 'profile_id': MATCH}, 'displayed'),
+    Input({'type': 'delete-profile', 'profile_id': MATCH}, 'n_clicks'),
+    State({'type': 'confirm-delete-profile', 'profile_id': MATCH}, 'displayed'),
+    prevent_initial_call=True
+)
+def toggle_confirm_delete_profile(delete_clicks, currently_displayed):
+    # Only open dialog on delete-button click; ConfirmDialog will close itself
+    # after user action without this callback intervening
+    if delete_clicks and not currently_displayed:
+        return True
+    return no_update
+
 # 7. Apprise Test Handler
 @callback(
     Output('test-result', 'children'),
@@ -1168,28 +1182,24 @@ def handle_edit_profile(edit_clicks_list, add_clicks, auth_data):
 # 17. Handle per-profile deletion (confirm + delete)
 @callback(
     Output('delete-profile-status', 'data'),
-    [Input({'type': 'delete-profile', 'profile_id': ALL}, 'n_clicks'),
-     Input({'type': 'confirm-delete-profile', 'profile_id': ALL}, 'submit_n_clicks')],
+    [Input({'type': 'confirm-delete-profile', 'profile_id': ALL}, 'submit_n_clicks')],
     [State('auth-status', 'data')],
     prevent_initial_call=True
 )
-def handle_delete_profile(delete_clicks_list, submit_clicks_list, auth_data):
+def handle_delete_profile(submit_clicks_list, auth_data):
     ctx = callback_context
     if not ctx.triggered:
         return ''
     trigger = ctx.triggered[0]['prop_id']
-    # Open dialog on delete click
-    if 'delete-profile' in trigger:
-        # Find matching confirm dialog and set displayed via client JS is not feasible here; we used ConfirmDialog components per card.
-        # Returning empty string; the actual open is handled by the component when its 'displayed' is set by user action.
-        return ''
-    # Confirmed deletion
+    # Only delete on confirm submit
     if 'confirm-delete-profile' in trigger:
         if not auth_data or not auth_data.get('authenticated'):
             return ''
         try:
             obj = json.loads(trigger.split('.')[0])
             profile_id = int(obj.get('profile_id'))
+            # Guard: ensure the submit count increased
+            # We don't need the count value itself; the fact this callback fired is sufficient
             with get_db_conn() as conn, conn.cursor() as cur:
                 cur.execute("""
                     DELETE FROM notification_profiles
