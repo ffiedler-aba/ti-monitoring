@@ -28,11 +28,11 @@ In Absprache mit Lukas Schmidt-Russnak führe ich diesen Fork zukünfig unabhän
 
 ### Entwicklungsstand
 
-Im Gegensatz zum Original TI-Monitor ist diese App als *nicht stabile Testversion* (Alpha, bestenfalls frühes Beta-Stadium) zu betrachten. Auch hier handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, bitte ausschließlich als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
+Bei ti-stats.net handelt es sich um ein in der Freizeit entwickeltes Privatprojekt, das weiter getrieben wird, wenn Zeit dafür übrig ist. Für Hinweise auf Bugs oder Featurewünsche habe ich jederzeit ein offenes Ohr, bitte ausschließlich als [GitHub Issue](https://github.com/elpatron68/ti-monitoring/issues).
 
 ### Öffentliche Demo-Instanz
 
-Eine öffentliche Demo-Instanz dieser App ist unter https://ti-stats.net/ nutzbar. Sie unterliegt allerdings häufigen Änderungen. Keine Gewährleistung für Funktionalität, Verfügbarkeit und Speicher-Persistenz! Wenn Sie diese App in Ihrem Unternehmen nutzen möchten, sollten Sie sich eine eigene Instanz einrichten.
+Eine öffentliche Instanz dieser App ist unter https://ti-stats.net/ nutzbar. Sie unterliegt derzeit häufigen Änderungen. Keine Gewährleistung für Funktionalität, Verfügbarkeit und Speicher-Persistenz! Wenn Sie diese App in Ihrem Unternehmen nutzen möchten, sollten Sie sich eine eigene Instanz einrichten.
 
 ### Disclaimer
 
@@ -263,113 +263,3 @@ docker compose up -d
 
 Diese Version verwendet TimescaleDB als primäre Datenspeicherung für optimale Performance und Skalierbarkeit.
 
-### Aktivierung
-
-1) Compose startet eine TimescaleDB-Instanz:
-   - Service `db` in `docker-compose.yml`
-   - Standard-Creds: `timonitor`/`timonitor`, DB `timonitor`
-
-2) Konfiguration in `config.yaml`:
-
-```yaml
-core:
-  timescaledb:
-    enabled: true
-    host: db
-    port: 5432
-    dbname: timonitor
-    user: timonitor
-    password: timonitor
-    keep_days: 185
-```
-
-3) Automatische Datenaufnahme
-   - `cron.py` speichert alle Messpunkte direkt in TimescaleDB
-   - Optimierte Zeitreihen-Speicherung durch Hypertables
-   - Automatische Datenkomprimierung und Retention
-
-### Migration von HDF5
-
-Falls Sie von einer älteren HDF5-basierten Installation migrieren:
-
-```bash
-# Migration ausführen
-python scripts/migrate_hdf5_to_timescaledb.py
-
-# Container neu starten
-docker compose restart
-```
-
-Hinweis: Die frühere HDF5-Migration ist obsolet; TimescaleDB ist der einzige unterstützte Pfad.
-
-## Web-App
-
-Der aktuelle Status verschiedener Komponenten kann optional auch in Form einer Web-App auf Basis des [Dash-Frameworks](https://dash.plotly.com) bereitgestellt werden. Die App kann z.B. in Kombination mit uWSGi und nginx (ähnlich [wie hier beschrieben](https://carpiero.medium.com/host-a-dashboard-using-python-dash-and-linux-in-your-own-linux-server-85d891e960bc) veröffentlicht werden.
-
-Auf der Startseite der App werden die Komponenten nach Produkt gruppiert dargestellt. Durch Anklicken der Gruppen lassen sich die jeweiligen Komponenten einblenden.
-![Screenshot aus der App: Startseite der App (Beispiel)](docs/img/App%20Home%20Beispiel.png "Startseite der App (Beispiel)")
-![Screenshot aus der App: Startseite der App mit Störung (Beispiel)](docs/img/App%20Home%20Beispiel%20Störung.png "Startseite der App mit Störung (Beispiel)")
-Per Klick auf die ID einer Komponente lässt sich eine Statistik der letzten Stunden aufrufen.
-![Screenshot aus der App: Statistik für eine Komponente (Beispiel)](docs/img/App%20Statistik%20Beispiel.png "Screenshot aus der App: Statistik für eine Komponente (Beispiel)")
-
-### Individuelle Zeitraum-Anpassung
-
-Ab Version 1.3.0 können Benutzer den Darstellungszeitraum für jeden Plot individuell anpassen. Über ein Dropdown-Menü können verschiedene Zeiträume von 1 Stunde bis zu 1 Woche ausgewählt werden. Der Standardwert wird aus der `config.yaml` Datei übernommen und kann dort global konfiguriert werden.
-
-**Verfügbare Zeiträume:**
-- 1 Stunde
-- 3 Stunden  
-- 6 Stunden
-- 12 Stunden (Standard)
-- 24 Stunden
-- 48 Stunden
-- 72 Stunden
-- 1 Woche (168 Stunden)
-
-Der gewählte Zeitraum wird in der URL gespeichert, sodass er bei der nächsten Nutzung beibehalten wird.
-
-Um eine gute Performance zu gewährleisten, kann das Zeitfenster der Statistik über die Variable `stats_delta_hours` in der Datei `config.yaml` reduziert werden. Die TimescaleDB-Datenbank wird automatisch durch Retention-Policies verwaltet und benötigt keine manuelle Archivierung.
-
-Soll die Web-App überhaupt nicht genutzt werden, sind folgende Ordner bzw. Dateien irrelevant und können entfernt werden:
-
-* assets
-* pages
-* app.py
-
-## Statistiken-Seite
-
-Ab Version 1.4.0 steht eine dedizierte Statistiken-Seite zur Verfügung, die eine umfassende Gesamtübersicht aller Configuration Items (CIs) bereitstellt. Die Seite ist über den Navigationslink "Stats" (Analytics-Icon) in der Web-App erreichbar.
-
-![Screenshot der Statistiken-Seite](docs/img/screenshot-stats-page.png "Screenshot der Statistiken-Seite - Umfassende Gesamtstatistiken aller Configuration Items")
-
-### Verfügbare Statistiken
-
-Die Statistiken-Seite bietet folgende Informationen:
-
-#### 🎯 Übersicht
-- **Gesamtanzahl CIs**: Anzahl aller überwachten Configuration Items
-- **Aktuell verfügbar**: Anzahl der derzeit verfügbaren CIs
-- **Aktuell nicht verfügbar**: Anzahl der derzeit nicht verfügbaren CIs
-- **Gesamtverfügbarkeit**: Prozentsatz der verfügbaren CIs
-
-#### 📅 Datenstatus
-- **Letzte Aktualisierung**: Zeitstempel der letzten Datenaktualisierung (Europe/Berlin)
-- **Datenalter**: Wie alt die aktuellen Daten sind
-- **Kürzliche Änderungen**: Anzahl der CIs mit Statusänderungen
-
-#### 🏢 Struktur
-- **Produkte**: Anzahl der verschiedenen Produktkategorien
-- **Organisationen**: Anzahl der verschiedenen Organisationen
-
-#### 🔴 Summierte Ausfallzeiten aller CIs
-- **Gesamtausfallzeit**: Absolute Summe aller Ausfallzeiten in Minuten
-- **Gesamtausfallzeit (⌀ pro Tag)**: Durchschnittliche Ausfallzeit pro Tag
-- **Gesamtausfallzeit (⌀ pro Woche)**: Durchschnittliche Ausfallzeit pro Woche
-- **Gesamtausfallzeit (⌀ pro Jahr)**: Durchschnittliche Ausfallzeit pro Jahr
-
-#### 📈 Durchschnittliche Ausfallzeiten pro Zeitintervall
-- **Pro Tag**: Durchschnittliche Ausfallzeit pro Tag über den gesamten Aufzeichnungszeitraum
-- **Pro Woche**: Durchschnittliche Ausfallzeit pro Woche über den gesamten Aufzeichnungszeitraum
-- **Pro Jahr**: Durchschnittliche Ausfallzeit pro Jahr über den gesamten Aufzeichnungszeitraum
-
-### Performance-Optimierung
