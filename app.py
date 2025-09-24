@@ -6,7 +6,8 @@ import os
 import subprocess
 import functools
 import time
-from flask import jsonify, request, redirect, url_for, Response
+from flask import jsonify, request, redirect, url_for, Response, abort
+from urllib.parse import urlparse
 from io import BytesIO
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -337,6 +338,98 @@ def serve_layout():
 
 # This is the correct way to set the layout - it should be the function itself, not the result of calling it
 app.layout = serve_layout
+# ---------------------------------------------------------------------------
+# Security hardening: validate Dash update endpoint and set security headers
+# ---------------------------------------------------------------------------
+
+_MAX_UPDATE_PAYLOAD_BYTES = int(os.getenv('TI_MAX_UPDATE_PAYLOAD', '1048576'))  # 1 MiB default
+
+def _same_origin(req: "request") -> bool:
+    try:
+        origin = req.headers.get('Origin')
+        if not origin:
+            # Fallback to Referer if Origin missing
+            ref = req.headers.get('Referer', '')
+            origin = ref if ref else None
+        if not origin:
+            return True  # allow non-CORS requests (same-origin navigation)
+        o = urlparse(origin)
+        h = urlparse(req.host_url)
+        return (o.scheme, o.hostname, o.port or (443 if o.scheme=='https' else 80)) == \
+               (h.scheme, h.hostname, h.port or (443 if h.scheme=='https' else 80))
+    except Exception:
+        return False
+
+@server.before_request
+def _harden_dash_update_component():
+    # Only scope to Dash update endpoint
+    if request.path != '/_dash-update-component':
+        return None
+
+    # Method restriction
+    if request.method != 'POST':
+        abort(405)
+
+    # Content-Type validation
+    ctype = request.headers.get('Content-Type', '')
+    if 'application/json' not in ctype:
+        abort(415)
+
+    # Same-origin check to prevent CSRF from other sites
+    if not _same_origin(request):
+        abort(403)
+
+    # Size limit
+    clen = request.content_length or 0
+    if clen > _MAX_UPDATE_PAYLOAD_BYTES:
+        abort(413)
+
+    # Basic payload validation (shape & limits) – keep permissive for Dash
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        abort(400)
+
+    # Known Dash keys
+    allowed_keys = {
+        'output', 'outputs', 'inputs', 'state', 'changedPropIds',
+        'triggered', 'callback_context', 'outputs_list'
+    }
+    # Reject clearly unexpected structures (but allow unknown extras up to a small limit)
+    if len([k for k in data.keys() if k not in allowed_keys]) > 3:
+        abort(400)
+
+    # Limit list sizes to mitigate abuse
+    for key in ('inputs', 'state', 'outputs'):
+        val = data.get(key)
+        if isinstance(val, list) and len(val) > 500:
+            abort(400)
+
+    return None
+
+@server.after_request
+def _set_security_headers(resp: Response):
+    try:
+        resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+        resp.headers.setdefault('X-Frame-Options', 'DENY')
+        resp.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+        resp.headers.setdefault('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+        # Basic CSP tuned for Dash/Plotly usage
+        csp = (
+            "default-src 'self'; "
+            "img-src 'self' data: blob: https:; "
+            "style-src 'self' 'unsafe-inline' https:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
+            "font-src 'self' https: data:; "
+            "connect-src 'self' https: data:"
+        )
+        resp.headers.setdefault('Content-Security-Policy', csp)
+        # HSTS only when behind https
+        if request.is_secure:
+            resp.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    except Exception:
+        pass
+    return resp
+
 
 """
 Clientseitiger Callback, um den Canonical-Link dynamisch anhand der aktuellen URL zu setzen.
