@@ -7,6 +7,7 @@ import subprocess
 import functools
 import time
 from flask import jsonify, request, redirect, url_for, Response, abort
+from markupsafe import escape
 from urllib.parse import urlparse
 from io import BytesIO
 try:
@@ -500,11 +501,13 @@ def sitemap_xml():
 # ----------------------------------------------------------------------------
 # SEO: Pretty URL Redirect /ci/<ci> -> /plot?ci=<ci>
 # ----------------------------------------------------------------------------
-@server.route('/ci/<ci>')
+@server.route('/ci/<path:ci>')
 def ci_redirect(ci: str):
-    target = url_for('pages.plot.serve_layout')  # base path for plot page
-    # Dash page is registered at /plot
-    return redirect(f"/plot?ci={ci}", code=301)
+    # Only allow a conservative subset in CI to avoid reflected content in redirects
+    # Keep alnum, dash, underscore, dot and colon
+    allowed = ('-', '_', '.', ':')
+    safe_ci = ''.join([c for c in ci if c.isalnum() or c in allowed])
+    return redirect(f"/plot?ci={escape(safe_ci)}", code=301)
 
 
 # ----------------------------------------------------------------------------
@@ -670,8 +673,9 @@ def og_image():
         resp = Response(buf.getvalue(), mimetype='image/png')
         resp.headers['Cache-Control'] = 'public, max-age=600'
         return resp
-    except Exception as e:
-        return Response(f"Error generating image: {e}", mimetype='text/plain', status=500)
+    except Exception:
+        # Avoid reflecting query parameters in error text
+        return Response("Error generating image", mimetype='text/plain', status=500)
 
 # Health check endpoint
 @server.route('/health')
@@ -796,13 +800,14 @@ def unsubscribe(token):
         # Per-URL-Opt-Out
         if url_hash:
             if remove_apprise_url_by_token_and_hash(token, url_hash):
+                safe_name = escape(name)
                 return f'''
                 <!DOCTYPE html>
                 <html>
                 <head><title>Kanal abgemeldet</title></head>
                 <body>
                     <h2>Kanal abgemeldet</h2>
-                    <p>Die ausgewählte Benachrichtigungs‑URL wurde erfolgreich aus dem Profil "{name}" entfernt.</p>
+                    <p>Die ausgewählte Benachrichtigungs‑URL wurde erfolgreich aus dem Profil "{safe_name}" entfernt.</p>
                     <p>Du kannst die übrigen Kanäle in den <a href="/notifications">Benachrichtigungseinstellungen</a> verwalten.</p>
                 </body>
                 </html>
@@ -821,13 +826,14 @@ def unsubscribe(token):
 
         # Profil-Opt-Out (Bestand)
         if delete_profile_by_unsubscribe_token(token):
+            safe_name = escape(name)
             return f'''
             <!DOCTYPE html>
             <html>
             <head><title>Abmeldung erfolgreich</title></head>
             <body>
                 <h2>Abmeldung erfolgreich</h2>
-                <p>Das Benachrichtigungsprofil "{name}" wurde erfolgreich gelöscht.</p>
+                <p>Das Benachrichtigungsprofil "{safe_name}" wurde erfolgreich gelöscht.</p>
                 <p>Du erhältst keine weiteren Benachrichtigungen von diesem Profil.</p>
             </body>
             </html>
