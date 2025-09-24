@@ -7,7 +7,7 @@ Telematik Infrastruktur Monitoring und -Statistik
 
 Verantwortlich (Privatperson):
 Markus F.J. Busche
-E-Mail: elpatron@mailbox.org  
+E-Mail: moin@ti-stats.net  
 Web: https://ti-stats.net
 
 ## 2. Datenerhebung und -verwendung
@@ -63,7 +63,7 @@ Sie haben folgende Rechte bezüglich Ihrer personenbezogenen Daten:
 
 ### Kontakt für Datenschutzanfragen
 
-E-Mail: elpatron@mailbox.org
+E-Mail: moin@ti-stats.net
 
 ## 6. Cookies und Tracking
 

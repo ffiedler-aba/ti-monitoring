@@ -9,7 +9,7 @@ Telematik Infrastruktur Monitoring und -Statistik
 
 ## Kontakt
 
-**E-Mail**: elpatron@mailbox.org
+**E-Mail**: moin@ti-stats.net
 **Web**: https://ti-mon.elpatron.me  
 **Telefon**: +49 1522 4575039
 
